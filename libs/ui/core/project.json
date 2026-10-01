@@ -1,0 +1,10 @@
+{
+  "name": "ui-core",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/ui/core/src",
+  "projectType": "library",
+  "targets": {
+    "lint": { "command": "eslint src", "options": { "cwd": "libs/ui/core" } },
+    "test": { "command": "vitest run", "options": { "cwd": "libs/ui/core" } }
+  }
+}

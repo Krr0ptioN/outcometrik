@@ -1,0 +1,15 @@
+node_modules/
+.nx/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+.venv/
+apps/api/db.sqlite3
+.pytest_cache/
+.mypy_cache/
+playwright-report/
+test-results/

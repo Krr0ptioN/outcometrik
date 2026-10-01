@@ -1,0 +1,37 @@
+name: cse-3xx
+services:
+  api:
+    build:
+      context: ../apps/api
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ../apps/api:/app
+    ports:
+      - "8000:8000"
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    depends_on:
+      redis:
+        condition: service_healthy
+  worker:
+    build:
+      context: ../apps/api
+    command: celery -A config worker --loglevel=INFO
+    volumes:
+      - ../apps/api:/app
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    depends_on:
+      redis:
+        condition: service_healthy
+  redis:
+    image: redis:8-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10

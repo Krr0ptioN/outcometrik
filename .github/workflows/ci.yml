@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  title:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: [feat, fix, docs, chore, refactor, test, ci, build, perf]
+  lint:
+    runs-on: ubuntu-latest
+    steps: &setup-and-lint
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 11 }
+      - uses: actions/setup-node@v4
+        with: { node-version-file: '.nvmrc', cache: pnpm }
+      - uses: astral-sh/setup-uv@v6
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm nx run-many -t lint --parallel=3
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 11 }
+      - uses: actions/setup-node@v4
+        with: { node-version-file: '.nvmrc', cache: pnpm }
+      - uses: astral-sh/setup-uv@v6
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm nx run-many -t test --parallel=3
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 11 }
+      - uses: actions/setup-node@v4
+        with: { node-version-file: '.nvmrc', cache: pnpm }
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm nx run-many -t build --parallel=2
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 11 }
+      - uses: actions/setup-node@v4
+        with: { node-version-file: '.nvmrc', cache: pnpm }
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm nx run-many -t e2e --parallel=1
