@@ -6,6 +6,7 @@
   "scripts": {
     "build": "nx run-many -t build",
     "dev:web": "nx serve web",
+    "dev:api": "nx serve api",
     "lint": "nx run-many -t lint",
     "test": "nx run-many -t test",
     "e2e": "nx run-many -t e2e",

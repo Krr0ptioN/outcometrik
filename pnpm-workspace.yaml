@@ -2,3 +2,10 @@ packages:
   - apps/web
   - libs/ui/*
   - tools/*
+allowBuilds:
+  '@parcel/watcher': true
+  esbuild: true
+  nx: true
+  sharp: true
+  unrs-resolver: true
+  workerd: true

@@ -13,3 +13,4 @@ apps/api/db.sqlite3
 .mypy_cache/
 playwright-report/
 test-results/
+/apps/web/.next
