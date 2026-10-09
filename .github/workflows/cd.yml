@@ -17,12 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with: { ref: ${{ github.event.workflow_run.head_sha }} }
-      - uses: pnpm/action-setup@v4
-        with: { version: 11 }
-      - uses: actions/setup-node@v4
-        with: { node-version-file: '.nvmrc', cache: pnpm }
-      - run: pnpm install --no-frozen-lockfile
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: ./.github/actions/setup-workspace
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io

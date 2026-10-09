@@ -17,47 +17,39 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          types: [feat, fix, docs, chore, refactor, test, ci, build, perf]
+          types: feat, fix, docs, chore, refactor, test, ci, build, perf
   lint:
+    needs: [title]
+    if: >-
+      always() && (needs.title.result == 'success' || needs.title.result == 'skipped')
     runs-on: ubuntu-latest
-    steps: &setup-and-lint
+    steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with: { version: 11 }
-      - uses: actions/setup-node@v4
-        with: { node-version-file: '.nvmrc', cache: pnpm }
-      - uses: astral-sh/setup-uv@v6
-      - run: pnpm install --no-frozen-lockfile
+      - uses: ./.github/actions/setup-workspace
       - run: pnpm nx run-many -t lint --parallel=3
   test:
+    needs: [title]
+    if: >-
+      always() && (needs.title.result == 'success' || needs.title.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with: { version: 11 }
-      - uses: actions/setup-node@v4
-        with: { node-version-file: '.nvmrc', cache: pnpm }
-      - uses: astral-sh/setup-uv@v6
-      - run: pnpm install --no-frozen-lockfile
+      - uses: ./.github/actions/setup-workspace
       - run: pnpm nx run-many -t test --parallel=3
   build:
+    needs: [title]
+    if: >-
+      always() && (needs.title.result == 'success' || needs.title.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with: { version: 11 }
-      - uses: actions/setup-node@v4
-        with: { node-version-file: '.nvmrc', cache: pnpm }
-      - run: pnpm install --no-frozen-lockfile
+      - uses: ./.github/actions/setup-workspace
       - run: pnpm nx run-many -t build --parallel=2
   e2e:
+    needs: [lint, test, build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with: { version: 11 }
-      - uses: actions/setup-node@v4
-        with: { node-version-file: '.nvmrc', cache: pnpm }
-      - run: pnpm install --no-frozen-lockfile
+      - uses: ./.github/actions/setup-workspace
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm nx run-many -t e2e --parallel=1

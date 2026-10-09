@@ -1,0 +1,30 @@
+name: Set up workspace
+description: Install the repository's Node, pnpm, Python and uv tooling, then install workspace dependencies.
+
+inputs:
+  install-dependencies:
+    description: Install JavaScript workspace dependencies with pnpm.
+    required: false
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - name: Set up pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 11.5.3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: .nvmrc
+        cache: pnpm
+
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v6
+
+    - name: Install workspace dependencies
+      if: inputs.install-dependencies == 'true'
+      shell: bash
+      run: pnpm install --no-frozen-lockfile
