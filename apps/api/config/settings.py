@@ -17,9 +17,9 @@ def env_list(name: str, default: str) -> list[str]:
     return [item.strip() for item in os.getenv(name, default).split(",") if item.strip()]
 
 
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "unsafe-development-key")
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "")
 DEBUG = env_bool("DJANGO_DEBUG", True)
-if not DEBUG and SECRET_KEY == "unsafe-development-key":
+if not DEBUG and not SECRET_KEY:
     raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set when DJANGO_DEBUG=false")
 
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
