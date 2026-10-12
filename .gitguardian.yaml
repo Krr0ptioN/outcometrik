@@ -1,0 +1,8 @@
+version: 2
+
+secret:
+  # These files describe local development wiring and intentionally contain
+  # environment-variable placeholders. Runtime secrets must remain scanned.
+  ignored_paths:
+    - apps/api/.env.example
+    - infra/compose.yaml

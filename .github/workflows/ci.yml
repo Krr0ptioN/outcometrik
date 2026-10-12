@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
   title:
@@ -17,7 +18,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          types: feat, fix, docs, chore, refactor, test, ci, build, perf
+          types: |
+            feat
+            fix
+            docs
+            chore
+            refactor
+            test
+            ci
+            build
+            perf
   lint:
     needs: [title]
     if: >-
@@ -32,6 +42,28 @@ jobs:
     if: >-
       always() && (needs.title.result == 'success' || needs.title.result == 'skipped')
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: cse3xx
+          POSTGRES_USER: cse3xx
+          POSTGRES_PASSWORD: ${{ github.run_id }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cse3xx -d cse3xx"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DJANGO_DEBUG: "true"
+      DJANGO_SECRET_KEY: ${{ github.run_id }}
+      POSTGRES_DB: cse3xx
+      POSTGRES_USER: cse3xx
+      POSTGRES_PASSWORD: ${{ github.run_id }}
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-workspace
