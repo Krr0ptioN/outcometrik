@@ -1,0 +1,23 @@
+{
+  "name": "ui-api",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/ui/api/src",
+  "projectType": "library",
+  "targets": {
+    "lint": {
+      "command": "eslint src",
+      "options": {
+        "cwd": "libs/ui/api"
+      }
+    },
+    "test": {
+      "command": "vitest run",
+      "options": {
+        "cwd": "libs/ui/api"
+      }
+    },
+    "typecheck": {
+      "command": "tsc --noEmit -p libs/ui/api/tsconfig.json"
+    }
+  }
+}

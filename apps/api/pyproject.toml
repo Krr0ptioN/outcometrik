@@ -1,7 +1,7 @@
 [project]
-name = "cse-3xx-api"
+name = "outcometrik-api"
 version = "0.1.0"
-description = "CSE-3XX API"
+description = "Outcometrik API"
 requires-python = ">=3.13"
 dependencies = [
   "celery[redis]>=5.5,<6",

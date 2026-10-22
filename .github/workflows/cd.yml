@@ -29,7 +29,7 @@ jobs:
         with:
           context: apps/api
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/cse-3xx-api:${{ github.event.workflow_run.head_sha }}
+          tags: ghcr.io/${{ github.repository_owner }}/outcometrik-api:${{ github.event.workflow_run.head_sha }}
       - name: Deploy frontend to Cloudflare Workers
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
