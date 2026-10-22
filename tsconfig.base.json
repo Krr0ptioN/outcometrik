@@ -11,6 +11,9 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
-    "paths": { "@outcometrik/ui": ["libs/ui/core/src/index.ts"] }
+    "paths": {
+      "@outcometrik/ui": ["libs/ui/core/src/index.ts"],
+      "@outcometrik/api": ["libs/ui/api/src/index.ts"]
+    }
   }
 }

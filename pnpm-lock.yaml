@@ -71,6 +71,8 @@ importers:
 
   apps/web: {}
 
+  libs/ui/api: {}
+
   libs/ui/core: {}
 
 packages:
