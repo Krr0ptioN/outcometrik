@@ -46,21 +46,21 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_DB: cse3xx
-          POSTGRES_USER: cse3xx
+          POSTGRES_DB: outcometrik
+          POSTGRES_USER: outcometrik
           POSTGRES_PASSWORD: ${{ github.run_id }}
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U cse3xx -d cse3xx"
+          --health-cmd "pg_isready -U outcometrik -d outcometrik"
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
     env:
       DJANGO_DEBUG: "true"
       DJANGO_SECRET_KEY: ${{ github.run_id }}
-      POSTGRES_DB: cse3xx
-      POSTGRES_USER: cse3xx
+      POSTGRES_DB: outcometrik
+      POSTGRES_USER: outcometrik
       POSTGRES_PASSWORD: ${{ github.run_id }}
       POSTGRES_HOST: localhost
       POSTGRES_PORT: "5432"

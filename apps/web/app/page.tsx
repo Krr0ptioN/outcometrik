@@ -1,9 +1,9 @@
-import { Button } from '@cse-3xx/ui';
+import { Button } from '@outcometrik/ui';
 
 export default function Home() {
   return (
     <main>
-      <h1>CSE-3XX</h1>
+      <h1>Outcometrik</h1>
       <Button>Get started</Button>
     </main>
   );
