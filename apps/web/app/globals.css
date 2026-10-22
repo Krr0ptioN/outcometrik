@@ -1,0 +1,30 @@
+@import 'tailwindcss';
+@layer base {
+  body {
+    @apply m-0 bg-slate-50 text-slate-900 antialiased;
+  }
+  header {
+    @apply flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4;
+  }
+  main {
+    @apply mx-auto max-w-3xl px-6 py-12;
+  }
+  h1 {
+    @apply mb-8 mt-2 text-4xl font-bold;
+  }
+  h2 {
+    @apply mb-3 text-xl font-semibold;
+  }
+  section {
+    @apply mb-6 rounded-xl border border-slate-200 bg-white p-6;
+  }
+  p {
+    @apply mb-4;
+  }
+  a {
+    @apply rounded underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600;
+  }
+}
+.skip-link {
+  @apply sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:bg-white focus:p-3;
+}

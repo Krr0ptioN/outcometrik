@@ -76,6 +76,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-workspace
+      - run: pnpm nx run-many -t typecheck --parallel=2
       - run: pnpm nx run-many -t build --parallel=2
   e2e:
     needs: [lint, test, build]
