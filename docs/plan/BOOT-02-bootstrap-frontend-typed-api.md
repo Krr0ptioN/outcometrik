@@ -8,7 +8,7 @@ As a user, I can open the web application and see whether the API is available, 
 
 ## Rules
 
-- Use React/TypeScript, Vite, TanStack Query, shadcn/ui, and Tailwind CSS as specified by the PRD.
+- Use React/TypeScript, Next.js, TanStack Query, shadcn/ui, and Tailwind CSS as specified by the PRD.
 - Serve the frontend and API from one public origin for the pilot; mutations use secure session cookies and CSRF protection.
 - API types must represent UUIDs, UTC timestamps, decimal values as strings, nullable scores, pagination, validation errors, and `409 Conflict` responses.
 - Loading, empty, unavailable, unauthorized, and validation states must be explicit and accessible.
