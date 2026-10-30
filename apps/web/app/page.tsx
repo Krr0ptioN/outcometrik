@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useHealthQuery } from '../lib/health';
+import { useHealthQuery } from '@outcometrik/system';
 import { Button } from './ui/button';
 
 export default function Home() {

@@ -74,6 +74,9 @@ importers:
       '@outcometrik/api':
         specifier: workspace:*
         version: link:../../libs/ui/api
+      '@outcometrik/system':
+        specifier: workspace:*
+        version: link:../../libs/ui/modules/system
       '@tailwindcss/postcss':
         specifier: ^4.3.3
         version: 4.3.3
@@ -95,6 +98,18 @@ importers:
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
+
+  libs/ui/modules/system:
+    dependencies:
+      '@outcometrik/api':
+        specifier: workspace:*
+        version: link:../../api
+      '@tanstack/react-query':
+        specifier: ^5.104.2
+        version: 5.104.2(react@19.1.1)
+      react:
+        specifier: ^19.1.1
+        version: 19.1.1
 
   libs/ui/api: {}
 

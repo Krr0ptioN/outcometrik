@@ -11,3 +11,7 @@ pnpm dev:web
 ```
 
 See the README in each top-level directory for ownership and commands.
+
+## Contributing
+
+Follow the [code style and frontend architecture guide](docs/CODE_STYLE.md) and [repository agent instructions](AGENTS.md).

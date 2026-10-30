@@ -1,6 +1,7 @@
 packages:
   - apps/web
   - libs/ui/*
+  - libs/ui/modules/*
   - tools/*
 allowBuilds:
   '@parcel/watcher': true

@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["dom", "dom.iterable", "es2022"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "es2022"
+    ],
     "strict": true,
     "noEmit": true,
     "module": "esnext",
@@ -12,8 +16,15 @@
     "jsx": "preserve",
     "incremental": true,
     "paths": {
-      "@outcometrik/ui": ["libs/ui/core/src/index.ts"],
-      "@outcometrik/api": ["libs/ui/api/src/index.ts"]
+      "@outcometrik/ui": [
+        "libs/ui/core/src/index.ts"
+      ],
+      "@outcometrik/api": [
+        "libs/ui/api/src/index.ts"
+      ],
+      "@outcometrik/system": [
+        "libs/ui/modules/system/src/index.ts"
+      ]
     }
   }
 }
