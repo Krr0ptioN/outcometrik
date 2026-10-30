@@ -1,0 +1,23 @@
+# Ordered stages, not separate deployed components. Solid arrows are synchronous.
+vars: {d2-config: {layout-engine: elk; theme-id: 200; pad: 48}}
+direction: down
+classes: {
+  step: {style: {fill: "#064e3b"; stroke: "#34d399"; font-color: "#e2e8f0"; border-radius: 10}}
+  frozen: {style: {fill: "#321b59"; stroke: "#a78bfa"; font-color: "#e2e8f0"; border-radius: 10}}
+  guard: {style: {fill: "#4c102b"; stroke: "#fb7185"; font-color: "#e2e8f0"; border-radius: 10}}
+}
+capture: "1 · Capture transaction\nLock program revision guard, then offering guards in UUID order\nRead policy, approved maps, grade revisions, roster + eligibility\nPersist canonical immutable manifest + SHA-256 hash; commit" {class: step}
+compute: "2 · Compute outside transaction\nNormalized assessments → LO → CoursePO → StudentPO\nDecimal precision 50; fixed ordering; no display rounding\nCompleteness + coverage + exclusion reasons" {class: step}
+persist: "3 · Persist result transaction\nOutcome rows + evidence edges + run COMPLETE\nAll-or-nothing; failure leaves no partial readable run" {class: frozen}
+gate: "4 · Publish transaction\nReauthorize actor; lock same guards + publication series\nRebuild current manifest hash; check release + approval + completeness\nRequire expected series version + matching input hash" {class: guard}
+release: "5 · Immutable publication\nInsert publication + audit; advance series pointer; commit\nStudent reads only authorized publication and its frozen evidence" {class: frozen}
+conflict: "409 · Inputs or publication series changed\nNo publication inserted\nRecalculate or refresh; existing publication stays readable" {class: guard}
+correction: "6 · Later correction\nSame guard protocol; append GradeChange + bump revision\nNew run required; historical rows unchanged" {class: step}
+historical: "Derived STALE badge\nCompare live manifest to historical input hash\nOriginal publication + evidence remain intact" {class: frozen}
+capture -> compute: "captured inputs only"
+compute -> persist: "complete result bundle"
+persist -> gate: "explicit authorized publish request"
+gate -> release: "all gates pass"
+gate -> conflict: "any gate fails"
+release -> correction: "subsequent authorized edit"
+correction -> historical: "freshness comparison"
