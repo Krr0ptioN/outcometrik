@@ -10,7 +10,7 @@ Browser requests use `/api/health/status` on the web origin. Next rewrites `/api
 
 ## Contracts
 
-`@outcometrik/api` (`libs/ui/api`) provides the shared SDK: `request<T>()`, `ApiError`, pagination, and wire types for UUIDs, UTC timestamps, decimal strings, and nullable scores. Errors distinguish unauthorized, forbidden, validation, conflict, unavailable, and unexpected responses. Validation payloads remain in `details`; endpoint-specific responses need runtime validation, as implemented by `lib/health/`, which consumes the SDK and owns the health endpoint contract. Requests time out after ten seconds and honor cancellation.
+`@outcometrik/api` (`libs/ui/api`) provides the shared SDK: `request<T>()`, `ApiError`, pagination, and wire types for UUIDs, UTC timestamps, decimal strings, and nullable scores. Errors distinguish unauthorized, forbidden, validation, conflict, unavailable, and unexpected responses. Validation payloads remain in `details`; endpoint-specific responses need runtime validation, as implemented by `@outcometrik/system` (`libs/ui/modules/system/src/features/health/`), which consumes the SDK and owns the health endpoint contract. Requests time out after ten seconds and honor cancellation.
 
 Requests use same-origin session cookies. Mutations require a Django `csrftoken` cookie or explicit token and send `X-CSRFToken`. AUTH-01 must establish this token before mutations. DRF session authentication may return 403 for unauthenticated users. The server owns authorization, scoring, and publication.
 

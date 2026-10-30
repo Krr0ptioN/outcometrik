@@ -1,4 +1,7 @@
 'use client';
+
+import Link from 'next/link';
+import { useHealthQuery } from '@outcometrik/system';
 import { Button } from './ui/button';
 
 export default function Home() {
@@ -9,21 +12,34 @@ export default function Home() {
       <a className="skip-link" href="#main">
         Skip to main content
       </a>
-      <header>
-        <span className="font-semibold">Outcometrik</span>
-        <nav aria-label="Main navigation">
-          <a href="#main" aria-current="page">
-            Overview
-          </a>
-        </nav>
-      </header>
-      <main id="main" tabIndex={-1}>
-        <p className="text-sm text-slate-600">Workspace foundation</p>
-        <h1>Outcometrik</h1>
-        <section aria-labelledby="health-title">
-          <h2 id="health-title">Service status</h2>
+      <main id="main" className="shell" tabIndex={-1}>
+        <header className="topbar">
+          <Link className="brand" href="/" aria-label="Outcometrik home">
+            Outcometrik
+          </Link>
+          <nav aria-label="Primary navigation">
+            <a href="#status">System status</a>
+          </nav>
+        </header>
+        <section className="hero" aria-labelledby="page-title">
+          <p className="eyebrow">Outcome measurement workspace</p>
+          <h1 id="page-title">Outcometrik</h1>
+          <p className="lede">
+            A clear view of learning outcomes. Domain workflows will appear here
+            as they become available.
+          </p>
+        </section>
+        <section
+          id="status"
+          className="status-card"
+          aria-labelledby="status-title"
+        >
+          <div>
+            <p className="eyebrow">Connection</p>
+            <h2 id="status-title">API availability</h2>
+          </div>
           <p role="status" aria-live="polite" aria-busy={health.isFetching}>
-            {message}
+            {health.message}
           </p>
           <Button
             onClick={() => void health.refetch()}
@@ -32,8 +48,13 @@ export default function Home() {
             {health.isFetching ? 'Checking…' : 'Check again'}
           </Button>
         </section>
-        <section aria-labelledby="workspace-title">
-          <h2 id="workspace-title">Your workspace</h2>
+        <section
+          id="workspace"
+          className="workspace"
+          aria-labelledby="workspace-title"
+        >
+          <p className="eyebrow">Next step</p>
+          <h2 id="workspace-title">Your workspace is waiting.</h2>
           <p>
             No courses to display yet. Course navigation will appear here as
             features become available.

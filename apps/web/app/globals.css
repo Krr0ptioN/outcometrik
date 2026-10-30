@@ -1,30 +1,162 @@
 @import 'tailwindcss';
-@layer base {
-  body {
-    @apply m-0 bg-slate-50 text-slate-900 antialiased;
+:root {
+  color-scheme: light;
+  --ink: #17211b;
+  --muted: #627068;
+  --paper: #f5f7f2;
+  --card: #fff;
+  --line: #dce4db;
+  --accent: #176b52;
+  --accent-soft: #e3f1ea;
+}
+* {
+  box-sizing: border-box;
+}
+html {
+  scroll-behavior: smooth;
+}
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: Arial, sans-serif;
+}
+a {
+  color: inherit;
+}
+.shell {
+  width: min(100% - 2rem, 72rem);
+  margin: 0 auto;
+  padding: 1.5rem 0 5rem;
+}
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 1rem;
+}
+.brand {
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+}
+nav {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+nav a:focus-visible,
+.brand:focus-visible,
+button:focus-visible {
+  outline: 3px solid #e6a72e;
+  outline-offset: 3px;
+}
+.hero {
+  padding: clamp(4rem, 12vw, 9rem) 0 4rem;
+  max-width: 48rem;
+}
+.eyebrow {
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+h1 {
+  font-size: clamp(2.7rem, 7vw, 5.4rem);
+  letter-spacing: -0.06em;
+  line-height: 0.98;
+  margin: 1rem 0;
+}
+h2 {
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  margin: 0.35rem 0 0;
+}
+.lede,
+.workspace p {
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1.6;
+  max-width: 38rem;
+}
+.status-card,
+.workspace {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 1rem 2rem #1733240b;
+}
+.status-card {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+.status-card > :first-child {
+  grid-column: 1 / -1;
+}
+.state {
+  border-radius: 999px;
+  padding: 0.55rem 0.8rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+.success {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.warning {
+  background: #fff3d7;
+  color: #7b5100;
+}
+.secondary {
+  border: 1px solid var(--line);
+  background: transparent;
+  border-radius: 0.5rem;
+  color: var(--ink);
+  cursor: pointer;
+  padding: 0.65rem 0.85rem;
+}
+.workspace {
+  margin-top: 1rem;
+}
+@media (max-width: 40rem) {
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
   }
-  header {
-    @apply flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4;
+  .status-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
   }
-  main {
-    @apply mx-auto max-w-3xl px-6 py-12;
-  }
-  h1 {
-    @apply mb-8 mt-2 text-4xl font-bold;
-  }
-  h2 {
-    @apply mb-3 text-xl font-semibold;
-  }
-  section {
-    @apply mb-6 rounded-xl border border-slate-200 bg-white p-6;
-  }
-  p {
-    @apply mb-4;
-  }
-  a {
-    @apply rounded underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600;
+  nav {
+    flex-wrap: wrap;
   }
 }
+
 .skip-link {
   @apply sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:bg-white focus:p-3;
+}
+
+@layer components {
+  .ui-button {
+    @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .ui-button-default {
+    @apply bg-slate-900 text-white hover:bg-slate-700;
+  }
+
+  .ui-button-outline {
+    @apply border border-slate-300 bg-white hover:bg-slate-100;
+  }
+
+  .ui-button-size-default {
+    @apply h-10 px-4 py-2;
+  }
 }

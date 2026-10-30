@@ -3,6 +3,9 @@ services:
   api:
     build:
       context: ../apps/api
+      entitlements:
+        - network.host
+      network: host
     command: sh -c "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"
     volumes:
       - ../apps/api:/app
@@ -27,6 +30,9 @@ services:
   worker:
     build:
       context: ../apps/api
+      entitlements:
+        - network.host
+      network: host
     command: celery -A config worker --loglevel=INFO
     volumes:
       - ../apps/api:/app
