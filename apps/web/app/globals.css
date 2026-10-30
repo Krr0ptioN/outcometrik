@@ -142,3 +142,21 @@ h2 {
 .skip-link {
   @apply sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:bg-white focus:p-3;
 }
+
+@layer components {
+  .ui-button {
+    @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .ui-button-default {
+    @apply bg-slate-900 text-white hover:bg-slate-700;
+  }
+
+  .ui-button-outline {
+    @apply border border-slate-300 bg-white hover:bg-slate-100;
+  }
+
+  .ui-button-size-default {
+    @apply h-10 px-4 py-2;
+  }
+}
