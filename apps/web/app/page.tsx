@@ -19,7 +19,6 @@ export default function Home() {
           </Link>
           <nav aria-label="Primary navigation">
             <a href="#status">System status</a>
-            <a href="#workspace">Workspace</a>
           </nav>
         </header>
         <section className="hero" aria-labelledby="page-title">
