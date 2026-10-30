@@ -4,12 +4,55 @@
   "sourceRoot": "apps/web",
   "projectType": "application",
   "targets": {
-    "serve": { "command": "next dev", "options": { "cwd": "apps/web" } },
-    "build": { "command": "next build", "options": { "cwd": "apps/web" }, "outputs": ["{projectRoot}/.next"] },
-    "start": { "command": "next start", "options": { "cwd": "apps/web" }, "dependsOn": ["build"] },
-    "lint": { "command": "eslint .", "options": { "cwd": "apps/web" } },
-    "test": { "command": "vitest run", "options": { "cwd": "apps/web" } },
-    "e2e": { "command": "playwright test", "options": { "cwd": "apps/web" }, "dependsOn": ["build"], "cache": false },
-    "deploy": { "command": "opennextjs-cloudflare build && wrangler deploy", "options": { "cwd": "apps/web" }, "dependsOn": ["build"] }
+    "serve": {
+      "command": "next dev",
+      "options": {
+        "cwd": "apps/web"
+      }
+    },
+    "build": {
+      "command": "next build",
+      "options": {
+        "cwd": "apps/web"
+      },
+      "outputs": ["{projectRoot}/.next"]
+    },
+    "start": {
+      "command": "next start",
+      "options": {
+        "cwd": "apps/web"
+      },
+      "dependsOn": ["build"]
+    },
+    "lint": {
+      "command": "eslint .",
+      "options": {
+        "cwd": "apps/web"
+      }
+    },
+    "test": {
+      "command": "vitest run",
+      "options": {
+        "cwd": "apps/web"
+      }
+    },
+    "e2e": {
+      "command": "playwright test",
+      "options": {
+        "cwd": "apps/web"
+      },
+      "dependsOn": ["build"],
+      "cache": false
+    },
+    "deploy": {
+      "command": "opennextjs-cloudflare build && wrangler deploy",
+      "options": {
+        "cwd": "apps/web"
+      },
+      "dependsOn": ["build"]
+    },
+    "typecheck": {
+      "command": "tsc --noEmit -p apps/web/tsconfig.json"
+    }
   }
 }

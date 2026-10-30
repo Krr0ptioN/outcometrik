@@ -597,7 +597,7 @@ outcometrik/
 │       │   ├── api/               # generated typed client
 │       │   └── lib/
 │       ├── package.json
-│       └── vite.config.ts
+│       └── next.config.ts
 ├── docs/
 │   ├── prd.md
 │   ├── adr/                   # architectural decisions

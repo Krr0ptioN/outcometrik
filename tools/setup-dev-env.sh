@@ -14,8 +14,8 @@ fi
 
 export DJANGO_DEBUG="${DJANGO_DEBUG:-true}"
 export DJANGO_ALLOWED_HOSTS="${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,api}"
-export POSTGRES_DB="${POSTGRES_DB:-cse3xx}"
-export POSTGRES_USER="${POSTGRES_USER:-cse3xx}"
+export POSTGRES_DB="${POSTGRES_DB:-outcometrik}"
+export POSTGRES_USER="${POSTGRES_USER:-outcometrik}"
 export POSTGRES_HOST="${POSTGRES_HOST:-localhost}"
 export POSTGRES_PORT="${POSTGRES_PORT:-5432}"
 export CELERY_BROKER_URL="${CELERY_BROKER_URL:-redis://localhost:6379/0}"

@@ -1,6 +1,6 @@
-# CSE-3XX
+# Outcometrik
 
-Nx monorepo for the CSE-3XX web platform. JavaScript tooling uses pnpm; Python tooling uses uv.
+Nx monorepo for the Outcometrik web platform. JavaScript tooling uses pnpm; Python tooling uses uv.
 
 ## Quick start
 
@@ -11,3 +11,7 @@ pnpm dev:web
 ```
 
 See the README in each top-level directory for ownership and commands.
+
+## Contributing
+
+Follow the [code style and frontend architecture guide](docs/CODE_STYLE.md) and [repository agent instructions](AGENTS.md).

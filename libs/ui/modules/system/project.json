@@ -1,0 +1,26 @@
+{
+  "name": "ui-system",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/ui/modules/system/src",
+  "projectType": "library",
+  "targets": {
+    "lint": {
+      "command": "eslint src",
+      "options": {
+        "cwd": "libs/ui/modules/system"
+      }
+    },
+    "test": {
+      "command": "vitest run",
+      "options": {
+        "cwd": "libs/ui/modules/system"
+      }
+    },
+    "typecheck": {
+      "command": "tsc --noEmit -p tsconfig.json",
+      "options": {
+        "cwd": "libs/ui/modules/system"
+      }
+    }
+  }
+}

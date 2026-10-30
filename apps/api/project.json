@@ -9,6 +9,6 @@
     "worker": { "command": "uv run celery -A config worker --loglevel=INFO", "options": { "cwd": "apps/api" }, "dependsOn": ["sync"], "continuous": true, "cache": false },
     "lint": { "command": "uv run ruff check . && uv run ruff format --check .", "options": { "cwd": "apps/api" }, "dependsOn": ["sync"] },
     "test": { "command": "uv run pytest", "options": { "cwd": "apps/api" }, "dependsOn": ["sync"] },
-    "build": { "command": "docker build -t cse-3xx-api:local .", "options": { "cwd": "apps/api" }, "cache": false }
+    "build": { "command": "docker build -t outcometrik-api:local .", "options": { "cwd": "apps/api" }, "cache": false }
   }
 }

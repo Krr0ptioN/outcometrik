@@ -1,0 +1,44 @@
+# Outcometrik | Pilot runtime. Internal boxes are Python modules, not services.
+vars: {d2-config: {layout-engine: elk; theme-id: 200; pad: 48}}
+direction: down
+classes: {
+  client: {style: {fill: "#083344"; stroke: "#22d3ee"; font-color: "#e2e8f0"; border-radius: 10}}
+  service: {style: {fill: "#064e3b"; stroke: "#34d399"; font-color: "#e2e8f0"; border-radius: 10}}
+  security: {style: {fill: "#4c102b"; stroke: "#fb7185"; font-color: "#e2e8f0"; border-radius: 10}}
+  store: {style: {fill: "#321b59"; stroke: "#a78bfa"; font-color: "#e2e8f0"}}
+  ops: {style: {fill: "#1e293b"; stroke: "#94a3b8"; font-color: "#e2e8f0"; border-radius: 10}}
+}
+browser: "React / TypeScript SPA\nStudent · Faculty · Coordinator\nRole-aware screens; no scoring authority" {class: client}
+pilot: "PILOT HOST · Docker Compose · one public origin" {
+  style: {fill: "#0f172a"; stroke: "#fbbf24"; stroke-dash: 5; font-color: "#fbbf24"}
+  edge: "HTTPS reverse proxy\nServe SPA build at /\nRoute /api and /admin to Django" {class: security}
+  app: "DJANGO / DRF · one deployable process boundary" {
+    direction: right
+    style: {fill: "#10251f"; stroke: "#34d399"; stroke-dash: 4; font-color: "#34d399"}
+    auth: "API + identity\nSession / CSRF\nScoped selectors + service guards" {class: security}
+    facts: "Domain services\nAcademics · Outcomes\nCurriculum · Grading · Audit" {class: service}
+    calc: "Attainment service\nFrozen input manifest\nDecimal kernel + publication gate" {class: service}
+    read: "Analytics + evidence queries\nReleased snapshots only for students\nScoped cohort statistics: n + coverage" {class: service}
+    io: "Import / export adapter\nCSV dry-run + atomic apply\nAuthorized CSV / PDF (P1)" {class: service}
+    auth -> facts: "3a · validated commands"
+    auth -> calc: "3b · calculate / publish"
+    auth -> read: "3c · profile / explain"
+    auth -> io: "3d · upload / download"
+    io -> facts: "validated grade commands"
+  }
+  data: "PRIVATE DATA TIER · no public ports" {
+    style: {fill: "#17152b"; stroke: "#a78bfa"; stroke-dash: 4; font-color: "#a78bfa"}
+    db: "PostgreSQL primary\nSource facts + append-only revisions\nRuns + evidence + publications + audit\nOne shared transaction boundary" {class: store; shape: cylinder}
+    files: "Private file volume\nStaged CSV + regenerable exports\nDownloads mediated by API" {class: store; shape: cylinder}
+  }
+  logs: "Operational telemetry\nRequest ID · latency · errors\nReadiness · disk · lock waits\nNo raw grade payloads" {class: ops}
+  edge -> app.auth: "2 · /api/v1 · session + CSRF"
+  app.facts -> data.db: "4a · atomic writes + audit"
+  app.calc -> data.db: "4b · frozen inputs + results"
+  app.read -> data.db: "4c · snapshot reads"
+  app.io -> data.files: "private file I/O"
+  app.auth -> logs: {style.stroke-dash: 5}
+}
+backup: "Encrypted off-host backup\nDaily DB + required files\nRestore rehearsal: RPO 24 h / RTO 4 h" {class: store; shape: cylinder}
+browser -> pilot.edge: "1 · HTTPS · JSON / static assets"
+pilot.data -> backup: "scheduled DB + retained files" {style.stroke-dash: 5}
