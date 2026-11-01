@@ -2,6 +2,12 @@
 
 **Blocked by:** ACAD-01.
 
+## Epic and PRD traceability
+
+- **Epic:** [EPIC-03](epics/EPIC-03-curriculum.md)
+- **PRD:** PRD §6; §11.2 FR-201, FR-202, FR-206–207
+- **Scope:** MVP story; optional v1 features are excluded unless PRD v2 explicitly includes them.
+
 ## User story
 
 As an instructor, I can draft and submit a versioned syllabus for an offering, so its learning outcomes and assessments are approved before official scoring.
@@ -23,3 +29,11 @@ As an instructor, I can draft and submit a versioned syllabus for an offering, s
 - [ ] Approval locks the version and records approver/time.
 - [ ] A revision creates a new version while preserving the prior version.
 - [ ] An offering cannot calculate official scores from an unapproved incompatible syllabus.
+## Implementation tasks
+
+- [ ] Confirm API/data contract and authorization scope against the owning domain module.
+- [ ] Implement the smallest vertical slice that satisfies the acceptance criteria.
+- [ ] Add focused unit/integration coverage for success, invalid input, and denied scope.
+- [ ] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
+- [ ] Update API/UI documentation and verify downstream stories remain compatible.
+

@@ -2,6 +2,12 @@
 
 **Blocked by:** None — can start immediately.
 
+## Epic and PRD traceability
+
+- **Epic:** [EPIC-05](epics/EPIC-05-attainment-publication.md)
+- **PRD:** PRD §§4–5; §11.4 FR-401–403
+- **Scope:** MVP story; optional v1 features are excluded unless PRD v2 explicitly includes them.
+
 ## User story
 
 As a maintainer, I can run the scoring formulas over immutable value objects, so the same versioned inputs always produce the same explainable outcome values.
@@ -24,3 +30,11 @@ As a maintainer, I can run the scoring formulas over immutable value objects, so
 - [ ] Repeated runs over identical ordered inputs are byte-for-byte deterministic.
 - [ ] Boundary and rounding tests document the selected numeric policy.
 - [ ] No intermediate value is quantized to display precision.
+## Implementation tasks
+
+- [ ] Confirm API/data contract and authorization scope against the owning domain module.
+- [ ] Implement the smallest vertical slice that satisfies the acceptance criteria.
+- [ ] Add focused unit/integration coverage for success, invalid input, and denied scope.
+- [ ] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
+- [ ] Update API/UI documentation and verify downstream stories remain compatible.
+

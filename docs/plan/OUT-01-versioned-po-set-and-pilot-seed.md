@@ -2,6 +2,12 @@
 
 **Blocked by:** ACAD-01.
 
+## Epic and PRD traceability
+
+- **Epic:** [EPIC-02](epics/EPIC-02-academic-catalog.md)
+- **PRD:** PRD §3; §11.1
+- **Scope:** MVP story; optional v1 features are excluded unless PRD v2 explicitly includes them.
+
 ## User story
 
 As a coordinator, I can create and activate a versioned set of eleven program outcomes, so every syllabus and published score has stable outcome semantics.
@@ -23,3 +29,11 @@ As a coordinator, I can create and activate a versioned set of eleven program ou
 - [ ] Activation prevents in-place mutation and records the actor/time.
 - [ ] A new version leaves old syllabus and publication references unchanged.
 - [ ] Users cannot silently combine scores from different PO semantics.
+## Implementation tasks
+
+- [ ] Confirm API/data contract and authorization scope against the owning domain module.
+- [ ] Implement the smallest vertical slice that satisfies the acceptance criteria.
+- [ ] Add focused unit/integration coverage for success, invalid input, and denied scope.
+- [ ] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
+- [ ] Update API/UI documentation and verify downstream stories remain compatible.
+
