@@ -1,6 +1,8 @@
 # Outcometrik — system design
 
-**Status:** proposed implementation architecture derived from [PRD v1.0](../PRD.md). **Date:** 9 October 2026. This document specifies intended behavior; it does not claim the repository already implements it.
+Product scope is governed by [PRD v2](../PRD.md); historical section references below describe the original design basis and do not override v2.
+
+**Status:** proposed implementation architecture derived from [historical v1 reference](../reference/v1-design-and-delivery.md). **Date:** 9 October 2026. This document specifies intended behavior; it does not claim the repository already implements it.
 
 Outcometrik uses a modular Django monolith and a PostgreSQL primary. The central design constraint is reproducibility: a publication must retain the actual inputs and calculation policy that produced it, rather than depend on mutable grade records. A separately built React SPA shares the API's public origin. The semester pilot starts with synchronous scoring and bounded imports; scaling additions are conditional on measured bottlenecks.
 
@@ -47,12 +49,12 @@ The diagram shows one deployed Django application. Internal module arrows are fu
 |---|---|
 | React/TypeScript browser SPA | Mapping studio, gradebook, profiles and accessible explanations (FR-200/300/500); no authorization/scoring authority |
 | HTTPS reverse proxy | One public origin, static build serving and API/admin routing; preserves PRD session/CSRF model |
-| API + identity | DRF serialization, Django sessions, query scoping and service-level permissions (FR-100; PRD §2/14) |
+| API + identity | DRF serialization, Django sessions, query scoping and service-level permissions (FR-100; Historical v1 §2/14) |
 | Domain services | `academics`, `outcomes`, `curriculum`, `grading`; transactions and audit of authoritative facts (FR-100/200/300) |
 | Attainment | Pure scoring kernel plus input capture, evidence and publication orchestration (FR-400) |
 | Analytics/evidence selectors | Read immutable publications for students; faculty previews are a distinct query path (FR-500/700) |
 | Import/export adapter | Bounded private uploads, dry-run, atomic apply, authorized downloads (FR-303/304/704) |
-| PostgreSQL | Relational integrity, revision history, shared transaction boundary and immutable read models (PRD §8/13) |
+| PostgreSQL | Relational integrity, revision history, shared transaction boundary and immutable read models (Historical v1 §8/13) |
 | Private file volume | Temporary CSV and regenerable exports; never public static/media routes |
 | Operational telemetry | Request IDs, errors, readiness and saturation signals (FR-803); separate from durable domain audit |
 | Off-host backups | Database and necessary retained files; host loss recovery (FR-804) |
@@ -69,7 +71,7 @@ The diagram shows one deployed Django application. Internal module arrows are fu
 
 Use thin DRF views, authorized use-case services, read-only selectors and Django ORM. An app calls another app's public facade; it does not directly write its tables. `attainment/domain.py` accepts immutable input structures and returns result structures without ORM/network access. `services.py` owns capture/persistence/publication; `selectors.py` owns permission-aware reads. Analytics cannot rewrite results.
 
-Keep PRD §11 routes and choose **400** for DRF validation consistently, **409** for stale expected versions/key conflicts, **404** for hidden objects and **403** for visible forbidden actions. Proposed API additions clarify import apply, grade release and conditional publication:
+Keep Historical v1 §11 routes and choose **400** for DRF validation consistently, **409** for stale expected versions/key conflicts, **404** for hidden objects and **403** for visible forbidden actions. Proposed API additions clarify import apply, grade release and conditional publication:
 
 | Route | Contract |
 |---|---|
@@ -111,7 +113,7 @@ Sessions use Secure/HttpOnly/SameSite cookies, explicit CSRF checks for mutation
 
 ## 5. Data model and input immutability
 
-PRD §7–8 provides the relational model. Retain UUID business keys and normalized transactional relations, with denormalized immutable calculation read models. PostgreSQL fits the FKs, scoped joins and atomic publication requirement. No shard/partition key is required initially.
+Historical v1 §7–8 provides the relational model. Retain UUID business keys and normalized transactional relations, with denormalized immutable calculation read models. PostgreSQL fits the FKs, scoped joins and atomic publication requirement. No shard/partition key is required initially.
 
 ### Architecture refinements to the proposed schema
 

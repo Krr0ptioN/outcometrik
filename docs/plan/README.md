@@ -9,3 +9,5 @@ Dependency order:
 `CALC-01` can start independently and joins `CALC-02`. `GRD-01` depends on `CUR-01` and `AUTH-01`; `IMP-01` depends on `GRD-01`; `UI-01`, `UI-02`, and `UI-03` also require `BOOT-02` and their domain slice. `OPS-01` starts after `BOOT-01`. `PERF-01` depends on `ANA-01`. `e2e` validation is represented by the acceptance criteria across the slices.
 
 The PRD marks several policies as proposed. Implement them behind a policy/version boundary and record the selected policy in the ticket's tests; do not silently turn a proposal into an institutional rule.
+
+PRD v2 takes precedence over historical ticket details, including integer 1–5 LO→PO weights and scoped direct capability grants. Reconcile each ticket against the current PRD before implementation; optional v1 items are not MVP commitments.
