@@ -2,13 +2,15 @@ name: ${COMPOSE_PROJECT_NAME:-outcometrik}
 services:
   api:
     build:
-      context: ../apps/api
+      context: ..
+      dockerfile: apps/api/Dockerfile
       entitlements:
         - network.host
       network: host
     command: sh -c "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"
     volumes:
-      - ../apps/api:/app
+      - ../apps/api:/workspace/apps/api
+      - ../libs/modules/access:/workspace/libs/modules/access
     ports:
       - "${API_HOST_PORT:-8000}:8000"
     environment:
@@ -29,13 +31,15 @@ services:
         condition: service_healthy
   worker:
     build:
-      context: ../apps/api
+      context: ..
+      dockerfile: apps/api/Dockerfile
       entitlements:
         - network.host
       network: host
     command: celery -A config worker --loglevel=INFO
     volumes:
-      - ../apps/api:/app
+      - ../apps/api:/workspace/apps/api
+      - ../libs/modules/access:/workspace/libs/modules/access
     environment:
       DJANGO_DEBUG: ${DJANGO_DEBUG:-true}
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?DJANGO_SECRET_KEY must be set}
