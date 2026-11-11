@@ -144,12 +144,17 @@ export async function assignAccess(body: {
   scope: string;
   role?: string;
   capability?: string;
+  capabilities?: string[];
 }) {
   const data = await request('/api/access/assignments/', {
     method: 'POST',
     body,
   });
-  if (!isRecord(data) || typeof data.id !== 'string')
+  if (
+    !isRecord(data) ||
+    !(typeof data.id === 'string' ||
+      (Array.isArray(data.ids) && data.ids.every((id) => typeof id === 'string')))
+  )
     throw new ApiError('unexpected', 201);
 }
 export async function revokeAccess(kind: 'roles' | 'grants', id: string) {

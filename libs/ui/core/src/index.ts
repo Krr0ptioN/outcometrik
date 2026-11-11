@@ -32,6 +32,7 @@ export {
   DialogTrigger,
 } from './components/dialog';
 export { Input } from './components/input';
+export { MultiSelectCombobox, type MultiSelectOption } from './components/multi-select-combobox';
 export { Button, buttonVariants } from './components/button';
 export { Alert, AlertTitle, AlertDescription } from './components/alert';
 export { Separator } from './components/separator';

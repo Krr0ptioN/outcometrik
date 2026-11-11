@@ -5,7 +5,7 @@ from django.db import DatabaseError, connection, models, transaction
 from django.http import Http404
 from rest_framework.test import APIClient
 
-from .models import AuditEvent, Capability, Role, RoleAssignment, Scope
+from .models import AuditEvent, Capability, DirectCapabilityGrant, Role, RoleAssignment, Scope
 from .policy import ResourceContext, authorization
 from .selectors import visible_resource, visible_resources
 from .services import assign, revoke, sensitive_export
@@ -267,6 +267,39 @@ def test_api_auth_validation_denials_and_revocation(world):
     client.force_authenticate(users["admin"])
     assert client.delete(f"/api/access/roles/{assignment_id}/").status_code == 204
     assert not allowed(users["outsider"], "grades.edit", offerings[0])
+
+
+def test_api_assigns_multiple_direct_capabilities_in_one_scoped_request(world):
+    users, _, _, offerings = world
+    client = APIClient()
+    client.force_authenticate(users["admin"])
+    response = client.post(
+        "/api/access/assignments/",
+        {
+            "user": users["outsider"].pk,
+            "scope": str(offerings[0].pk),
+            "capabilities": ["grades.export", "outcomes.view"],
+        },
+    )
+    assert response.status_code == 201, response.data
+    assert len(response.data["ids"]) == 2
+    grants = DirectCapabilityGrant.objects.filter(user=users["outsider"], revoked_at__isnull=True)
+    assert set(grants.values_list("capability_id", flat=True)) == {
+        "grades.export",
+        "outcomes.view",
+    }
+    assert AuditEvent.objects.filter(
+        actor=users["admin"], subject=users["outsider"], action="capability.granted"
+    ).count() == 2
+    duplicate = client.post(
+        "/api/access/assignments/",
+        {
+            "user": users["outsider"].pk,
+            "scope": str(offerings[0].pk),
+            "capabilities": ["grades.export", "grades.export"],
+        },
+    )
+    assert duplicate.status_code == 400
 
 
 def test_session_authentication_enforces_csrf(world):

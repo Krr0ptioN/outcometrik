@@ -83,6 +83,40 @@ test('institution administrator reviews structure, creates accounts, manages acc
     .click();
   await expect(coordinatorDialog).toHaveCount(0);
   const search = page.getByRole('textbox', { name: 'Search people' });
+  await search.fill('casey.coordinator');
+  await page
+    .getByRole('button', { name: 'Manage access for casey.coordinator' })
+    .click();
+  const coordinatorAccess = page.getByRole('dialog');
+  await coordinatorAccess
+    .getByRole('combobox', { name: 'Role', exact: true })
+    .selectOption('instructor');
+  await coordinatorAccess
+    .getByRole('button', { name: 'Assign access →', exact: true })
+    .click();
+  await expect(coordinatorAccess).toHaveCount(0);
+  await page
+    .getByRole('button', { name: 'Manage access for casey.coordinator' })
+    .click();
+  const coordinatorGrant = page.getByRole('dialog');
+  await coordinatorGrant
+    .getByRole('combobox', { name: 'Access type', exact: true })
+    .selectOption('capability');
+  await coordinatorGrant
+    .getByRole('combobox', { name: 'Capabilities', exact: true })
+    .click();
+  const capabilityOptions = page.getByRole('listbox', {
+    name: 'Capabilities',
+  });
+  await capabilityOptions.getByRole('option', { name: 'grades.export' }).click();
+  await capabilityOptions
+    .getByRole('option', { name: 'outcomes.view' })
+    .click();
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await coordinatorGrant
+    .getByRole('button', { name: 'Assign access →', exact: true })
+    .click();
+  await expect(coordinatorGrant).toHaveCount(0);
   await search.fill('ada.student');
   await expect(
     page.getByRole('button', { name: 'Manage access for grace.instructor' }),
@@ -118,9 +152,12 @@ test('institution administrator reviews structure, creates accounts, manages acc
   await page
     .getByRole('combobox', { name: 'Access type', exact: true })
     .selectOption('capability');
-  await page
-    .getByRole('combobox', { name: 'Capability', exact: true })
-    .selectOption('grades.release');
+  await page.getByRole('combobox', { name: 'Capabilities', exact: true }).click();
+  const releaseOptions = page.getByRole('listbox', { name: 'Capabilities' });
+  await releaseOptions
+    .getByRole('option', { name: 'grades.release' })
+    .click();
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
   await page
     .getByRole('button', { name: 'Assign access →', exact: true })
     .click();

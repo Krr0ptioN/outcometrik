@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied as APIPermissionDenied
@@ -18,19 +19,41 @@ class AssignmentInput(serializers.Serializer):
     capability = serializers.PrimaryKeyRelatedField(
         queryset=Capability.objects.all(), required=False
     )
+    capabilities = serializers.ListField(
+        child=serializers.PrimaryKeyRelatedField(queryset=Capability.objects.all()),
+        required=False,
+        allow_empty=False,
+    )
 
     def validate(self, attrs):
-        if ("role" in attrs) == ("capability" in attrs):
-            raise serializers.ValidationError("Supply exactly one role or capability.")
+        choices = sum(key in attrs for key in ("role", "capability", "capabilities"))
+        if choices != 1:
+            raise serializers.ValidationError(
+                "Supply exactly one role, capability, or capabilities list."
+            )
+        capabilities = attrs.get("capabilities")
+        if capabilities and len({item.pk for item in capabilities}) != len(capabilities):
+            raise serializers.ValidationError({"capabilities": "Options must be unique."})
         return attrs
 
 
 class AssignmentsView(APIView):
+    @transaction.atomic
     def post(self, request):
         serializer = AssignmentInput(data=request.data)
         serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        capabilities = data.pop("capabilities", None)
         try:
-            assignment = assign(actor=request.user, **serializer.validated_data)
+            if capabilities is not None:
+                assignments = [
+                    assign(actor=request.user, capability=capability, **data)
+                    for capability in capabilities
+                ]
+                return Response(
+                    {"ids": [str(assignment.pk) for assignment in assignments]}, status=201
+                )
+            assignment = assign(actor=request.user, **data)
         except PermissionDenied as exc:
             raise APIPermissionDenied(str(exc)) from exc
         except ValidationError as exc:
