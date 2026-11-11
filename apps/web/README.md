@@ -30,3 +30,23 @@ pnpm nx e2e web
 Tests cover API errors, credential and CSRF handling, loading, retry, empty workspace, and keyboard navigation. CI runs type checking and build explicitly.
 
 Project identifiers use `outcometrik`, including database defaults, Compose project, image names, and Worker name. Existing installations should explicitly retain their previous Compose project name and database/user environment settings until data is migrated. Renaming defaults does not migrate existing volumes or deployed resources.
+
+## Institution administration
+
+Visit `/login` to sign in with a Django account. Institution administrators are
+sent to `/admin`; other users return to the workspace. The dashboard is the
+institution view: overview, people/access, programs/course offerings, and audit
+activity. It supports account creation with an initial scoped role, additional
+role/direct-capability assignments, and revocations. Search and pagination are
+server-backed; every request is authorized by Django. No browser token storage is
+used, and signing out clears the query cache.
+
+Create an initial Django user and run the API's `bootstrap_access` command with
+the institution name. In the dashboard, add a program and course offering before
+creating student or instructor accounts. See [the API guide](../api/README.md)
+for setup, password rules and CSRF configuration.
+
+`pnpm nx e2e web` runs a disposable SQLite-backed API using
+`tools/auth-e2e-server.py` alongside the production Next server. It requires the
+API's uv environment and port 8000 to be available. The test account exists only
+in a temporary database that is removed after the server stops.

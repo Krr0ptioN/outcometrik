@@ -2,6 +2,12 @@
 
 **Blocked by:** CUR-01, AUTH-01.
 
+## Epic and PRD traceability
+
+- **Epic:** [EPIC-04](epics/EPIC-04-grading.md)
+- **PRD:** PRD §§4, 11.3 FR-301–302, FR-305–306
+- **Scope:** MVP story; optional v1 features are excluded unless PRD v2 explicitly includes them.
+
 ## User story
 
 As an authorized instructor, I can record and correct assessment grades for an offering roster, so raw measurement facts are accurate, scoped, and auditable.
@@ -24,3 +30,11 @@ As an authorized instructor, I can record and correct assessment grades for an o
 - [ ] Corrections preserve a complete history and require a reason when policy requires it.
 - [ ] Concurrent updates return a version conflict instead of last-write-wins.
 - [ ] Cross-student and unreleased-grade access tests pass.
+## Implementation tasks
+
+- [ ] Confirm API/data contract and authorization scope against the owning domain module.
+- [ ] Implement the smallest vertical slice that satisfies the acceptance criteria.
+- [ ] Add focused unit/integration coverage for success, invalid input, and denied scope.
+- [ ] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
+- [ ] Update API/UI documentation and verify downstream stories remain compatible.
+

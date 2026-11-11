@@ -2,6 +2,12 @@
 
 **Blocked by:** ANA-01.
 
+## Epic and PRD traceability
+
+- **Epic:** [EPIC-07](epics/EPIC-07-quality-demo-delivery.md)
+- **PRD:** PRD §§8, 11.6; CSE321 evidence only
+- **Scope:** MVP story; optional v1 features are excluded unless PRD v2 explicitly includes them.
+
 ## User story
 
 As the project team, I can measure query plans, latency, row counts, and storage for a realistic CSE321 dataset, so performance claims are evidence-based.
@@ -23,3 +29,11 @@ As the project team, I can measure query plans, latency, row counts, and storage
 - [ ] The scoring benchmark includes evidence persistence, not only arithmetic.
 - [ ] Any slow query has an explained index/query/model decision or a documented deferral.
 - [ ] The CSE321 report contains measured results with assumptions and limitations.
+## Implementation tasks
+
+- [ ] Confirm API/data contract and authorization scope against the owning domain module.
+- [ ] Implement the smallest vertical slice that satisfies the acceptance criteria.
+- [ ] Add focused unit/integration coverage for success, invalid input, and denied scope.
+- [ ] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
+- [ ] Update API/UI documentation and verify downstream stories remain compatible.
+

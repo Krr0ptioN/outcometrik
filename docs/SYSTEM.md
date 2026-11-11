@@ -405,5 +405,5 @@ Weakest dimension is measured scale: public university reports give headcount, n
 6. PostgreSQL 16, [Transaction isolation](https://www.postgresql.org/docs/16/transaction-iso.html), [Table partitioning](https://www.postgresql.org/docs/16/ddl-partitioning.html), [High availability and replication](https://www.postgresql.org/docs/16/high-availability.html), [Database size functions](https://www.postgresql.org/docs/16/functions-admin.html).
 7. Django 5.2, [Database transactions](https://docs.djangoproject.com/en/5.2/topics/db/transactions/), [Database connections](https://docs.djangoproject.com/en/5.2/ref/databases/).
 8. Türkiye Personal Data Protection Authority (KVKK), [Personal Data Protection Law No. 6698](https://www.kvkk.gov.tr/Icerik/6649/Personal-Data-Protection-Law).
-9. Project context and schema: [Outcometrik PRD](PRD.md), particularly §§7–8, 12–15, 23.
+9. Project context and schema: [PRD v2](PRD.md) for current scope; [historical design reference](reference/v1-design-and-delivery.md), §§7–8, 12–15, 23, for the original schema and infrastructure proposals.
 

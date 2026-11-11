@@ -1,6 +1,7 @@
 import datetime as dt
 
 import pytest
+from access.models import RoleAssignment
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db.models import ProtectedError
@@ -24,21 +25,24 @@ pytestmark = pytest.mark.django_db
 User = get_user_model()
 
 
-@pytest.fixture
-def staff():
-    return User.objects.create_user("staff", password="x", is_staff=True)
+def grant_role(user, scope_id, role):
+    return RoleAssignment.objects.get_or_create(
+        user=user, scope_id=scope_id, role_id=role, revoked_at__isnull=True
+    )[0]
 
 
 @pytest.fixture
-def admin_client(staff):
+def admin_client(world):
     client = APIClient()
-    client.force_authenticate(staff)
+    client.force_authenticate(world["admin"])
     return client
 
 
 @pytest.fixture
 def world():
     inst = Institution.objects.create(code="ACU", name="Acibadem")
+    admin = User.objects.create_user("admin", password="x")
+    grant_role(admin, inst.pk, "administrator")
     dept = Department.objects.create(institution=inst, code="CSE", name="Computer Eng")
     other = Department.objects.create(institution=inst, code="MATH", name="Math")
     program = Program.objects.create(department=dept, code="CENG", title="Computer Eng")
@@ -72,16 +76,23 @@ def world():
         "foreign": foreign,
         "link": link,
         "student": student,
+        "admin": admin,
     }
 
 
 def make_offering(w, section="01"):
-    return services.create_offering(
-        program=w["program"], course=w["course"], term=w["term"], section=section
+    offering = services.create_offering(
+        actor=w["admin"], program=w["program"], course=w["course"], term=w["term"], section=section
     )
+    grant_role(w["student"], offering.pk, "student")
+    return offering
 
 
 def test_create_and_browse_structure(admin_client, world):
+    from access.models import Scope
+
+    scope = Scope.objects.create(kind=Scope.Kind.INSTITUTION, label="X U")
+    grant_role(world["admin"], scope.pk, "administrator")
     r = admin_client.post("/api/v1/institutions/", {"code": "X", "name": "X U"}, format="json")
     assert r.status_code == 201
     r = admin_client.post(
@@ -134,6 +145,7 @@ def test_duplicates_rejected(admin_client, world):
     assert admin_client.post("/api/v1/program-memberships/", mem, format="json").status_code == 400
 
     offering = CourseOffering.objects.get()
+    grant_role(world["student"], offering.pk, "student")
     enr = {"offering": str(offering.pk), "student": world["student"].pk}
     assert admin_client.post("/api/v1/enrollments/", enr, format="json").status_code == 201
     assert admin_client.post("/api/v1/enrollments/", enr, format="json").status_code == 400
@@ -176,7 +188,7 @@ def test_enrollment_requires_active_membership(world):
     offering = make_offering(world)
     outsider = User.objects.create_user("out", password="x")
     with pytest.raises(ValidationError):
-        services.create_enrollment(offering=offering, student=outsider)
+        services.create_enrollment(actor=world["admin"], offering=offering, student=outsider)
 
 
 def test_input_revision_and_policy(world):
@@ -185,14 +197,18 @@ def test_input_revision_and_policy(world):
     program.refresh_from_db()
     assert program.input_revision == 1
 
-    enrollment = services.create_enrollment(offering=offering, student=world["student"])
+    enrollment = services.create_enrollment(
+        actor=world["admin"], offering=offering, student=world["student"]
+    )
     program.refresh_from_db()
     offering.refresh_from_db()
     assert (program.input_revision, offering.input_revision) == (2, 1)
     assert enrollment.eligible_for_outcomes
     assert enrollment.eligibility_policy_version == "proposed-v1"
 
-    services.update_enrollment_status(enrollment=enrollment, status="withdrawn", reason="left")
+    services.update_enrollment_status(
+        actor=world["admin"], enrollment=enrollment, status="withdrawn", reason="left"
+    )
     program.refresh_from_db()
     offering.refresh_from_db()
     enrollment.refresh_from_db()
@@ -202,21 +218,27 @@ def test_input_revision_and_policy(world):
     assert enrollment.status_events.count() == 2
 
     # a change that does not flip eligibility does not bump the revision
-    services.update_enrollment_status(enrollment=enrollment, status="incomplete")
+    services.update_enrollment_status(
+        actor=world["admin"], enrollment=enrollment, status="incomplete"
+    )
     program.refresh_from_db()
     assert program.input_revision == 3
 
 
 def test_withdrawn_enrollment_does_not_bump(world):
     offering = make_offering(world)
-    services.create_enrollment(offering=offering, student=world["student"], status="withdrawn")
+    services.create_enrollment(
+        actor=world["admin"], offering=offering, student=world["student"], status="withdrawn"
+    )
     offering.refresh_from_db()
     assert offering.input_revision == 0
 
 
 def test_patch_enrollment_status_endpoint(admin_client, world):
     offering = make_offering(world)
-    enrollment = services.create_enrollment(offering=offering, student=world["student"])
+    enrollment = services.create_enrollment(
+        actor=world["admin"], offering=offering, student=world["student"]
+    )
     r = admin_client.patch(
         f"/api/v1/enrollments/{enrollment.pk}/",
         {"status": "withdrawn", "reason": "x"},
@@ -239,9 +261,9 @@ def test_nested_roster_route(admin_client, world):
 
 def test_denied_scope(world):
     offering = make_offering(world)
-    services.create_enrollment(offering=offering, student=world["student"])
+    services.create_enrollment(actor=world["admin"], offering=offering, student=world["student"])
 
-    stranger = User.objects.create_user("s2", password="x")
+    stranger = User.objects.create_user("s2", password="x", is_staff=True, is_superuser=True)
     client = APIClient()
     client.force_authenticate(stranger)
     assert client.get("/api/v1/offerings/").data["count"] == 0
@@ -255,6 +277,7 @@ def test_denied_scope(world):
     assert student_client.get("/api/v1/enrollments/").data["count"] == 1
 
     teacher = User.objects.create_user("t", password="x")
+    grant_role(teacher, offering.pk, "instructor")
     InstructorAssignment.objects.create(offering=offering, user=teacher)
     teacher_client = APIClient()
     teacher_client.force_authenticate(teacher)
@@ -265,7 +288,9 @@ def test_denied_scope(world):
 
 def test_history_protected_and_readable(admin_client, world):
     offering = make_offering(world)
-    enrollment = services.create_enrollment(offering=offering, student=world["student"])
+    enrollment = services.create_enrollment(
+        actor=world["admin"], offering=offering, student=world["student"]
+    )
 
     with pytest.raises(ProtectedError):
         offering.delete()
@@ -295,3 +320,89 @@ def test_history_protected_and_readable(admin_client, world):
         format="json",
     )
     assert r.status_code == 400
+
+
+def test_coordinator_and_instructor_are_confined_to_assigned_scopes(admin_client, world):
+
+    other_program = Program.objects.create(
+        department=world["dept"], code="MATH", title="Mathematics"
+    )
+    ProgramCourse.objects.create(
+        program=other_program,
+        course=world["course"],
+        effective_from=dt.date(2026, 1, 1),
+        status="approved",
+    )
+    other_offering = services.create_offering(
+        actor=world["admin"],
+        program=other_program,
+        course=world["course"],
+        term=world["term"],
+        section="02",
+    )
+    coordinator = User.objects.create_user("coord", password="x")
+    grant_role(coordinator, world["program"].pk, "program-coordinator")
+    client = APIClient()
+    client.force_authenticate(coordinator)
+    assert client.get(f"/api/v1/programs/{world['program'].pk}/").status_code == 200
+    assert client.get(f"/api/v1/programs/{other_program.pk}/").status_code == 404
+    assert client.get(f"/api/v1/offerings/{other_offering.pk}/").status_code == 404
+    assert (
+        client.post(
+            f"/api/v1/offerings/{other_offering.pk}/enrollments/",
+            {"student": world["student"].pk},
+            format="json",
+        ).status_code
+        == 404
+    )
+
+    instructor = User.objects.create_user("teacher", password="x")
+    grant_role(instructor, other_offering.pk, "instructor")
+    client.force_authenticate(instructor)
+    assert client.get(f"/api/v1/offerings/{other_offering.pk}/").status_code == 200
+    assert (
+        client.patch(
+            f"/api/v1/offerings/{make_offering(world).pk}/",
+            {"status": "archived"},
+            format="json",
+        ).status_code
+        == 404
+    )
+
+
+def test_student_sees_only_own_enrollment(admin_client, world):
+    offering = make_offering(world)
+    other_student = User.objects.create_user("stu2", password="x")
+    ProgramMembership.objects.create(
+        program=world["program"], user=other_student, student_number="S2"
+    )
+    grant_role(other_student, offering.pk, "student")
+    own = services.create_enrollment(
+        actor=world["admin"], offering=offering, student=world["student"]
+    )
+    other = services.create_enrollment(
+        actor=world["admin"], offering=offering, student=other_student
+    )
+    client = APIClient()
+    client.force_authenticate(world["student"])
+    assert client.get("/api/v1/enrollments/").data["count"] == 1
+    assert client.get(f"/api/v1/enrollments/{own.pk}/").status_code == 200
+    assert client.get(f"/api/v1/enrollments/{other.pk}/").status_code == 404
+
+
+def test_instructor_assignment_creates_audited_access_role(admin_client, world):
+    from access.models import AuditEvent, RoleAssignment
+
+    offering = make_offering(world)
+    instructor = User.objects.create_user("assigned-teacher", password="x")
+    response = admin_client.post(
+        "/api/v1/instructor-assignments/",
+        {"offering": str(offering.pk), "user": instructor.pk, "assignment_role": "instructor"},
+        format="json",
+    )
+    assert response.status_code == 201, response.data
+    assignment = RoleAssignment.objects.get(user=instructor, scope_id=offering.pk)
+    assert assignment.role_id == "instructor"
+    assert AuditEvent.objects.filter(
+        actor=world["admin"], subject=instructor, scope_id=offering.pk, action="role.assigned"
+    ).exists()

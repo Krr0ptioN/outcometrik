@@ -1,6 +1,8 @@
 # Outcometrik — architecture requirements
 
-Source: [PRD v1.0](../PRD.md), 9 October 2026. This is a proposed design, not an implementation or a statement of institutional policy.
+Product scope is governed by [PRD v2](../PRD.md); historical section references below describe the original design basis and do not override v2.
+
+Source: [historical v1 reference](../reference/v1-design-and-delivery.md), 9 October 2026. This is a proposed design, not an implementation or a statement of institutional policy.
 
 ## Core functional scope
 
@@ -15,7 +17,7 @@ Source: [PRD v1.0](../PRD.md), 9 October 2026. This is a proposed design, not an
 |---|---|---|
 | Scale | 1,000 active students, 10 enrollments/student/year, 8 assessments/offering; 200 concurrent users | Synthetic dataset; no real student records |
 | Traffic | 40 peak read requests/s; 10 peak write requests/s; 4:1 burst read/write ratio | Mixed workload with grade-release burst |
-| Latency | Common scoped CRUD p95 <500 ms; 1,000 × 10-course scoring p95 <5 s | PRD §15; record hardware, queries and evidence volume |
+| Latency | Common scoped CRUD p95 <500 ms; 1,000 × 10-course scoring p95 <5 s | Historical v1 §15; record hardware, queries and evidence volume |
 | Availability | Restart recovery required; proposed 99.5% during agreed pilot hours, excluding scheduled maintenance | Synthetic checks; single-host deployment cannot guarantee HA |
 | Consistency | Atomic imports, optimistic edit conflicts, fresh-input publication gate; immutable historical reads | PostgreSQL concurrency tests |
 | Durability | Proposed RPO ≤24 h and RTO ≤4 h with daily encrypted off-host backups | Restore rehearsal; upgrade before real institutional use |

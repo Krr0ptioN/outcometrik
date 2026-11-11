@@ -2,6 +2,12 @@
 
 **Blocked by:** ANA-01.
 
+## Epic and PRD traceability
+
+- **Epic:** [EPIC-06](epics/EPIC-06-outcomes-and-reports.md)
+- **PRD:** PRD §§7, 11.5
+- **Scope:** MVP story; optional v1 features are excluded unless PRD v2 explicitly includes them.
+
 ## User story
 
 As an authorized user, I can download a reproducible CSV or PDF report for my permitted scope, so outcome results can be reviewed and shared without changing source data.
@@ -23,3 +29,11 @@ As an authorized user, I can download a reproducible CSV or PDF report for my pe
 - [ ] Null, incomplete, exempt, and zero states are preserved.
 - [ ] CSV formula injection safeguards and export audit events are tested.
 - [ ] Re-running an export for the same publication produces equivalent content.
+## Implementation tasks
+
+- [ ] Confirm API/data contract and authorization scope against the owning domain module.
+- [ ] Implement the smallest vertical slice that satisfies the acceptance criteria.
+- [ ] Add focused unit/integration coverage for success, invalid input, and denied scope.
+- [ ] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
+- [ ] Update API/UI documentation and verify downstream stories remain compatible.
+

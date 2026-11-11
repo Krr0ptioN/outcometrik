@@ -1,0 +1,17 @@
+{
+  "name": "@outcometrik/access",
+  "private": true,
+  "version": "0.0.0",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@outcometrik/api": "workspace:*",
+    "@tanstack/react-query": "^5.104.2",
+    "@outcometrik/ui": "workspace:*",
+    "lucide-react": "^1.68.0"
+  },
+  "peerDependencies": {
+    "react": "^19.1.1"
+  }
+}

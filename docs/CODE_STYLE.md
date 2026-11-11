@@ -82,3 +82,20 @@ pnpm nx build web
 ```
 
 These are contribution rules; documentation alone does not enforce import boundaries automatically. Keep reviews aligned with them and update the guide, module README, and configuration together when changing the architecture.
+
+
+## Shared shadcn components
+
+Use shadcn/ui for shared controls, forms, dialogs, tables and navigation. The
+Radix component sources live in `libs/ui/core/src/components`, with public exports
+from `@outcometrik/ui`. Domain modules compose those primitives; they must not
+create parallel styled button, input, modal or table implementations. Form layouts
+use `FieldGroup` and `Field`, and overlays include their accessible title and
+description. Use component variants and semantic theme tokens for appearance.
+
+Run the shadcn CLI from `apps/web`; its `components.json` aliases install shared
+primitives into `@outcometrik/ui`. Both the application and shared package have a
+matching shadcn configuration. Keep internal UI imports relative and export
+supported components explicitly in the shared package's `src/index.ts`. Declare
+runtime dependencies in their owning package. Theme tokens and Tailwind source
+registration live in `apps/web/app/globals.css`.

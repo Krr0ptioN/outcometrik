@@ -23,3 +23,6 @@ Modules may depend on shared UI (`libs/ui/core`) and transport (`libs/ui/api`). 
 The `system` module currently owns the health feature. Add further system features under its `src/features/` directory as they are implemented.
 
 See the [canonical code style guide](../../../docs/CODE_STYLE.md) for dependency, React, API, and validation rules.
+
+`access/` (`@outcometrik/access`, Nx `ui-access`) owns sign-in/session UI and the
+institution administration dashboard. See [its README](access/README.md).

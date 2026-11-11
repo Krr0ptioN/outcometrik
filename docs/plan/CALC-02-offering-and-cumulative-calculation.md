@@ -2,6 +2,12 @@
 
 **Blocked by:** CALC-01, GRD-01, CUR-03.
 
+## Epic and PRD traceability
+
+- **Epic:** [EPIC-05](epics/EPIC-05-attainment-publication.md)
+- **PRD:** PRD §§4–5; §11.4 FR-402, FR-404–405
+- **Scope:** MVP story; optional v1 features are excluded unless PRD v2 explicitly includes them.
+
 ## User story
 
 As faculty or a coordinator, I can calculate course and cumulative PO attainment from a frozen input set, so results are reproducible and traceable to source grades and mappings.
@@ -24,3 +30,11 @@ As faculty or a coordinator, I can calculate course and cumulative PO attainment
 - [ ] Missing required grades block publication eligibility but remain visible in preview.
 - [ ] A correction or newly eligible course causes a new input hash and run.
 - [ ] Retried identical calculation requests return the same completed run identity.
+## Implementation tasks
+
+- [ ] Confirm API/data contract and authorization scope against the owning domain module.
+- [ ] Implement the smallest vertical slice that satisfies the acceptance criteria.
+- [ ] Add focused unit/integration coverage for success, invalid input, and denied scope.
+- [ ] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
+- [ ] Update API/UI documentation and verify downstream stories remain compatible.
+

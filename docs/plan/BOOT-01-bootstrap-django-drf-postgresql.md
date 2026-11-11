@@ -2,6 +2,12 @@
 
 **Blocked by:** None — can start immediately.
 
+## Epic and PRD traceability
+
+- **Epic:** [EPIC-01](epics/EPIC-01-foundation-identity.md)
+- **PRD:** PRD §11.6
+- **Scope:** MVP story; optional v1 features are excluded unless PRD v2 explicitly includes them.
+
 ## User story
 
 As a developer, I can start the API against PostgreSQL and verify its readiness, so later domain slices have a reliable runtime foundation.
@@ -23,3 +29,11 @@ As a developer, I can start the API against PostgreSQL and verify its readiness,
 - [x] A database outage makes `/api/health/status` return only `{"status":"unavailable"}` with HTTP 503.
 - [x] A smoke test verifies the minimal response and absence of dependency details.
 - [x] CI exercises the API test suite against PostgreSQL 16.
+## Implementation tasks
+
+- [X] Confirm API/data contract and authorization scope against the owning domain module.
+- [X] Implement the smallest vertical slice that satisfies the acceptance criteria.
+- [X] Add focused unit/integration coverage for success, invalid input, and denied scope.
+- [X] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
+- [X] Update API/UI documentation and verify downstream stories remain compatible.
+

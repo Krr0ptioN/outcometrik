@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { SessionMenu } from '@outcometrik/access';
 import { useHealthQuery } from '@outcometrik/system';
 import { Button } from './ui/button';
 
@@ -19,6 +20,7 @@ export default function Home() {
           </Link>
           <nav aria-label="Primary navigation">
             <a href="#status">System status</a>
+            <SessionMenu />
           </nav>
         </header>
         <section className="hero" aria-labelledby="page-title">

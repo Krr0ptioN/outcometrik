@@ -7,13 +7,14 @@
     "config": "",
     "css": "app/globals.css",
     "baseColor": "slate",
-    "cssVariables": false
+    "cssVariables": true
   },
   "aliases": {
     "components": "@/app",
-    "ui": "@/app/ui",
-    "utils": "@/lib/utils",
+    "ui": "@outcometrik/ui/components",
+    "utils": "@outcometrik/ui/lib/utils",
     "lib": "@/lib",
-    "hooks": "@/hooks"
-  }
+    "hooks": "@outcometrik/ui/hooks"
+  },
+  "iconLibrary": "lucide"
 }

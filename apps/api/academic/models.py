@@ -26,6 +26,12 @@ class Institution(TimestampedModel):
     code = models.CharField(max_length=32, unique=True)
     name = models.CharField(max_length=255)
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        from .access_scopes import sync_scope
+
+        sync_scope(self)
+
     def __str__(self) -> str:
         return self.code
 
@@ -69,6 +75,12 @@ class Program(TimestampedModel):
 
     def __str__(self) -> str:
         return self.code
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        from .access_scopes import sync_scope
+
+        sync_scope(self)
 
 
 class AcademicTerm(TimestampedModel):
@@ -199,6 +211,9 @@ class CourseOffering(TimestampedModel):
         if self._state.adding:
             self.validate_association()
         super().save(*args, **kwargs)
+        from .access_scopes import sync_scope
+
+        sync_scope(self)
 
 
 class ProgramMembership(TimestampedModel):

@@ -1,3 +1,4 @@
+from access.models import Scope
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
@@ -39,6 +40,10 @@ class InstitutionSerializer(AcademicSerializer):
         model = Institution
         fields = ["id", "code", "name", "created_at", "updated_at"]
         read_only_fields = ["id", "created_at", "updated_at"]
+
+    def create(self, validated_data):
+        scope = Scope.objects.get(kind=Scope.Kind.INSTITUTION, label=validated_data["name"])
+        return Institution.objects.create(pk=scope.pk, **validated_data)
 
 
 class DepartmentSerializer(AcademicSerializer):
@@ -161,7 +166,7 @@ class CourseOfferingSerializer(AcademicSerializer):
 
     def create(self, validated_data):
         try:
-            return services.create_offering(**validated_data)
+            return services.create_offering(actor=self.context["request"].user, **validated_data)
         except DjangoValidationError as exc:
             raise _django_to_drf(exc) from exc
 
@@ -185,12 +190,20 @@ class ProgramMembershipSerializer(AcademicSerializer):
 
 
 class InstructorAssignmentSerializer(AcademicSerializer):
-    immutable_fields = ("offering", "user")
+    immutable_fields = ("offering", "user", "assignment_role")
 
     class Meta:
         model = InstructorAssignment
         fields = ["id", "offering", "user", "assignment_role", "created_at", "updated_at"]
         read_only_fields = ["id", "created_at", "updated_at"]
+
+    def create(self, validated_data):
+        try:
+            return services.create_instructor_assignment(
+                actor=self.context["request"].user, **validated_data
+            )
+        except DjangoValidationError as exc:
+            raise _django_to_drf(exc) from exc
 
 
 class EnrollmentStatusEventSerializer(serializers.ModelSerializer):

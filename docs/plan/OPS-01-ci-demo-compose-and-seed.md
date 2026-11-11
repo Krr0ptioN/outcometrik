@@ -2,6 +2,12 @@
 
 **Blocked by:** BOOT-01.
 
+## Epic and PRD traceability
+
+- **Epic:** [EPIC-07](epics/EPIC-07-quality-demo-delivery.md)
+- **PRD:** PRD §11.6
+- **Scope:** MVP story; optional v1 features are excluded unless PRD v2 explicitly includes them.
+
 ## User story
 
 As a contributor or evaluator, I can boot a realistic synthetic Outcometrik environment and run the quality gates, so the pilot can be demonstrated and reproduced safely.
@@ -23,3 +29,11 @@ As a contributor or evaluator, I can boot a realistic synthetic Outcometrik envi
 - [ ] Resetting the demo reproduces identical IDs/data or documented deterministic equivalents.
 - [ ] CI passes on a clean database and fails on migration/health/test errors.
 - [ ] Logs and artifacts contain no sensitive demo leakage.
+## Implementation tasks
+
+- [ ] Confirm API/data contract and authorization scope against the owning domain module.
+- [ ] Implement the smallest vertical slice that satisfies the acceptance criteria.
+- [ ] Add focused unit/integration coverage for success, invalid input, and denied scope.
+- [ ] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
+- [ ] Update API/UI documentation and verify downstream stories remain compatible.
+

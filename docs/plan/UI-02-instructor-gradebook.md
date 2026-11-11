@@ -2,6 +2,12 @@
 
 **Blocked by:** GRD-01, BOOT-02.
 
+## Epic and PRD traceability
+
+- **Epic:** [EPIC-07](epics/EPIC-07-quality-demo-delivery.md)
+- **PRD:** PRD §§6, 11.3 FR-301–306
+- **Scope:** MVP story; optional v1 features are excluded unless PRD v2 explicitly includes them.
+
 ## User story
 
 As an instructor, I can view an offering roster by assessment and enter grades with clear states, so I can complete grading without confusing zero, missing, or exempt values.
@@ -22,3 +28,11 @@ As an instructor, I can view an offering roster by assessment and enter grades w
 - [ ] Invalid cells are rejected without partial unintended updates.
 - [ ] Unauthorized offerings and student records remain inaccessible.
 - [ ] Keyboard operation and accessible error announcements work for the grid.
+## Implementation tasks
+
+- [ ] Confirm API/data contract and authorization scope against the owning domain module.
+- [ ] Implement the smallest vertical slice that satisfies the acceptance criteria.
+- [ ] Add focused unit/integration coverage for success, invalid input, and denied scope.
+- [ ] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
+- [ ] Update API/UI documentation and verify downstream stories remain compatible.
+

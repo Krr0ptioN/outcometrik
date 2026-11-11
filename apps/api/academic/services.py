@@ -1,3 +1,5 @@
+from access.models import Role, RoleAssignment, Scope
+from access.services import assign
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import F
@@ -21,7 +23,10 @@ def _save_unique(instance, message: str) -> None:
 
 
 @transaction.atomic
-def create_offering(*, program, course, term, section, status=CourseOffering.Status.ACTIVE):
+def create_offering(*, actor, program, course, term, section, status=CourseOffering.Status.ACTIVE):
+    from .access_control import require
+
+    require(actor, "offering.manage", program.pk)
     offering = CourseOffering(
         program=program, course=course, term=term, section=section, status=status
     )
@@ -33,8 +38,17 @@ def create_offering(*, program, course, term, section, status=CourseOffering.Sta
 
 @transaction.atomic
 def create_enrollment(
-    *, offering, student, status=Enrollment.Status.ENROLLED, attempt_number=1, actor=None
+    *, actor, offering, student, status=Enrollment.Status.ENROLLED, attempt_number=1
 ):
+    from .access_control import require
+
+    require(actor, "offering.manage", offering.pk)
+    if not RoleAssignment.objects.filter(
+        user=student, scope_id=offering.pk, role_id="student", revoked_at__isnull=True
+    ).exists():
+        raise ValidationError("The student must have an active student role in this offering.")
+    if not student.is_active:
+        raise ValidationError("The student account must be active before enrollment.")
     enrollment = Enrollment(
         offering=offering, student=student, status=status, attempt_number=attempt_number
     )
@@ -54,7 +68,10 @@ def create_enrollment(
 
 
 @transaction.atomic
-def update_enrollment_status(*, enrollment, status, reason="", actor=None):
+def update_enrollment_status(*, actor, enrollment, status, reason=""):
+    from .access_control import require
+
+    require(actor, "grades.edit", enrollment.offering_id)
     enrollment = (
         Enrollment.objects.select_for_update().select_related("offering").get(pk=enrollment.pk)
     )
@@ -79,3 +96,25 @@ def update_enrollment_status(*, enrollment, status, reason="", actor=None):
             program_id=enrollment.offering.program_id, offering_id=enrollment.offering_id
         )
     return enrollment
+
+
+@transaction.atomic
+def create_instructor_assignment(*, actor, offering, user, assignment_role):
+    from .access_control import require
+
+    require(actor, "access.manage", offering.pk)
+    if not user.is_active:
+        raise ValidationError("The instructor account must be active.")
+    from .models import InstructorAssignment
+
+    assignment, _ = InstructorAssignment.objects.get_or_create(
+        offering=offering, user=user, defaults={"assignment_role": assignment_role}
+    )
+    if assignment_role == InstructorAssignment.Role.INSTRUCTOR:
+        assign(
+            actor=actor,
+            user=user,
+            scope=Scope.objects.get(pk=offering.pk),
+            role=Role.objects.get(pk="instructor"),
+        )
+    return assignment

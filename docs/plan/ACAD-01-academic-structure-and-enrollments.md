@@ -2,6 +2,12 @@
 
 **Blocked by:** BOOT-01.
 
+## Epic and PRD traceability
+
+- **Epic:** [EPIC-02](epics/EPIC-02-academic-catalog.md)
+- **PRD:** PRD §11.1 FR-101–105
+- **Scope:** MVP story; optional v1 features are excluded unless PRD v2 explicitly includes them.
+
 ## User story
 
 As a coordinator, I can define a program's academic structure and offering roster, so a course run has an unambiguous term, section, program, staff, and eligible students.
@@ -24,3 +30,11 @@ As a coordinator, I can define a program's academic structure and offering roste
 - [ ] An offering cannot be created for an inactive or unrelated program-course association.
 - [ ] Roster status and attempt data are available to downstream calculations.
 - [ ] Historical references remain readable after catalog edits.
+## Implementation tasks
+
+- [ ] Confirm API/data contract and authorization scope against the owning domain module.
+- [ ] Implement the smallest vertical slice that satisfies the acceptance criteria.
+- [ ] Add focused unit/integration coverage for success, invalid input, and denied scope.
+- [ ] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
+- [ ] Update API/UI documentation and verify downstream stories remain compatible.
+

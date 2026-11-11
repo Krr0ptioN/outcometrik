@@ -4,7 +4,23 @@
   "sourceRoot": "libs/ui/core/src",
   "projectType": "library",
   "targets": {
-    "lint": { "command": "eslint src", "options": { "cwd": "libs/ui/core" } },
-    "test": { "command": "vitest run", "options": { "cwd": "libs/ui/core" } }
+    "lint": {
+      "command": "eslint src",
+      "options": {
+        "cwd": "libs/ui/core"
+      }
+    },
+    "test": {
+      "command": "vitest run",
+      "options": {
+        "cwd": "libs/ui/core"
+      }
+    },
+    "typecheck": {
+      "command": "tsc --noEmit -p tsconfig.json",
+      "options": {
+        "cwd": "libs/ui/core"
+      }
+    }
   }
 }

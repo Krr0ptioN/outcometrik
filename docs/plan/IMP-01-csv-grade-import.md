@@ -2,6 +2,12 @@
 
 **Blocked by:** GRD-01.
 
+## Epic and PRD traceability
+
+- **Epic:** [EPIC-04](epics/EPIC-04-grading.md)
+- **PRD:** PRD §§7, 11.1, 11.3 FR-303–304
+- **Scope:** MVP story; optional v1 features are excluded unless PRD v2 explicitly includes them.
+
 ## User story
 
 As authorized faculty, I can validate and apply a grade CSV safely, so one malformed row never silently corrupts an offering gradebook.
@@ -24,3 +30,11 @@ As authorized faculty, I can validate and apply a grade CSV safely, so one malfo
 - [ ] Malformed, stale, unauthorized, duplicate, and out-of-range rows fail safely.
 - [ ] Concurrent apply cannot create duplicate grade history.
 - [ ] Import actor, checksum, counts, errors, and resulting revision are auditable.
+## Implementation tasks
+
+- [ ] Confirm API/data contract and authorization scope against the owning domain module.
+- [ ] Implement the smallest vertical slice that satisfies the acceptance criteria.
+- [ ] Add focused unit/integration coverage for success, invalid input, and denied scope.
+- [ ] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
+- [ ] Update API/UI documentation and verify downstream stories remain compatible.
+

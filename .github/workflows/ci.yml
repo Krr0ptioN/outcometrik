@@ -12,7 +12,7 @@ permissions:
 jobs:
   title:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: amannn/action-semantic-pull-request@v6
         env:
@@ -32,7 +32,7 @@ jobs:
     needs: [title]
     if: >-
       always() && (needs.title.result == 'success' || needs.title.result == 'skipped')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-workspace
@@ -41,7 +41,7 @@ jobs:
     needs: [title]
     if: >-
       always() && (needs.title.result == 'success' || needs.title.result == 'skipped')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16
@@ -72,7 +72,7 @@ jobs:
     needs: [title]
     if: >-
       always() && (needs.title.result == 'success' || needs.title.result == 'skipped')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-workspace
@@ -80,7 +80,7 @@ jobs:
       - run: pnpm nx run-many -t build --parallel=2
   e2e:
     needs: [lint, test, build]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-workspace
