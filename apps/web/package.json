@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "dependencies": {
     "@outcometrik/access": "workspace:*",
+    "@outcometrik/academic": "workspace:*",
     "@outcometrik/api": "workspace:*",
     "@outcometrik/system": "workspace:*",
     "@tailwindcss/postcss": "^4.3.3",

@@ -26,3 +26,6 @@ See the [canonical code style guide](../../../docs/CODE_STYLE.md) for dependency
 
 `access/` (`@outcometrik/access`, Nx `ui-access`) owns sign-in/session UI and the
 institution administration dashboard. See [its README](access/README.md).
+
+`academic/` (`@outcometrik/academic`, Nx `ui-academic`) owns instructor and
+student workspaces backed by the scoped academic API.

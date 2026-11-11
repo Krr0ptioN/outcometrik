@@ -191,7 +191,7 @@ class CoordinatorDashboardView(APIView):
         assignments = RoleAssignment.objects.filter(
             scope__in=offerings, revoked_at__isnull=True, role_id__in=("instructor", "student")
         ).select_related("user", "scope")
-        return Response(
+        response = Response(
             {
                 "programs": [scope_data(p) for p in programs],
                 "offerings": [scope_data(o) for o in offerings],
@@ -201,6 +201,8 @@ class CoordinatorDashboardView(APIView):
                 ],
             }
         )
+        response["Cache-Control"] = "no-store"
+        return response
 
 
 class CoordinatorAccountsView(APIView):
@@ -291,32 +293,3 @@ class ActivateAccountView(APIView):
             metadata={"username": user.username},
         )
         return Response(user_data(user))
-
-
-class ScopeInput(serializers.Serializer):
-    label = serializers.CharField(max_length=160)
-    kind = serializers.ChoiceField(choices=["program", "offering"])
-    parent = serializers.PrimaryKeyRelatedField(queryset=Scope.objects.all())
-
-
-class ScopesView(APIView):
-    @transaction.atomic
-    def post(self, request):
-        serializer = ScopeInput(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-        authorization.require(
-            principal=request.user, capability="access.manage", scope=data["parent"]
-        )
-        scope = Scope(**data)
-        try:
-            scope.save()
-        except ValidationError as exc:
-            raise serializers.ValidationError(exc.messages) from exc
-        AuditEvent.objects.create(
-            actor=request.user,
-            scope=scope,
-            action="scope.created",
-            metadata={"label": scope.label, "kind": scope.kind},
-        )
-        return Response(scope_data(scope), status=201)

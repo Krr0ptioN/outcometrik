@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import SimpleRateThrottle
 from rest_framework.views import APIView
 
-from .models import Scope
+from .models import RoleAssignment, Scope
 from .policy import authorization
 
 
@@ -38,12 +38,19 @@ def manageable_scopes(user):
 
 def session_data(user):
     if not user.is_authenticated:
-        return {"user": None, "scopes": []}
+        return {"user": None, "scopes": [], "roles": []}
     authorized = Scope.objects.filter(
         authorization.scope_filter(user, "accounts.create", prefix="")
     )
     scopes = (manageable_scopes(user) | authorized).distinct().order_by("kind", "label", "id")
-    return {"user": user_data(user), "scopes": [scope_data(s) for s in scopes]}
+    assignments = RoleAssignment.objects.filter(user=user, revoked_at__isnull=True).select_related(
+        "role", "scope"
+    )
+    roles = [
+        {"role": assignment.role_id, "scope": scope_data(assignment.scope)}
+        for assignment in assignments
+    ]
+    return {"user": user_data(user), "scopes": [scope_data(s) for s in scopes], "roles": roles}
 
 
 @method_decorator(ensure_csrf_cookie, name="dispatch")
@@ -91,6 +98,6 @@ class LoginView(APIView):
 class LogoutView(APIView):
     def post(self, request):
         logout(request)
-        response = Response({"user": None, "scopes": []})
+        response = Response({"user": None, "scopes": [], "roles": []})
         response["Cache-Control"] = "no-store"
         return response

@@ -344,6 +344,11 @@ def test_coordinator_and_instructor_are_confined_to_assigned_scopes(admin_client
     grant_role(coordinator, world["program"].pk, "program-coordinator")
     client = APIClient()
     client.force_authenticate(coordinator)
+    coordinator_workspace = client.get("/api/v1/workspaces/coordinator/")
+    assert coordinator_workspace.status_code == 200
+    assert [program["id"] for program in coordinator_workspace.data["programs"]] == [
+        str(world["program"].pk)
+    ]
     assert client.get(f"/api/v1/programs/{world['program'].pk}/").status_code == 200
     assert client.get(f"/api/v1/programs/{other_program.pk}/").status_code == 404
     assert client.get(f"/api/v1/offerings/{other_offering.pk}/").status_code == 404
@@ -368,6 +373,12 @@ def test_coordinator_and_instructor_are_confined_to_assigned_scopes(admin_client
         ).status_code
         == 404
     )
+    grant_role(coordinator, other_offering.pk, "instructor")
+    client.force_authenticate(coordinator)
+    coordinator_teaching_view = client.get("/api/v1/workspaces/instructor/")
+    assert [item["id"] for item in coordinator_teaching_view.data["offerings"]] == [
+        str(other_offering.pk)
+    ]
 
 
 def test_student_sees_only_own_enrollment(admin_client, world):
@@ -406,3 +417,38 @@ def test_instructor_assignment_creates_audited_access_role(admin_client, world):
     assert AuditEvent.objects.filter(
         actor=world["admin"], subject=instructor, scope_id=offering.pk, action="role.assigned"
     ).exists()
+
+
+def test_role_workspaces_limit_instructor_roster_and_student_records(world):
+    offering = make_offering(world)
+    second_student = User.objects.create_user("second-student", password="x")
+    ProgramMembership.objects.create(
+        program=world["program"], user=second_student, student_number="S2"
+    )
+    grant_role(second_student, offering.pk, "student")
+    services.create_enrollment(actor=world["admin"], offering=offering, student=world["student"])
+    services.create_enrollment(actor=world["admin"], offering=offering, student=second_student)
+
+    instructor = User.objects.create_user("instructor", password="x")
+    grant_role(instructor, offering.pk, "instructor")
+    client = APIClient()
+    client.force_authenticate(instructor)
+    response = client.get("/api/v1/workspaces/instructor/")
+    assert response.status_code == 200
+    assert [item["id"] for item in response.data["offerings"]] == [str(offering.pk)]
+    assert {row["name"] for row in response.data["offerings"][0]["roster"]} == {
+        "stu",
+        "second-student",
+    }
+
+    client.force_authenticate(world["student"])
+    response = client.get("/api/v1/workspaces/student/")
+    assert response.status_code == 200
+    assert [item["enrollment_id"] for item in response.data["courses"]] == [
+        str(Enrollment.objects.get(student=world["student"]).pk)
+    ]
+    assert response.data["outcomes"] == []
+
+    nonstudent = User.objects.create_user("nonstudent", password="x")
+    client.force_authenticate(nonstudent)
+    assert client.get("/api/v1/workspaces/student/").status_code == 403

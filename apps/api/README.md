@@ -134,9 +134,9 @@ Institution administrators can use:
   target scope. Passwords are hashed and checked against Django's password policy.
   Account, institution membership, initial role and audit events commit together.
   Only the allowed input fields are accepted; staff/superuser flags are never set.
-- `POST /api/access/scopes/`: `label`, `kind` (`program` or `offering`), and
-  `parent` (UUID). Creates the named institution structure with a validated parent
-  and an audit event. Programs belong to institutions; offerings belong to programs.
+Academic programs and offerings are created through the academic API so every access scope is
+linked to a real academic record. The access API does not create standalone program/offering
+scopes.
 
 Institution membership persists independently of active assignments. Removing a
 person's last role removes their permissions but keeps their account visible to
@@ -190,3 +190,20 @@ Rules:
   is added, or when a status change flips eligibility. Calculations use it to detect stale input.
 
 Downstream stories should read rosters through `academic.selectors.eligible_roster(offering)`.
+
+## Role workspaces
+
+`GET /api/auth/session/` includes active role assignments with their scope. The web home page
+offers every dashboard assigned to the signed-in user; login defaults prioritize institution
+admin, coordinator, instructor, then student.
+
+- `GET /api/v1/workspaces/coordinator/` returns only programs where the actor has
+  `program.manage`, plus program memberships and offering enrollment counts.
+- `GET /api/v1/workspaces/instructor/` returns instructor-assigned offerings and their authorized
+  rosters. An exact `grades.view` grant can add its named offering.
+- `GET /api/v1/workspaces/student/` returns only the signed-in student's own enrollments.
+
+These responses use `Cache-Control: no-store`. Gradebook and published PO records are not yet part
+of the academic schema; the student workspace reports no published outcomes until those records
+are implemented. The instructor workspace currently provides the assigned course roster, not grade
+entry.

@@ -34,7 +34,8 @@ Project identifiers use `outcometrik`, including database defaults, Compose proj
 ## Institution administration
 
 Visit `/login` to sign in with a Django account. Institution administrators are
-sent to `/admin`; other users return to the workspace. The dashboard is the
+sent to `/admin`; coordinators, instructors, and students go to their role view.
+The workspace home and session menu let multi-role users switch dashboards. The admin dashboard is the
 institution view: overview, people/access, programs/course offerings, and audit
 activity. It supports account creation with an initial scoped role, additional
 role/direct-capability assignments, and revocations. Search and pagination are
@@ -42,9 +43,15 @@ server-backed; every request is authorized by Django. No browser token storage i
 used, and signing out clears the query cache.
 
 Create an initial Django user and run the API's `bootstrap_access` command with
-the institution name. In the dashboard, add a program and course offering before
-creating student or instructor accounts. See [the API guide](../api/README.md)
-for setup, password rules and CSRF configuration.
+the institution name. Provision departments, terms, courses, programs and
+offerings through the academic API; those records create their matching access
+scopes automatically. The dashboard can then create coordinators, instructors
+and students with scoped roles. See [the API guide](../api/README.md) for
+endpoint details, password rules and CSRF configuration.
+
+Coordinator views show academic rosters, instructor views show assigned offering
+rosters, and students see their own courses. Grade entry and published outcome
+profiles depend on gradebook and outcome records planned separately.
 
 `pnpm nx e2e web` runs a disposable SQLite-backed API using
 `tools/auth-e2e-server.py` alongside the production Next server. It requires the

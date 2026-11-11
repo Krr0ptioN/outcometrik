@@ -1,8 +1,8 @@
 # Access UI
 
 `@outcometrik/access` owns session authentication and institution administration.
-Public components are `SignIn`, `SessionMenu`, and `AdminDashboard`. Routes and navigation
-composition remain in `apps/web`.
+Public components are `SignIn`, `SessionMenu`, `AdminDashboard`, and role-routing
+helpers. Routes and navigation composition remain in `apps/web`.
 
 Session and dashboard clients validate wire responses and use `@outcometrik/api`
 for same-origin credentials, cancellation, CSRF and normalized errors. TanStack

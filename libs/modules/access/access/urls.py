@@ -6,7 +6,6 @@ from .administration import (
     CoordinatorAccountsView,
     CoordinatorDashboardView,
     DashboardView,
-    ScopesView,
 )
 from .api import AssignmentsView, RevokeView
 
@@ -16,7 +15,6 @@ urlpatterns = [
     path("accounts/<int:pk>/activate/", ActivateAccountView.as_view()),
     path("coordinator/", CoordinatorDashboardView.as_view()),
     path("coordinator/accounts/", CoordinatorAccountsView.as_view()),
-    path("scopes/", ScopesView.as_view()),
     path("assignments/", AssignmentsView.as_view()),
     path("roles/<uuid:pk>/", RevokeView.as_view(), {"kind": "roles"}),
     path("grants/<uuid:pk>/", RevokeView.as_view(), {"kind": "grants"}),

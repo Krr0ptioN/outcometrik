@@ -28,6 +28,9 @@
       "@outcometrik/access": [
         "libs/ui/modules/access/src/index.ts"
       ],
+      "@outcometrik/academic": [
+        "libs/ui/modules/academic/src/index.ts"
+      ],
       "@outcometrik/ui/*": [
         "libs/ui/core/src/*"
       ]

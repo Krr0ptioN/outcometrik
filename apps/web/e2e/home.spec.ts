@@ -51,7 +51,12 @@ test('shows loading, empty workspace, and network failure', async ({
     'Checking API availability…',
   );
   await expect(page.getByRole('button', { name: 'Checking…' })).toBeDisabled();
-  await expect(page.getByText(/No courses to display yet/)).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Choose a dashboard to get started.' }),
+  ).toBeVisible();
+  await expect(
+    page.getByText('Sign in to see the dashboards assigned to your account.'),
+  ).toBeVisible();
   await page.unrouteAll({ behavior: 'ignoreErrors' });
   await page.route('**/api/health/status', (route) => route.abort());
   await page.reload();

@@ -1,3 +1,4 @@
+from django.urls import path
 from rest_framework.routers import SimpleRouter
 
 from . import views
@@ -18,4 +19,9 @@ router.register(
 )
 router.register("enrollments", views.EnrollmentViewSet, basename="enrollment")
 
-urlpatterns = router.urls
+urlpatterns = [
+    path("workspaces/instructor/", views.InstructorWorkspaceView.as_view()),
+    path("workspaces/student/", views.StudentWorkspaceView.as_view()),
+    path("workspaces/coordinator/", views.CoordinatorWorkspaceView.as_view()),
+    *router.urls,
+]

@@ -139,15 +139,6 @@ export async function createAccount(body: AccountInput) {
   if (!isUser(data)) throw new ApiError('unexpected', 201);
   return data;
 }
-export async function createScope(body: {
-  label: string;
-  kind: string;
-  parent: string;
-}) {
-  const data = await request('/api/access/scopes/', { method: 'POST', body });
-  if (!isScope(data)) throw new ApiError('unexpected', 201);
-  return data;
-}
 export async function assignAccess(body: {
   user: number;
   scope: string;

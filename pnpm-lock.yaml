@@ -257,6 +257,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@outcometrik/academic':
+        specifier: workspace:*
+        version: link:../../libs/ui/modules/academic
       '@outcometrik/access':
         specifier: workspace:*
         version: link:../../libs/ui/modules/access
@@ -313,6 +316,24 @@ importers:
       tailwind-merge:
         specifier: ^3.7.0
         version: 3.7.0
+
+  libs/ui/modules/academic:
+    dependencies:
+      '@outcometrik/access':
+        specifier: workspace:*
+        version: link:../access
+      '@outcometrik/api':
+        specifier: workspace:*
+        version: link:../../api
+      '@outcometrik/ui':
+        specifier: workspace:*
+        version: link:../../core
+      '@tanstack/react-query':
+        specifier: ^5.104.2
+        version: 5.104.2(react@19.1.1)
+      react:
+        specifier: ^19.1.1
+        version: 19.1.1
 
   libs/ui/modules/access:
     dependencies:

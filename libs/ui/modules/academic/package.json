@@ -1,0 +1,17 @@
+{
+  "name": "@outcometrik/academic",
+  "private": true,
+  "version": "0.0.0",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@outcometrik/access": "workspace:*",
+    "@outcometrik/api": "workspace:*",
+    "@outcometrik/ui": "workspace:*",
+    "@tanstack/react-query": "^5.104.2"
+  },
+  "peerDependencies": {
+    "react": "^19.1.1"
+  }
+}

@@ -148,25 +148,6 @@ def test_dashboard_search_and_pagination(institution):
     )
 
 
-def test_create_program_and_offering_and_validate_hierarchy(institution):
-    client, _, root, _, _ = institution
-    response = client.post(
-        "/api/access/scopes/", {"kind": "program", "label": "Mathematics", "parent": str(root.pk)}
-    )
-    assert response.status_code == 201
-    program_id = response.data["id"]
-    response = client.post(
-        "/api/access/scopes/", {"kind": "offering", "label": "MATH 101", "parent": program_id}
-    )
-    assert response.status_code == 201
-    assert AuditEvent.objects.filter(action="scope.created").count() == 2
-    response = client.post(
-        "/api/access/scopes/", {"kind": "offering", "label": "Invalid", "parent": str(root.pk)}
-    )
-    assert response.status_code == 400
-    assert AuditEvent.objects.filter(action="scope.created").count() == 2
-
-
 def test_last_administrator_cannot_be_revoked(institution):
     client, admin, root, _, _ = institution
     assignment = RoleAssignment.objects.get(user=admin, scope=root)
@@ -187,7 +168,7 @@ def test_real_login_csrf_rotation_and_logout(institution):
         == 403
     )
     response = client.get("/api/auth/session/")
-    assert response.data == {"user": None, "scopes": []}
+    assert response.data == {"user": None, "scopes": [], "roles": []}
     token = client.cookies["csrftoken"].value
     response = client.post(
         "/api/auth/login/",
@@ -198,6 +179,7 @@ def test_real_login_csrf_rotation_and_logout(institution):
     assert response.status_code == 200
     assert response.data["user"]["username"] == "operator"
     assert response["Cache-Control"] == "no-store"
+    assert any(role["role"] == "administrator" for role in response.data["roles"])
     assert "password" not in response.data["user"]
     assert any(s["id"] == str(root.pk) for s in response.data["scopes"])
     assert client.get("/api/access/dashboard/", {"scope": str(root.pk)}).status_code == 200
@@ -272,26 +254,6 @@ def test_account_payload_cannot_set_global_privileges(institution):
     user = get_user_model().objects.get(pk=response.data["id"])
     assert not user.is_staff
     assert not user.is_superuser
-
-
-def test_scope_provisioning_rejects_non_admin(institution):
-    client, _, root, _, _ = institution
-    user = get_user_model().objects.create_user("outsider")
-    client.force_login(user)
-    count = Scope.objects.count()
-    assert (
-        client.post(
-            "/api/access/scopes/",
-            {
-                "kind": "program",
-                "label": "Unauthorized",
-                "parent": str(root.pk),
-            },
-        ).status_code
-        == 403
-    )
-    assert Scope.objects.count() == count
-    assert not AuditEvent.objects.exists()
 
 
 def test_coordinator_creates_pending_accounts_only_in_assigned_program(institution):

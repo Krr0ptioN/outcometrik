@@ -58,6 +58,27 @@ export function SessionMenu() {
           <a href="/admin">Admin dashboard</a>
         </Button>
       )}
+      {new Set(session.data.roles.map((assignment) => assignment.role)).has(
+        'program-coordinator',
+      ) && (
+        <Button asChild variant="ghost" size="sm">
+          <a href="/coordinator">Coordinator dashboard</a>
+        </Button>
+      )}
+      {new Set(session.data.roles.map((assignment) => assignment.role)).has(
+        'instructor',
+      ) && (
+        <Button asChild variant="ghost" size="sm">
+          <a href="/instructor">Instructor dashboard</a>
+        </Button>
+      )}
+      {new Set(session.data.roles.map((assignment) => assignment.role)).has(
+        'student',
+      ) && (
+        <Button asChild variant="ghost" size="sm">
+          <a href="/student">Student dashboard</a>
+        </Button>
+      )}
       <Button
         variant="ghost"
         size="sm"

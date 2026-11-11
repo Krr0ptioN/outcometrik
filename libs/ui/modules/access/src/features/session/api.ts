@@ -17,6 +17,15 @@ export interface Scope {
 export interface Session {
   user: User | null;
   scopes: Scope[];
+  roles: { role: string; scope: Scope }[];
+}
+export function defaultDashboard(session: Pick<Session, 'scopes' | 'roles'>): string {
+  if (session.scopes.some((scope) => scope.kind === 'institution')) return '/admin';
+  const roles = new Set(session.roles.map((assignment) => assignment.role));
+  if (roles.has('program-coordinator')) return '/coordinator';
+  if (roles.has('instructor')) return '/instructor';
+  if (roles.has('student')) return '/student';
+  return '/';
 }
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -46,10 +55,17 @@ export function parseSession(data: unknown): Session {
     !isRecord(data) ||
     (data.user !== null && !isUser(data.user)) ||
     !Array.isArray(data.scopes) ||
-    !data.scopes.every(isScope)
+    !data.scopes.every(isScope) ||
+    !Array.isArray(data.roles) ||
+    !data.roles.every(
+      (assignment) =>
+        isRecord(assignment) &&
+        typeof assignment.role === 'string' &&
+        isScope(assignment.scope),
+    )
   )
     throw new ApiError('unexpected', 200);
-  return { user: data.user, scopes: data.scopes };
+  return { user: data.user, scopes: data.scopes, roles: data.roles } as Session;
 }
 export async function getSession(signal?: AbortSignal) {
   return parseSession(

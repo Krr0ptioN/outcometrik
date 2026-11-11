@@ -49,7 +49,7 @@ import {
 import { SessionMenu, useSession } from '../session/components';
 import { errorMessage, type Scope } from '../session/api';
 import { getDashboard } from './api';
-import { Modal, AccountForm, ScopeForm, AccessForm } from './forms';
+import { Modal, AccountForm, AccessForm } from './forms';
 import { PeoplePanel, StructurePanel, ActivityPanel } from './panels';
 
 type Tab = 'overview' | 'people' | 'structure' | 'activity';
@@ -128,7 +128,7 @@ function InstitutionWorkspace({ institutions }: { institutions: Scope[] }) {
   const [tab, setTab] = useState<Tab>('overview');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [dialog, setDialog] = useState<'account' | 'scope' | number | null>(
+  const [dialog, setDialog] = useState<'account' | number | null>(
     null,
   );
   const [notice, setNotice] = useState('');
@@ -247,22 +247,22 @@ function InstitutionWorkspace({ institutions }: { institutions: Scope[] }) {
                   : tab === 'people'
                     ? 'Create accounts and give each person the access they need.'
                     : tab === 'structure'
-                      ? 'Organize your programs and the course offerings within them.'
+                      ? 'Academic records define programs and offerings; their access scopes appear here automatically.'
                       : 'Account creation and access changes across your institution.'}
               </p>
             </div>
-            <Button
-              disabled={!data || dashboard.isError}
-              onClick={() => {
-                setDialog(tab === 'structure' ? 'scope' : 'account');
-                setNotice('');
-              }}
-            >
-              <PlusIcon data-icon="inline-start" />
-              {tab === 'structure'
-                ? 'Add program or offering'
-                : 'Create account'}
-            </Button>
+            {tab !== 'structure' && (
+              <Button
+                disabled={!data || dashboard.isError}
+                onClick={() => {
+                  setDialog('account');
+                  setNotice('');
+                }}
+              >
+                <PlusIcon data-icon="inline-start" />
+                Create account
+              </Button>
+            )}
           </div>
           {institutions.length > 1 && (
             <Field className="max-w-sm">
@@ -408,10 +408,7 @@ function InstitutionWorkspace({ institutions }: { institutions: Scope[] }) {
                   />
                 )}
                 {tab === 'structure' && (
-                  <StructurePanel
-                    data={data}
-                    onCreate={() => setDialog('scope')}
-                  />
+                  <StructurePanel data={data} />
                 )}
                 {(tab === 'overview' || tab === 'activity') && (
                   <ActivityPanel
@@ -430,19 +427,6 @@ function InstitutionWorkspace({ institutions }: { institutions: Scope[] }) {
                       data={data}
                       onSaved={() =>
                         void saved('Account created and initial role assigned.')
-                      }
-                    />
-                  </Modal>
-                )}
-                {dialog === 'scope' && (
-                  <Modal
-                    title="Grow your institution"
-                    onClose={() => setDialog(null)}
-                  >
-                    <ScopeForm
-                      data={data}
-                      onSaved={() =>
-                        void saved('Institution structure updated.')
                       }
                     />
                   </Modal>

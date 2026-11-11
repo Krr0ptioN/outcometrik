@@ -25,7 +25,6 @@ import {
   assignAccess,
   activateAccount,
   createAccount,
-  createScope,
   revokeAccess,
   type Dashboard,
   type Person,
@@ -190,102 +189,15 @@ export function AccountForm({
           <Alert>
             <AlertTitle>Set up a course offering first</AlertTitle>
             <AlertDescription>
-              Student and instructor accounts need a course offering. Add a
-              program and offering from Programs & offerings.
+              Student and instructor accounts need an academic offering. Create
+              academic records through `/api/v1`; their access scopes will
+              appear here automatically.
             </AlertDescription>
           </Alert>
         )}
         {create.isError && <FormError error={create.error} />}
         <Button type="submit" disabled={create.isPending || !selectedRole}>
           {create.isPending ? 'Creating account…' : 'Create account →'}
-        </Button>
-      </FieldGroup>
-    </form>
-  );
-}
-export function ScopeForm({
-  data,
-  onSaved,
-}: {
-  data: Dashboard;
-  onSaved: () => void;
-}) {
-  const [kind, setKind] = useState('program');
-  const [parentId, setParentId] = useState(data.scope_id);
-  const parents = data.scopes.filter(
-    (s) => s.kind === (kind === 'program' ? 'institution' : 'program'),
-  );
-  const selectedParent =
-    parents.find((s) => s.id === parentId)?.id ?? parents[0]?.id ?? '';
-  const create = useMutation({ mutationFn: createScope, onSuccess: onSaved });
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    create.mutate({
-      label: String(form.get('label')),
-      kind,
-      parent: selectedParent,
-    });
-  }
-  return (
-    <form onSubmit={submit}>
-      <FieldGroup>
-        <Field>
-          <FieldLabel htmlFor="scope-type">Type</FieldLabel>
-          <NativeSelect
-            id="scope-type"
-            value={kind}
-            onChange={(e) => setKind(e.target.value)}
-          >
-            <NativeSelectOption value="program">Program</NativeSelectOption>
-            <NativeSelectOption value="offering">
-              Course offering
-            </NativeSelectOption>
-          </NativeSelect>
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="scope-name">Name</FieldLabel>
-          <Input
-            id="scope-name"
-            name="label"
-            required
-            maxLength={160}
-            placeholder={
-              kind === 'program'
-                ? 'e.g. Computer Engineering'
-                : 'e.g. CSE 301 · Fall 2026'
-            }
-          />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="scope-parent">
-            {kind === 'program' ? 'Institution' : 'Program'}
-          </FieldLabel>
-          <NativeSelect
-            id="scope-parent"
-            value={selectedParent}
-            onChange={(e) => setParentId(e.target.value)}
-            required
-          >
-            {parents.map((s) => (
-              <NativeSelectOption key={s.id} value={s.id}>
-                {s.label}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-        </Field>
-        {!selectedParent && (
-          <Alert>
-            <AlertDescription>
-              Create a program before adding a course offering.
-            </AlertDescription>
-          </Alert>
-        )}
-        {create.isError && <FormError error={create.error} />}
-        <Button type="submit" disabled={create.isPending || !selectedParent}>
-          {create.isPending
-            ? 'Saving…'
-            : `Add ${kind === 'program' ? 'program' : 'course offering'} →`}
         </Button>
       </FieldGroup>
     </form>

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('institution administrator creates structure and accounts, manages access, and signs out', async ({
+test('institution administrator reviews structure, creates accounts, manages access, and signs out', async ({
   page,
 }) => {
   const errors: string[] = [];
@@ -24,33 +24,10 @@ test('institution administrator creates structure and accounts, manages access, 
   await page
     .getByRole('button', { name: 'Programs & offerings', exact: true })
     .click();
-  await page.getByRole('button', { name: 'Add program or offering' }).click();
-  await page
-    .getByRole('dialog')
-    .getByLabel('Name', { exact: true })
-    .fill('Computer Engineering');
-  await page
-    .getByRole('button', { name: 'Add program →', exact: true })
-    .click();
-  await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(
     page.getByRole('heading', { name: 'Computer Engineering' }),
   ).toBeVisible();
-  await page.getByRole('button', { name: 'Add program or offering' }).click();
-  await page
-    .getByRole('combobox', { name: 'Type', exact: true })
-    .selectOption('offering');
-  await page
-    .getByRole('dialog')
-    .getByLabel('Name', { exact: true })
-    .fill('CSE 301 · Fall 2026');
-  await page
-    .getByRole('button', { name: 'Add course offering →', exact: true })
-    .click();
-  await expect(page.getByRole('dialog')).toHaveCount(0);
-  await expect(
-    page.getByText('CSE 301 · Fall 2026', { exact: true }),
-  ).toBeVisible();
+  await expect(page.getByText('CSE301 01', { exact: true })).toBeVisible();
   await page
     .getByRole('button', { name: 'People & access', exact: true })
     .click();
@@ -82,6 +59,29 @@ test('institution administrator creates structure and accounts, manages access, 
       }),
     ).toBeVisible();
   }
+  await page.getByRole('button', { name: 'Create account', exact: true }).click();
+  const coordinatorDialog = page.getByRole('dialog');
+  await coordinatorDialog.getByLabel('First name').fill('Casey');
+  await coordinatorDialog.getByLabel('Last name').fill('Coordinator');
+  await coordinatorDialog
+    .getByLabel('Institution email')
+    .fill('casey.coordinator@example.edu');
+  await coordinatorDialog
+    .getByLabel('Username', { exact: true })
+    .fill('casey.coordinator');
+  await coordinatorDialog
+    .getByLabel('Initial password')
+    .fill('Coordinator-Access-2026!');
+  await coordinatorDialog
+    .getByRole('combobox', { name: 'Assign to', exact: true })
+    .selectOption({ label: 'Computer Engineering · program' });
+  await coordinatorDialog
+    .getByRole('combobox', { name: 'Initial role', exact: true })
+    .selectOption('program-coordinator');
+  await coordinatorDialog
+    .getByRole('button', { name: 'Create account →', exact: true })
+    .click();
+  await expect(coordinatorDialog).toHaveCount(0);
   const search = page.getByRole('textbox', { name: 'Search people' });
   await search.fill('ada.student');
   await expect(
@@ -141,10 +141,38 @@ test('institution administrator creates structure and accounts, manages access, 
     .getByLabel('Password', { exact: true })
     .fill('Learner-Access-2026!');
   await page.getByRole('button', { name: 'Sign in to your workspace' }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/student$/);
+  await expect(
+    page.getByRole('heading', { name: 'Student dashboard' }),
+  ).toBeVisible();
   await page.goto('/admin');
   await expect(
     page.getByRole('heading', { name: 'Administrator access required' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await page.getByLabel('Username', { exact: true }).fill('grace.instructor');
+  await page
+    .getByLabel('Password', { exact: true })
+    .fill('Learner-Access-2026!');
+  await page.getByRole('button', { name: 'Sign in to your workspace' }).click();
+  await expect(page).toHaveURL(/\/instructor$/);
+  await expect(
+    page.getByRole('heading', { name: 'Instructor dashboard' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await page.getByLabel('Username', { exact: true }).fill('casey.coordinator');
+  await page
+    .getByLabel('Password', { exact: true })
+    .fill('Coordinator-Access-2026!');
+  await page.getByRole('button', { name: 'Sign in to your workspace' }).click();
+  await expect(page).toHaveURL(/\/coordinator$/);
+  await expect(
+    page.getByRole('heading', { name: 'Coordinator dashboard' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Academic roster' }),
   ).toBeVisible();
   expect(errors).toEqual([]);
 });

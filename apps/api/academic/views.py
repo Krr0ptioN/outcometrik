@@ -1,7 +1,14 @@
+from access.identity import user_data
+from access.models import DirectCapabilityGrant, RoleAssignment, Scope
+from access.policy import authorization
+from django.core.exceptions import PermissionDenied
+from django.db.models import Q
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from . import scoping, services
 from .access_control import require
@@ -122,6 +129,11 @@ class AcademicViewSet(
             }
             queryset = queryset.filter(**filters)
         return queryset.order_by(*self.ordering)
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        response = super().finalize_response(request, response, *args, **kwargs)
+        response["Cache-Control"] = "no-store"
+        return response
 
 
 class InstitutionViewSet(AcademicViewSet):
@@ -271,3 +283,145 @@ class EnrollmentViewSet(
             enrollment=enrollment, actor=request.user, **serializer.validated_data
         )
         return Response(self.get_serializer(updated).data)
+
+
+class InstructorWorkspaceView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        instructor_assignments = RoleAssignment.objects.filter(
+            user=request.user, role_id="instructor", revoked_at__isnull=True
+        )
+        if not instructor_assignments.exists():
+            raise PermissionDenied("Instructor access is required.")
+        exact_grants = DirectCapabilityGrant.objects.filter(
+            user=request.user, capability_id="grades.view", revoked_at__isnull=True
+        ).values_list("scope_id", flat=True)
+        offering_scopes = Scope.objects.filter(
+            Q(pk__in=instructor_assignments.values_list("scope_id", flat=True))
+            | Q(pk__in=exact_grants),
+            kind=Scope.Kind.OFFERING,
+        )
+        offerings = (
+            CourseOffering.objects.filter(pk__in=offering_scopes)
+            .select_related("course", "term", "program")
+            .order_by("term__year", "term__season", "course__code", "section")
+        )
+        response = []
+        for offering in offerings:
+            enrollments = scoping.scope_enrollments(
+                request.user,
+                Enrollment.objects.filter(offering=offering).select_related("student"),
+            ).order_by("student__last_name", "student__first_name", "student__username")
+            response.append(
+                {
+                    "id": str(offering.pk),
+                    "label": f"{offering.course.code} · {offering.section}",
+                    "course": offering.course.title,
+                    "program": offering.program.title,
+                    "term": f"{offering.term.year} {offering.term.season.title()}",
+                    "roster": [
+                        {
+                            "enrollment_id": str(row.pk),
+                            "name": (
+                                f"{row.student.first_name} {row.student.last_name}".strip()
+                                or row.student.username
+                            ),
+                            "status": row.status,
+                        }
+                        for row in enrollments
+                    ],
+                }
+            )
+        result = Response({"offerings": response})
+        result["Cache-Control"] = "no-store"
+        return result
+
+
+class StudentWorkspaceView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        assigned_offerings = RoleAssignment.objects.filter(
+            user=request.user, role_id="student", revoked_at__isnull=True
+        ).values_list("scope_id", flat=True)
+        if not assigned_offerings.exists():
+            raise PermissionDenied("Student access is required.")
+        enrollments = (
+            Enrollment.objects.filter(student=request.user, offering_id__in=assigned_offerings)
+            .select_related("offering__course", "offering__term", "offering__program")
+            .order_by("offering__term__year", "offering__term__season", "offering__course__code")
+        )
+        result = Response(
+            {
+                "courses": [
+                    {
+                        "enrollment_id": str(row.pk),
+                        "offering_id": str(row.offering_id),
+                        "course_code": row.offering.course.code,
+                        "course": row.offering.course.title,
+                        "program": row.offering.program.title,
+                        "term": f"{row.offering.term.year} {row.offering.term.season.title()}",
+                        "section": row.offering.section,
+                        "enrollment_status": row.status,
+                    }
+                    for row in enrollments
+                ],
+                "outcomes": [],
+            }
+        )
+        result["Cache-Control"] = "no-store"
+        return result
+
+
+class CoordinatorWorkspaceView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        program_scopes = Scope.objects.filter(
+            authorization.scope_filter(request.user, "program.manage", prefix=""),
+            kind=Scope.Kind.PROGRAM,
+        )
+        if not program_scopes.exists():
+            raise PermissionDenied("Program coordinator access is required.")
+        programs = Program.objects.filter(pk__in=program_scopes).select_related("department")
+        offerings = CourseOffering.objects.filter(program__in=programs).select_related(
+            "course", "term"
+        )
+        memberships = ProgramMembership.objects.filter(program__in=programs).select_related(
+            "user", "program"
+        )
+        result = Response(
+            {
+                "programs": [
+                    {
+                        "id": str(program.pk),
+                        "label": program.title,
+                        "department": program.department.name,
+                    }
+                    for program in programs
+                ],
+                "offerings": [
+                    {
+                        "id": str(offering.pk),
+                        "program_id": str(offering.program_id),
+                        "label": f"{offering.course.code} · {offering.section}",
+                        "course": offering.course.title,
+                        "term": f"{offering.term.year} {offering.term.season.title()}",
+                        "enrolled": offering.enrollments.count(),
+                    }
+                    for offering in offerings
+                ],
+                "students": [
+                    {
+                        **user_data(membership.user),
+                        "program_id": str(membership.program_id),
+                        "student_number": membership.student_number,
+                        "membership_status": membership.status,
+                    }
+                    for membership in memberships
+                ],
+            }
+        )
+        result["Cache-Control"] = "no-store"
+        return result

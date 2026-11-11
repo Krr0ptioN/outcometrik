@@ -231,10 +231,8 @@ export function PeoplePanel({
 }
 export function StructurePanel({
   data,
-  onCreate,
 }: {
   data: Dashboard;
-  onCreate: () => void;
 }) {
   const programs = data.scopes.filter((s) => s.kind === 'program');
   return (
@@ -245,7 +243,7 @@ export function StructurePanel({
         </CardTitle>
         <CardDescription>
           Programs contain course offerings. Access stays within its assigned
-          scope.
+          scope. Academic records create their corresponding access scopes.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -257,15 +255,11 @@ export function StructurePanel({
               </EmptyMedia>
               <EmptyTitle>Your first program starts here.</EmptyTitle>
               <EmptyDescription>
-                Add a program, then create course offerings for instructors and
-                students.
+                Create departments, programs, courses, terms and offerings
+                through the academic API. Each program and offering will appear
+                here with its matching access scope.
               </EmptyDescription>
             </EmptyHeader>
-            <EmptyContent>
-              <Button variant="outline" onClick={onCreate}>
-                Add a program
-              </Button>
-            </EmptyContent>
           </Empty>
         ) : (
           programs.map((program) => (

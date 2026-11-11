@@ -1,27 +1,36 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { errorMessage, getSession, parseSession, signIn, signOut } from './api';
+import { defaultDashboard, errorMessage, getSession, parseSession, signIn, signOut } from './api';
 import { ApiError } from '@outcometrik/api';
 afterEach(() => vi.unstubAllGlobals());
 describe('session contract', () => {
   it('accepts anonymous sessions and rejects malformed identity or scope data', () => {
-    expect(parseSession({ user: null, scopes: [] })).toEqual({
+    expect(parseSession({ user: null, scopes: [], roles: [] })).toEqual({
       user: null,
       scopes: [],
+      roles: [],
     });
     for (const data of [
       null,
       {},
-      { user: { id: 1 }, scopes: [] },
-      { user: null, scopes: [{ id: 'x', kind: 'global' }] },
+      { user: { id: 1 }, scopes: [], roles: [] },
+      { user: null, scopes: [{ id: 'x', kind: 'global' }], roles: [] },
+      { user: null, scopes: [], roles: [{ role: 'student', scope: {} }] },
     ])
       expect(() => parseSession(data)).toThrow(ApiError);
+  });
+  it('routes each role and prefers the most privileged assigned dashboard', () => {
+    const scope = { id: 'x', kind: 'offering', label: 'CSE 301', parent_id: null } as const;
+    expect(defaultDashboard({ scopes: [], roles: [{ role: 'student', scope }] })).toBe('/student');
+    expect(defaultDashboard({ scopes: [], roles: [{ role: 'instructor', scope }] })).toBe('/instructor');
+    expect(defaultDashboard({ scopes: [], roles: [{ role: 'program-coordinator', scope: { ...scope, kind: 'program' } }] })).toBe('/coordinator');
+    expect(defaultDashboard({ scopes: [{ ...scope, kind: 'institution', parent_id: null }], roles: [{ role: 'student', scope }] })).toBe('/admin');
   });
   it('establishes a CSRF cookie before login and uses same-origin credentials', async () => {
     vi.stubGlobal('document', { cookie: 'csrftoken=test-csrf' });
     const fetcher = vi
       .fn()
       .mockImplementation(async () =>
-        Response.json({ user: null, scopes: [] }),
+        Response.json({ user: null, scopes: [], roles: [] }),
       );
     vi.stubGlobal('fetch', fetcher);
     await signIn('institution.admin', 'secret');
@@ -38,7 +47,7 @@ describe('session contract', () => {
   it('forwards cancellation to session requests and protects logout', async () => {
     const fetcher = vi
       .fn()
-      .mockResolvedValue(Response.json({ user: null, scopes: [] }));
+      .mockResolvedValue(Response.json({ user: null, scopes: [], roles: [] }));
     vi.stubGlobal('fetch', fetcher);
     const controller = new AbortController();
     await getSession(controller.signal);

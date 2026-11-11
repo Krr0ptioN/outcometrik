@@ -40,7 +40,10 @@ async function load(): Promise<Data> {
 }
 export function CoordinatorDashboard() {
   const session = useSession();
-  const query = useQuery({ queryKey: ['coordinator'], queryFn: load });
+  const allowed = Boolean(
+    session.data?.roles.some((assignment) => assignment.role === 'program-coordinator'),
+  );
+  const query = useQuery({ queryKey: ['coordinator'], queryFn: load, enabled: allowed });
   const client = useQueryClient();
   const [offer, setOffer] = useState('');
   const [role, setRole] = useState('student');
@@ -51,17 +54,23 @@ export function CoordinatorDashboard() {
       void client.invalidateQueries({ queryKey: ['coordinator'] });
     },
   });
-  if (session.isPending || query.isPending)
+  if (session.isPending || (allowed && query.isPending))
     return (
       <main className="p-8" role="status">
         Loading coordinator workspace…
       </main>
     );
-  if (!session.data?.user || query.isError)
+  if (!session.data?.user || !allowed || query.isError)
     return (
       <main className="p-8">
         <h1>Coordinator access required</h1>
         <a href="/login">Sign in</a>
+      </main>
+    );
+  if (!query.data)
+    return (
+      <main className="p-8" role="status">
+        Loading coordinator workspace…
       </main>
     );
   const data = query.data;
