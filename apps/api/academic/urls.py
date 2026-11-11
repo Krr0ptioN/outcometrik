@@ -8,6 +8,8 @@ from .controllers import (
     CourseOfferingController,
     DepartmentController,
     EnrollmentController,
+    GradeBatchController,
+    GradeController,
     InstitutionController,
     InstructorAssignmentController,
     InstructorWorkspaceController,
@@ -30,6 +32,8 @@ router.register(
     "instructor-assignments", InstructorAssignmentController, basename="instructor-assignment"
 )
 router.register("enrollments", EnrollmentController, basename="enrollment")
+router.register("grade-batches", GradeBatchController, basename="grade-batch")
+router.register("grades", GradeController, basename="grade")
 
 urlpatterns = [
     path("workspaces/instructor/", InstructorWorkspaceController.as_view()),

@@ -1,19 +1,23 @@
 import datetime as dt
+from decimal import Decimal
 
 import pytest
 from access.models import RoleAssignment
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db.models import ProtectedError
 from rest_framework.test import APIClient
 
 from academic import selectors
 from academic.models import (
     AcademicTerm,
+    Assessment,
     Course,
     CourseOffering,
     Department,
     Enrollment,
+    Grade,
+    GradeBatch,
     Institution,
     InstructorAssignment,
     Program,
@@ -21,6 +25,7 @@ from academic.models import (
     ProgramMembership,
 )
 from academic.services import CourseOfferingService, EnrollmentService
+from academic.services.grades import GradeBatchService, GradeService, GradeVersionConflict
 
 pytestmark = pytest.mark.django_db
 User = get_user_model()
@@ -450,3 +455,192 @@ def test_role_workspaces_limit_instructor_roster_and_student_records(world):
     nonstudent = User.objects.create_user("nonstudent", password="x")
     client.force_authenticate(nonstudent)
     assert client.get("/api/v1/workspaces/student/").status_code == 403
+
+
+@pytest.fixture
+def gb(world):
+    offering = make_offering(world)
+    enrollment = EnrollmentService(actor=world["admin"]).create(
+        offering=offering, student=world["student"]
+    )
+    teacher = User.objects.create_user("grader", password="x")
+    grant_role(teacher, offering.pk, "instructor")
+    assessment = Assessment.objects.create(
+        offering=offering,
+        title="Midterm",
+        points_possible=Decimal(10),
+        status=Assessment.Status.APPROVED,
+    )
+    batch = GradeBatch.objects.create(offering=offering, name="Midterm")
+    return {
+        **world,
+        "offering": offering,
+        "enrollment": enrollment,
+        "teacher": teacher,
+        "assessment": assessment,
+        "batch": batch,
+    }
+
+
+def enter(gb, *, actor=None, state="scored", points=Decimal(8), reason="", **over):
+    return GradeService(actor=actor or gb["teacher"]).create(
+        **{
+            "enrollment": gb["enrollment"],
+            "assessment": gb["assessment"],
+            "batch": gb["batch"],
+            "state": state,
+            "points_earned": points,
+            "reason": reason,
+            **over,
+        }
+    )
+
+
+def release(gb):
+    GradeBatchService(actor=gb["teacher"]).release(batch=gb["batch"])
+
+
+def test_zero_is_scored_and_missing_is_not_zero(gb):
+    grade = enter(gb, points=Decimal(0))
+    assert grade.state == "scored" and grade.points_earned == Decimal(0)
+    grade = GradeService(actor=gb["teacher"]).correct(
+        grade=grade, expected_version=1, state="missing", points_earned=None
+    )
+    assert grade.points_earned is None and grade.state == "missing"
+
+
+@pytest.mark.parametrize(
+    ("state", "points"),
+    [
+        ("scored", Decimal(11)),
+        ("scored", Decimal(-1)),
+        ("scored", None),
+        ("exempt", Decimal(5)),
+    ],
+)
+def test_invalid_values_fail_and_write_nothing(gb, state, points):
+    with pytest.raises(ValidationError):
+        enter(gb, state=state, points=points)
+    assert Grade.objects.count() == 0
+
+
+def test_inactive_enrollment_fails(gb):
+    EnrollmentService(actor=gb["admin"]).update_status(
+        enrollment=gb["enrollment"], status="withdrawn", reason="left"
+    )
+    with pytest.raises(ValidationError):
+        enter(gb)
+    assert Grade.objects.count() == 0
+
+
+def test_unapproved_or_foreign_assessment_fails(gb):
+    draft = Assessment.objects.create(
+        offering=gb["offering"], title="Draft", points_possible=Decimal(10)
+    )
+    with pytest.raises(ValidationError):
+        enter(gb, assessment=draft)
+
+    other = make_offering(gb, section="02")
+    foreign = Assessment.objects.create(
+        offering=other,
+        title="Other",
+        points_possible=Decimal(10),
+        status=Assessment.Status.APPROVED,
+    )
+    with pytest.raises(ValidationError):
+        enter(gb, assessment=foreign)
+    assert Grade.objects.count() == 0
+
+
+def test_unauthorized_actors_are_denied(gb):
+    stranger = User.objects.create_user("stranger", password="x")
+    for actor in (stranger, gb["student"]):
+        with pytest.raises(PermissionDenied):
+            enter(gb, actor=actor)
+    assert Grade.objects.count() == 0
+
+
+def test_stale_version_returns_conflict(gb):
+    svc = GradeService(actor=gb["teacher"])
+    grade = enter(gb)
+    svc.correct(grade=grade, expected_version=1, state="scored", points_earned=Decimal(9))
+    with pytest.raises(GradeVersionConflict) as exc:
+        svc.correct(grade=grade, expected_version=1, state="scored", points_earned=Decimal(7))
+    assert exc.value.current_version == 2
+    grade.refresh_from_db()
+    assert grade.points_earned == Decimal(9)
+
+
+def test_post_release_correction_needs_reason_keeps_history_and_bumps_revision(gb):
+    svc = GradeService(actor=gb["teacher"])
+    grade = enter(gb)
+    release(gb)
+    gb["offering"].refresh_from_db()
+    before = gb["offering"].input_revision
+
+    with pytest.raises(ValidationError):
+        svc.correct(grade=grade, expected_version=1, state="scored", points_earned=Decimal(9))
+    svc.correct(
+        grade=grade,
+        expected_version=1,
+        state="scored",
+        points_earned=Decimal(9),
+        reason="Regrade",
+    )
+
+    rows = list(grade.history.values_list("version", "old_points_earned", "new_points_earned"))
+    assert rows == [(1, None, Decimal(8)), (2, Decimal(8), Decimal(9))]
+    gb["offering"].refresh_from_db()
+    assert gb["offering"].input_revision > before
+
+
+def test_unchanged_correction_is_a_noop(gb):
+    svc = GradeService(actor=gb["teacher"])
+    grade = enter(gb)
+    svc.correct(grade=grade, expected_version=1, state="scored", points_earned=Decimal(8))
+    grade.refresh_from_db()
+    assert grade.version == 1 and grade.history.count() == 1
+
+
+def test_students_see_only_own_released_grades(gb):
+    other = User.objects.create_user("stu2", password="x")
+    ProgramMembership.objects.create(program=gb["program"], user=other, student_number="S2")
+    grant_role(other, gb["offering"].pk, "student")
+    enter(gb)
+
+    as_student = GradeService(actor=gb["student"])
+    assert as_student.get_queryset().count() == 0  # unreleased
+    release(gb)
+    assert as_student.get_queryset().count() == 1
+    assert GradeService(actor=other).get_queryset().count() == 0  # cross-student
+    assert GradeService(actor=gb["teacher"]).get_queryset().count() == 1
+
+
+def test_grade_api_conflict_and_visibility(gb):
+    grade = enter(gb)
+    teacher = APIClient()
+    teacher.force_authenticate(gb["teacher"])
+    student = APIClient()
+    student.force_authenticate(gb["student"])
+
+    # unreleased: hidden from the student, visible to faculty
+    assert student.get(f"/api/v1/grades/{grade.pk}/").status_code == 404
+    assert teacher.get(f"/api/v1/grades/{grade.pk}/").status_code == 200
+
+    body = {"expected_version": 1, "state": "scored", "points_earned": "9.00"}
+    r = teacher.patch(f"/api/v1/grades/{grade.pk}/", body, format="json")
+    assert r.status_code == 200 and r.data["version"] == 2
+    r = teacher.patch(f"/api/v1/grades/{grade.pk}/", body, format="json")
+    assert r.status_code == 409 and r.data["current_version"] == 2
+
+    # released: the student can read it but cannot write it
+    release(gb)
+    assert student.get(f"/api/v1/grades/{grade.pk}/").status_code == 200
+    r = student.patch(
+        f"/api/v1/grades/{grade.pk}/",
+        {"expected_version": 2, "state": "scored", "points_earned": "10.00", "reason": "x"},
+        format="json",
+    )
+    assert r.status_code == 403
+    assert student.get(f"/api/v1/grades/{grade.pk}/history/").status_code == 403
+    assert teacher.get(f"/api/v1/grades/{grade.pk}/history/").status_code == 200

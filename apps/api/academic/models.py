@@ -1,5 +1,6 @@
 import uuid
 
+from access.models import AppendOnlyQuerySet
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -349,3 +350,137 @@ class EnrollmentStatusEvent(TimestampedModel):
 
     class Meta:
         ordering = ["created_at"]
+
+
+class Assessment(TimestampedModel):
+    """STUB. CUR-01 replaces this with the versioned syllabus assessment.
+
+    Grades only depend on: offering, points_possible, approved status.
+    """
+
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        APPROVED = "approved", "Approved"
+
+    offering = models.ForeignKey(
+        CourseOffering, on_delete=models.PROTECT, related_name="assessments"
+    )
+    title = models.CharField(max_length=255)
+    points_possible = models.DecimalField(max_digits=7, decimal_places=2)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.DRAFT)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(points_possible__gt=0),
+                name="assessment_points_possible_positive",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return self.title
+
+
+class GradeBatch(TimestampedModel):
+    """A set of grades released to students together. Unreleased = faculty-only."""
+
+    offering = models.ForeignKey(
+        CourseOffering, on_delete=models.PROTECT, related_name="grade_batches"
+    )
+    name = models.CharField(max_length=120)
+    released_at = models.DateTimeField(null=True, blank=True, editable=False)
+    released_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        editable=False,
+        on_delete=models.PROTECT,
+        related_name="+",
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["offering", "name"], name="uniq_grade_batch_name")
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.offering_id}:{self.name}"
+
+
+class Grade(TimestampedModel):
+    """Current value of one enrollment/assessment measurement. History is in GradeHistory."""
+
+    class State(models.TextChoices):
+        SCORED = "scored", "Scored"  # zero is a real scored value
+        MISSING = "missing", "Missing"
+        EXEMPT = "exempt", "Exempt"
+        WITHDRAWN = "withdrawn", "Withdrawn"
+        INCOMPLETE = "incomplete", "Incomplete"
+
+    offering = models.ForeignKey(CourseOffering, on_delete=models.PROTECT, related_name="grades")
+    enrollment = models.ForeignKey(Enrollment, on_delete=models.PROTECT, related_name="grades")
+    assessment = models.ForeignKey(Assessment, on_delete=models.PROTECT, related_name="grades")
+    batch = models.ForeignKey(GradeBatch, on_delete=models.PROTECT, related_name="grades")
+    state = models.CharField(max_length=16, choices=State.choices)
+    points_earned = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
+    # Snapshot of assessment.points_possible at write time.
+    points_possible = models.DecimalField(max_digits=7, decimal_places=2)
+    # Optimistic-lock counter. Equals the latest GradeHistory.version.
+    version = models.PositiveIntegerField(default=1, editable=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["enrollment", "assessment"], name="uniq_grade_enrollment_assessment"
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(state="scored", points_earned__isnull=False)
+                    | (~models.Q(state="scored") & models.Q(points_earned__isnull=True))
+                ),
+                name="grade_points_match_state",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(points_earned__isnull=True)
+                | (
+                    models.Q(points_earned__gte=0)
+                    & models.Q(points_earned__lte=models.F("points_possible"))
+                ),
+                name="grade_points_in_range",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["offering", "batch"], name="grade_offering_batch_idx"),
+            models.Index(fields=["enrollment"], name="grade_enrollment_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.enrollment_id}:{self.assessment_id}"
+
+
+class GradeHistory(TimestampedModel):
+    """Append-only. One row per change, including creation (old_state is blank)."""
+
+    grade = models.ForeignKey(Grade, on_delete=models.PROTECT, related_name="history")
+    version = models.PositiveIntegerField()
+    old_state = models.CharField(max_length=16, blank=True)
+    old_points_earned = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
+    new_state = models.CharField(max_length=16)
+    new_points_earned = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
+    reason = models.CharField(max_length=255, blank=True)
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
+    )
+
+    objects = AppendOnlyQuerySet.as_manager()
+
+    class Meta:
+        ordering = ["version"]
+        constraints = [
+            models.UniqueConstraint(fields=["grade", "version"], name="uniq_grade_history_version")
+        ]
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise ValidationError("Grade history is immutable.")
+        return super().save(*args, **kwargs)
