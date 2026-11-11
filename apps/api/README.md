@@ -207,3 +207,13 @@ These responses use `Cache-Control: no-store`. Gradebook and published PO record
 of the academic schema; the student workspace reports no published outcomes until those records
 are implemented. The instructor workspace currently provides the assigned course roster, not grade
 entry.
+
+## Report exports (EXP-01)
+
+`GET /api/v1/reports/exports/` downloads a CSV or PDF report of a published publication. The
+contract, authorization rules and content rules are in
+[`docs/plan/EXP-01-contract.md`](../../docs/plan/EXP-01-contract.md). The `reports` app reads
+published data only through a `PublicationReader` (`reports/readers.py`); until the publication
+and analytics stories provide one, every export returns `404`. `REPORT_EXPORT_MAX_ROWS` (default
+5000) bounds synchronous exports. PDFs use ReportLab and its bundled fonts, so no system fonts or
+libraries are needed.
