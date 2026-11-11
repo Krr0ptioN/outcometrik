@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "health",
     "access",
     "academic",
+    "reports",
 ]
 
 MIDDLEWARE = [
@@ -143,3 +144,5 @@ AUTH_PASSWORD_VALIDATORS = [
 CSRF_TRUSTED_ORIGINS = env_list(
     "DJANGO_CSRF_TRUSTED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000" if DEBUG else ""
 )
+
+REPORT_EXPORT_MAX_ROWS = int(os.getenv("REPORT_EXPORT_MAX_ROWS", "5000"))

@@ -84,14 +84,16 @@ it('explains each failure in plain language without echoing server details', () 
     new ApiError('validation', 400, leak),
     new ApiError('conflict', 409, leak),
     new ApiError('unavailable', 500, leak),
+    new ApiError('unexpected', 413, leak),
     new ApiError('unexpected', 200),
     new TypeError('boom'),
   ].map(exportErrorMessage);
-  expect(new Set(messages.slice(0, 6)).size).toBe(6);
+  expect(new Set(messages.slice(0, 7)).size).toBe(7);
   expect(messages[0]).toMatch(/sign in/i);
   expect(messages[1]).toMatch(/permission/i);
   expect(messages[2]).toMatch(/not available/i);
   expect(messages[5]).toMatch(/not affected/i);
-  expect(messages[6]).toBe(messages[7]);
+  expect(messages[6]).toMatch(/too large/i);
+  expect(messages[7]).toBe(messages[8]);
   for (const message of messages) expect(message).not.toMatch(/4411|Physics/);
 });

@@ -51,6 +51,8 @@ export function exportErrorMessage(error: unknown): string {
     return 'You do not have permission to export this report.';
   if (error.status === 404)
     return 'This report is not available. It may be unpublished or outside your access.';
+  if (error.status === 413)
+    return 'This report is too large to download directly. Ask a coordinator for a smaller export.';
   if (error.kind === 'validation')
     return 'The report selection is not valid. Check it and try again.';
   if (error.kind === 'conflict')
