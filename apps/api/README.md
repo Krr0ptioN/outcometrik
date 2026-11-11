@@ -171,6 +171,12 @@ paginated (`page`, `page_size`, default 50, max 200) and filterable by query par
 | `/offerings/{id}/enrollments/` | GET, POST | roster of one offering |
 | `/instructor-assignments/` | same | `offering`, `user`, `assignment_role` |
 | `/enrollments/` | GET, POST, GET `{id}` | `offering`, `student`, `status`, `eligible_for_outcomes` |
+| `/syllabi/` | GET, POST, GET `{id}` | `offering`, `status` |
+| `/syllabi/{id}/learning-outcomes/` | GET, POST, PATCH `{childId}` | draft LO rows |
+| `/syllabi/{id}/assessments/` | GET, POST, PATCH `{childId}` | draft assessment rows |
+| `/syllabi/{id}/approve/` | POST | coordinator approval |
+| `/syllabi/{id}/revise/` | POST | clone approved into new draft |
+| `/syllabi/{id}/retire/` | POST | retire an empty draft |
 
 Rules:
 
@@ -191,6 +197,21 @@ Rules:
   withdrawn and incomplete do not). The policy version is stored on each enrollment.
 - `input_revision` on programs and offerings increases when an eligible offering or enrollment
   is added, or when a status change flips eligibility. Calculations use it to detect stale input.
+
+Syllabi (CUR-01):
+
+- Versions are immutable history: draft edits are allowed, approval locks a version forever,
+  and changes require a new revision cloned from the approved one (`POST /syllabi/{id}/revise/`).
+- One draft and at most one approved version per offering, enforced by database constraints.
+- Drafting requires the `syllabus.draft` capability at the offering scope (assigned instructors);
+  approval requires `syllabus.approve` at the program scope (coordinators, administrators).
+- An approval records who approved and when; approving bumps the program and offering
+  `input_revision` because official calculations become possible.
+- LOs and assessments carry unique codes and order numbers per version; assessments need
+  `max_points > 0`. Approving requires at least one LO and one assessment.
+- Empty drafts can be retired via `POST /syllabi/{id}/retire/`; versions holding configuration
+  or approval are kept forever. There is no DELETE.
+- `po_set_version` is reserved for the OUT-01 program-outcome set binding.
 
 Downstream stories should read rosters through `academic.selectors.eligible_roster(offering)`.
 

@@ -15,6 +15,7 @@ from .controllers import (
     ProgramCourseController,
     ProgramMembershipController,
     StudentWorkspaceController,
+    SyllabusController,
 )
 
 router = SimpleRouter()
@@ -30,6 +31,7 @@ router.register(
     "instructor-assignments", InstructorAssignmentController, basename="instructor-assignment"
 )
 router.register("enrollments", EnrollmentController, basename="enrollment")
+router.register("syllabi", SyllabusController, basename="syllabus")
 
 urlpatterns = [
     path("workspaces/instructor/", InstructorWorkspaceController.as_view()),

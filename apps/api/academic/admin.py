@@ -14,5 +14,8 @@ for model in (
     models.InstructorAssignment,
     models.Enrollment,
     models.EnrollmentStatusEvent,
+    models.Syllabus,
+    models.LearningOutcome,
+    models.Assessment,
 ):
     admin.site.register(model)
