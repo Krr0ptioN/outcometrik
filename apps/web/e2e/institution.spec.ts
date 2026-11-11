@@ -170,7 +170,7 @@ test('institution administrator reviews structure, creates accounts, manages acc
   await page.getByRole('button', { name: 'Activity log', exact: true }).click();
   await expect(
     page.getByText('capability granted', { exact: true }),
-  ).toBeVisible();
+  ).toHaveCount(3);
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   await expect(page).toHaveURL(/\/login$/);
   await page.getByLabel('Username', { exact: true }).fill('ada.student');
