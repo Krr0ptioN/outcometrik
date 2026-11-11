@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from .models import (
     AcademicTerm,
+    Assessment,
     Course,
     CourseOffering,
     Department,
@@ -9,9 +10,11 @@ from .models import (
     EnrollmentStatusEvent,
     Institution,
     InstructorAssignment,
+    LearningOutcome,
     Program,
     ProgramCourse,
     ProgramMembership,
+    Syllabus,
 )
 
 
@@ -180,3 +183,69 @@ class EnrollmentSerializer(AcademicSerializer):
 class EnrollmentStatusUpdateSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=Enrollment.Status.choices)
     reason = serializers.CharField(max_length=255, allow_blank=True, default="")
+
+
+class LearningOutcomeSerializer(AcademicSerializer):
+    class Meta:
+        model = LearningOutcome
+        fields = ["id", "code", "description", "order", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+
+class AssessmentSerializer(AcademicSerializer):
+    class Meta:
+        model = Assessment
+        fields = [
+            "id",
+            "code",
+            "kind",
+            "order",
+            "is_required",
+            "is_active",
+            "max_points",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+    def validate_max_points(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Maximum points must be greater than zero.")
+        return value
+
+
+class SyllabusSerializer(AcademicSerializer):
+    """A syllabus version with its draft-editable children."""
+
+    learning_outcomes = LearningOutcomeSerializer(many=True, read_only=True)
+    assessments = AssessmentSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Syllabus
+        fields = [
+            "id",
+            "offering",
+            "version",
+            "status",
+            "approved_by",
+            "approved_at",
+            "po_set_version",
+            "learning_outcomes",
+            "assessments",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "version",
+            "status",
+            "approved_by",
+            "approved_at",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class SyllabusCreateSerializer(serializers.Serializer):
+    offering = serializers.PrimaryKeyRelatedField(queryset=CourseOffering.objects.all())
+    po_set_version = serializers.IntegerField(required=False, allow_null=True, min_value=1)

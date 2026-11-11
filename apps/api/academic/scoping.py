@@ -39,6 +39,26 @@ def scope_offerings(user, qs):
     ).distinct()
 
 
+def scope_syllabi(user, qs):
+    # Staff draft/manage visibility derives from offering-scoped capabilities;
+    # enrolled students see only the official (approved) syllabus of their offering.
+    # `scope_filter` excludes student role assignments, so student scopes are collected
+    # directly and the status restriction applies to those scopes only.
+    from .models import Syllabus
+
+    approved = Syllabus.Status.APPROVED
+    staff_scopes = set(_scope_ids(user, "syllabus.draft", Scope.Kind.OFFERING))
+    student_scopes = set(_student_offering_ids(user))
+    if not student_scopes:
+        return qs.filter(offering_id__in=staff_scopes).distinct()
+    if not staff_scopes:
+        return qs.filter(offering_id__in=student_scopes, status=approved).distinct()
+    return qs.filter(
+        Q(offering_id__in=staff_scopes)
+        | Q(offering_id__in=student_scopes, status=approved)
+    ).distinct()
+
+
 def scope_enrollments(user, qs):
     # Students may see only their own roster row. Staff visibility comes from grades.view;
     # student grants are deliberately ownership and release checked by policy selectors.

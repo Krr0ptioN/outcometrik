@@ -7,6 +7,7 @@ from .offerings import CourseOfferingController
 from .program_courses import ProgramCourseController
 from .program_memberships import ProgramMembershipController
 from .programs import ProgramController
+from .syllabi import SyllabusController
 from .terms import AcademicTermController
 from .workspaces import (
     CoordinatorWorkspaceController,
@@ -28,4 +29,5 @@ __all__ = [
     "ProgramCourseController",
     "ProgramMembershipController",
     "StudentWorkspaceController",
+    "SyllabusController",
 ]
