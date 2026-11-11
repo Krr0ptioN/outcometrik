@@ -71,7 +71,7 @@ test('institution administrator reviews structure, creates accounts, manages acc
     .fill('casey.coordinator');
   await coordinatorDialog
     .getByLabel('Initial password')
-    .fill('Coordinator-Access-2026!');
+    .fill('Orbit!Saffron42Quartz');
   await coordinatorDialog
     .getByRole('combobox', { name: 'Assign to', exact: true })
     .selectOption({ label: 'Computer Engineering · program' });
@@ -165,7 +165,7 @@ test('institution administrator reviews structure, creates accounts, manages acc
   await page.getByLabel('Username', { exact: true }).fill('casey.coordinator');
   await page
     .getByLabel('Password', { exact: true })
-    .fill('Coordinator-Access-2026!');
+    .fill('Orbit!Saffron42Quartz');
   await page.getByRole('button', { name: 'Sign in to your workspace' }).click();
   await expect(page).toHaveURL(/\/coordinator$/);
   await expect(
