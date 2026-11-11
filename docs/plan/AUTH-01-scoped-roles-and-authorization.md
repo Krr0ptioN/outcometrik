@@ -32,7 +32,7 @@ Roles bundle capabilities. Administrators may grant individual capabilities dire
 - [ ] Cross-student and cross-offering object-reference tests fail safely.
 - [ ] A coordinator cannot access another program's draft or grades.
 - [ ] An instructor cannot mutate an unassigned offering.
-- [ ] A student cannot access unreleased grades, faculty previews, or another student's evidence.
+- [x] A student cannot access unreleased grades, faculty previews, or another student's evidence.
 - [ ] Role/direct-capability assignment and revocation, and sensitive exports, are audited.
 - [ ] A direct grant authorizes only its named action and scope, and revoking it removes that access unless another applicable grant remains.
 
