@@ -203,7 +203,9 @@ admin, coordinator, instructor, then student.
   rosters. An exact `grades.view` grant can add its named offering.
 - `GET /api/v1/workspaces/student/` returns only the signed-in student's own enrollments.
 
-These responses use `Cache-Control: no-store`. Gradebook and published PO records are not yet part
-of the academic schema; the student workspace reports no published outcomes until those records
-are implemented. The instructor workspace currently provides the assigned course roster, not grade
-entry.
+These responses use `Cache-Control: no-store`. The instructor workspace provides the assigned
+course roster and the gradebook UI. Approved assessments are read-only through
+`GET /api/v1/assessments/?offering={id}` and are visible only to staff with `grades.edit` on that
+offering; assessment authoring remains part of the curriculum workflow. Grade and batch endpoints
+support entry, versioned corrections, history, and release. Student grade queries return only that
+student's released grades. Published PO profiles are still provided by a downstream workflow.

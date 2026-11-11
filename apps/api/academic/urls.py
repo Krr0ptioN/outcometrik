@@ -3,6 +3,7 @@ from rest_framework.routers import SimpleRouter
 
 from .controllers import (
     AcademicTermController,
+    AssessmentController,
     CoordinatorWorkspaceController,
     CourseController,
     CourseOfferingController,
@@ -34,6 +35,7 @@ router.register(
 router.register("enrollments", EnrollmentController, basename="enrollment")
 router.register("grade-batches", GradeBatchController, basename="grade-batch")
 router.register("grades", GradeController, basename="grade")
+router.register("assessments", AssessmentController, basename="assessment")
 
 urlpatterns = [
     path("workspaces/instructor/", InstructorWorkspaceController.as_view()),

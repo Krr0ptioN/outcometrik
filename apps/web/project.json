@@ -25,7 +25,7 @@
       "dependsOn": ["build"]
     },
     "lint": {
-      "command": "eslint .",
+      "command": "eslint . --ignore-pattern '.next/**'",
       "options": {
         "cwd": "apps/web"
       }

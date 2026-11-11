@@ -10,7 +10,11 @@ from ..serializers import (
     GradeUpdateSerializer,
     GradeWriteSerializer,
 )
-from ..services.grades import GradeBatchService, GradeService, GradeVersionConflict
+from ..services.grades import (
+    GradeBatchService,
+    GradeService,
+    GradeVersionConflict,
+)
 from .base import AcademicController
 
 

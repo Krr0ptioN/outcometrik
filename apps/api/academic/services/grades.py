@@ -56,7 +56,7 @@ class GradeService(AcademicService):
     def visible_queryset(self, queryset):
         candidates = Grade.objects.values_list("offering_id", flat=True).distinct()
         staff_offerings = _editable_offering_ids(self.actor, candidates)
-        return queryset.filter(
+        return queryset.select_related("assessment", "batch").filter(
             Q(offering_id__in=staff_offerings)
             | Q(enrollment__student=self.actor, batch__released_at__isnull=False)
         )

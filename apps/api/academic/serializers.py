@@ -187,6 +187,9 @@ class EnrollmentStatusUpdateSerializer(serializers.Serializer):
 
 
 class GradeSerializer(serializers.ModelSerializer):
+    assessment_title = serializers.CharField(source="assessment.title", read_only=True)
+    batch_name = serializers.CharField(source="batch.name", read_only=True)
+
     class Meta:
         model = Grade
         fields = (
@@ -194,13 +197,22 @@ class GradeSerializer(serializers.ModelSerializer):
             "offering",
             "enrollment",
             "assessment",
+            "assessment_title",
             "batch",
+            "batch_name",
             "state",
             "points_earned",
             "points_possible",
             "version",
             "updated_at",
         )
+        read_only_fields = fields
+
+
+class AssessmentSerializer(AcademicSerializer):
+    class Meta:
+        model = Assessment
+        fields = ("id", "offering", "title", "points_possible", "status")
         read_only_fields = fields
 
 

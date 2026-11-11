@@ -1,3 +1,4 @@
+from .assessments import AssessmentController
 from .courses import CourseController
 from .departments import DepartmentController
 from .enrollments import EnrollmentController
@@ -17,6 +18,7 @@ from .workspaces import (
 
 __all__ = [
     "AcademicTermController",
+    "AssessmentController",
     "CoordinatorWorkspaceController",
     "CourseController",
     "CourseOfferingController",

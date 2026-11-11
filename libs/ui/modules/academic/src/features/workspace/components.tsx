@@ -6,6 +6,7 @@ import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitl
 import { SessionMenu, useSession } from '@outcometrik/access';
 import { errorMessage } from '@outcometrik/access';
 import { getCoordinatorWorkspace, getInstructorWorkspace, getStudentWorkspace } from './api';
+import { StudentGradeSummary } from '../gradebook/components';
 
 function AccessGate({ children, title }: { children: ReactNode; title: string }) {
   return (
@@ -37,7 +38,9 @@ export function InstructorDashboard() {
             <CardContent>
               <h2 className="mb-3 font-medium">Roster ({offering.roster.length})</h2>
               {offering.roster.length ? <ul className="divide-y">{offering.roster.map((student) => <li key={student.enrollment_id} className="flex items-center justify-between gap-4 py-2"><span>{student.name}</span><Badge variant="outline">{student.status}</Badge></li>)}</ul> : <p className="text-sm text-muted-foreground">No students are enrolled in this offering.</p>}
-              <p className="mt-4 text-sm text-muted-foreground">Grade entry will appear when the gradebook is available.</p>
+              <Button asChild variant="outline" className="mt-4">
+                <a href="/instructor/gradebook">Open gradebook</a>
+              </Button>
             </CardContent>
           </Card>
         ))}
@@ -85,6 +88,7 @@ export function StudentDashboard() {
       {workspace.data?.courses.length === 0 && <p>You are not enrolled in any offerings yet.</p>}
       <section aria-labelledby="my-courses-title"><h2 id="my-courses-title" className="mb-3 text-xl font-semibold">My courses</h2><div className="grid gap-4 md:grid-cols-2">{workspace.data?.courses.map((course) => <Card key={course.enrollment_id}><CardHeader><CardTitle>{course.course_code} · {course.section}</CardTitle><CardDescription>{course.course}</CardDescription></CardHeader><CardContent className="flex flex-wrap items-center justify-between gap-3"><span>{course.program} · {course.term}</span><Badge variant="outline">{course.enrollment_status}</Badge></CardContent></Card>)}</div></section>
       <section aria-labelledby="outcomes-title"><h2 id="outcomes-title" className="mb-3 text-xl font-semibold">Learning outcomes</h2>{workspace.data?.outcomes.length ? <p>Published outcome profile available.</p> : <p className="text-sm text-muted-foreground">No published outcome profile is available yet.</p>}</section>
+      <StudentGradeSummary />
       <Button asChild variant="outline" className="self-start"><a href="/">All dashboards</a></Button>
     </main>
   );

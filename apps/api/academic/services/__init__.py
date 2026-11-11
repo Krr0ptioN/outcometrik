@@ -1,3 +1,4 @@
+from .assessments import AssessmentService
 from .enrollments import EnrollmentService
 from .grades import GradeBatchService, GradeService
 from .offerings import CourseOfferingService, InstructorAssignmentService
@@ -9,6 +10,7 @@ from .workspaces import WorkspaceService
 __all__ = [
     "AcademicServiceProvider",
     "AcademicTermService",
+    "AssessmentService",
     "CourseOfferingService",
     "CourseService",
     "DepartmentService",
