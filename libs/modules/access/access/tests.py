@@ -288,9 +288,12 @@ def test_api_assigns_multiple_direct_capabilities_in_one_scoped_request(world):
         "grades.export",
         "outcomes.view",
     }
-    assert AuditEvent.objects.filter(
-        actor=users["admin"], subject=users["outsider"], action="capability.granted"
-    ).count() == 2
+    assert (
+        AuditEvent.objects.filter(
+            actor=users["admin"], subject=users["outsider"], action="capability.granted"
+        ).count()
+        == 2
+    )
     duplicate = client.post(
         "/api/access/assignments/",
         {
