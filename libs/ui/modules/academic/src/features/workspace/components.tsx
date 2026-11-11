@@ -355,7 +355,7 @@ export function InstructorDashboard() {
     </SidebarProvider>
   );
 }
-export function CoordinatorAcademicOverview() {
+export function CoordinatorAcademicOverview({ children }: { children?: ReactNode }) {
   const session = useSession();
   const allowed = hasRole(session, 'program-coordinator');
   const workspace = useQuery({
@@ -462,10 +462,11 @@ export function CoordinatorAcademicOverview() {
           </Card>
         ))}
       </div>
+      {children}
     </section>
   );
 }
-export function StudentDashboard() {
+export function StudentDashboard({ children }: { children?: ReactNode }) {
   const session = useSession();
   const allowed = hasRole(session, 'student');
   const workspace = useQuery({
@@ -543,6 +544,7 @@ export function StudentDashboard() {
         )}
       </section>
       <StudentGradeSummary />
+      {children}
       <Button asChild variant="outline" className="self-start">
         <a href="/">All dashboards</a>
       </Button>
