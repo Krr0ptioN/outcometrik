@@ -1,27 +1,39 @@
 from django.urls import path
 from rest_framework.routers import SimpleRouter
 
-from . import views
+from .controllers import (
+    AcademicTermController,
+    CoordinatorWorkspaceController,
+    CourseController,
+    CourseOfferingController,
+    DepartmentController,
+    EnrollmentController,
+    InstitutionController,
+    InstructorAssignmentController,
+    InstructorWorkspaceController,
+    ProgramController,
+    ProgramCourseController,
+    ProgramMembershipController,
+    StudentWorkspaceController,
+)
 
 router = SimpleRouter()
-router.register("institutions", views.InstitutionViewSet, basename="institution")
-router.register("departments", views.DepartmentViewSet, basename="department")
-router.register("programs", views.ProgramViewSet, basename="program")
-router.register("terms", views.AcademicTermViewSet, basename="term")
-router.register("courses", views.CourseViewSet, basename="course")
-router.register("program-courses", views.ProgramCourseViewSet, basename="program-course")
+router.register("institutions", InstitutionController, basename="institution")
+router.register("departments", DepartmentController, basename="department")
+router.register("programs", ProgramController, basename="program")
+router.register("terms", AcademicTermController, basename="term")
+router.register("courses", CourseController, basename="course")
+router.register("program-courses", ProgramCourseController, basename="program-course")
+router.register("program-memberships", ProgramMembershipController, basename="program-membership")
+router.register("offerings", CourseOfferingController, basename="offering")
 router.register(
-    "program-memberships", views.ProgramMembershipViewSet, basename="program-membership"
+    "instructor-assignments", InstructorAssignmentController, basename="instructor-assignment"
 )
-router.register("offerings", views.CourseOfferingViewSet, basename="offering")
-router.register(
-    "instructor-assignments", views.InstructorAssignmentViewSet, basename="instructor-assignment"
-)
-router.register("enrollments", views.EnrollmentViewSet, basename="enrollment")
+router.register("enrollments", EnrollmentController, basename="enrollment")
 
 urlpatterns = [
-    path("workspaces/instructor/", views.InstructorWorkspaceView.as_view()),
-    path("workspaces/student/", views.StudentWorkspaceView.as_view()),
-    path("workspaces/coordinator/", views.CoordinatorWorkspaceView.as_view()),
+    path("workspaces/instructor/", InstructorWorkspaceController.as_view()),
+    path("workspaces/student/", StudentWorkspaceController.as_view()),
+    path("workspaces/coordinator/", CoordinatorWorkspaceController.as_view()),
     *router.urls,
 ]

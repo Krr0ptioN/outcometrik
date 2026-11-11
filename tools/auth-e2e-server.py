@@ -38,7 +38,6 @@ def main():
         call_command(
             "bootstrap_access", "institution.admin", name="Northbridge University"
         )
-        from access.models import Scope
         from academic.models import (
             AcademicTerm,
             Course,
@@ -47,7 +46,8 @@ def main():
             Program,
             ProgramCourse,
         )
-        from academic.services import create_offering
+        from academic.services import CourseOfferingService
+        from access.models import Scope
 
         admin = get_user_model().objects.get(username="institution.admin")
         institution_scope = Scope.objects.get(
@@ -82,8 +82,8 @@ def main():
             effective_from="2026-01-01",
             status="approved",
         )
-        create_offering(
-            actor=admin, program=program, course=course, term=term, section="01"
+        CourseOfferingService(actor=admin).create(
+            program=program, course=course, term=term, section="01"
         )
         call_command("runserver", "127.0.0.1:8000", use_reloader=False)
 

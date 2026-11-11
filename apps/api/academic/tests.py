@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import ProtectedError
 from rest_framework.test import APIClient
 
-from academic import selectors, services
+from academic import selectors
 from academic.models import (
     AcademicTerm,
     Course,
@@ -20,6 +20,7 @@ from academic.models import (
     ProgramCourse,
     ProgramMembership,
 )
+from academic.services import CourseOfferingService, EnrollmentService
 
 pytestmark = pytest.mark.django_db
 User = get_user_model()
@@ -81,8 +82,8 @@ def world():
 
 
 def make_offering(w, section="01"):
-    offering = services.create_offering(
-        actor=w["admin"], program=w["program"], course=w["course"], term=w["term"], section=section
+    offering = CourseOfferingService(actor=w["admin"]).create(
+        program=w["program"], course=w["course"], term=w["term"], section=section
     )
     grant_role(w["student"], offering.pk, "student")
     return offering
@@ -188,7 +189,7 @@ def test_enrollment_requires_active_membership(world):
     offering = make_offering(world)
     outsider = User.objects.create_user("out", password="x")
     with pytest.raises(ValidationError):
-        services.create_enrollment(actor=world["admin"], offering=offering, student=outsider)
+        EnrollmentService(actor=world["admin"]).create(offering=offering, student=outsider)
 
 
 def test_input_revision_and_policy(world):
@@ -197,8 +198,8 @@ def test_input_revision_and_policy(world):
     program.refresh_from_db()
     assert program.input_revision == 1
 
-    enrollment = services.create_enrollment(
-        actor=world["admin"], offering=offering, student=world["student"]
+    enrollment = EnrollmentService(actor=world["admin"]).create(
+        offering=offering, student=world["student"]
     )
     program.refresh_from_db()
     offering.refresh_from_db()
@@ -206,8 +207,8 @@ def test_input_revision_and_policy(world):
     assert enrollment.eligible_for_outcomes
     assert enrollment.eligibility_policy_version == "proposed-v1"
 
-    services.update_enrollment_status(
-        actor=world["admin"], enrollment=enrollment, status="withdrawn", reason="left"
+    EnrollmentService(actor=world["admin"]).update_status(
+        enrollment=enrollment, status="withdrawn", reason="left"
     )
     program.refresh_from_db()
     offering.refresh_from_db()
@@ -218,8 +219,8 @@ def test_input_revision_and_policy(world):
     assert enrollment.status_events.count() == 2
 
     # a change that does not flip eligibility does not bump the revision
-    services.update_enrollment_status(
-        actor=world["admin"], enrollment=enrollment, status="incomplete"
+    EnrollmentService(actor=world["admin"]).update_status(
+        enrollment=enrollment, status="incomplete"
     )
     program.refresh_from_db()
     assert program.input_revision == 3
@@ -227,8 +228,8 @@ def test_input_revision_and_policy(world):
 
 def test_withdrawn_enrollment_does_not_bump(world):
     offering = make_offering(world)
-    services.create_enrollment(
-        actor=world["admin"], offering=offering, student=world["student"], status="withdrawn"
+    EnrollmentService(actor=world["admin"]).create(
+        offering=offering, student=world["student"], status="withdrawn"
     )
     offering.refresh_from_db()
     assert offering.input_revision == 0
@@ -236,8 +237,8 @@ def test_withdrawn_enrollment_does_not_bump(world):
 
 def test_patch_enrollment_status_endpoint(admin_client, world):
     offering = make_offering(world)
-    enrollment = services.create_enrollment(
-        actor=world["admin"], offering=offering, student=world["student"]
+    enrollment = EnrollmentService(actor=world["admin"]).create(
+        offering=offering, student=world["student"]
     )
     r = admin_client.patch(
         f"/api/v1/enrollments/{enrollment.pk}/",
@@ -261,7 +262,7 @@ def test_nested_roster_route(admin_client, world):
 
 def test_denied_scope(world):
     offering = make_offering(world)
-    services.create_enrollment(actor=world["admin"], offering=offering, student=world["student"])
+    EnrollmentService(actor=world["admin"]).create(offering=offering, student=world["student"])
 
     stranger = User.objects.create_user("s2", password="x", is_staff=True, is_superuser=True)
     client = APIClient()
@@ -288,8 +289,8 @@ def test_denied_scope(world):
 
 def test_history_protected_and_readable(admin_client, world):
     offering = make_offering(world)
-    enrollment = services.create_enrollment(
-        actor=world["admin"], offering=offering, student=world["student"]
+    enrollment = EnrollmentService(actor=world["admin"]).create(
+        offering=offering, student=world["student"]
     )
 
     with pytest.raises(ProtectedError):
@@ -333,8 +334,7 @@ def test_coordinator_and_instructor_are_confined_to_assigned_scopes(admin_client
         effective_from=dt.date(2026, 1, 1),
         status="approved",
     )
-    other_offering = services.create_offering(
-        actor=world["admin"],
+    other_offering = CourseOfferingService(actor=world["admin"]).create(
         program=other_program,
         course=world["course"],
         term=world["term"],
@@ -388,12 +388,10 @@ def test_student_sees_only_own_enrollment(admin_client, world):
         program=world["program"], user=other_student, student_number="S2"
     )
     grant_role(other_student, offering.pk, "student")
-    own = services.create_enrollment(
-        actor=world["admin"], offering=offering, student=world["student"]
+    own = EnrollmentService(actor=world["admin"]).create(
+        offering=offering, student=world["student"]
     )
-    other = services.create_enrollment(
-        actor=world["admin"], offering=offering, student=other_student
-    )
+    other = EnrollmentService(actor=world["admin"]).create(offering=offering, student=other_student)
     client = APIClient()
     client.force_authenticate(world["student"])
     assert client.get("/api/v1/enrollments/").data["count"] == 1
@@ -426,8 +424,8 @@ def test_role_workspaces_limit_instructor_roster_and_student_records(world):
         program=world["program"], user=second_student, student_number="S2"
     )
     grant_role(second_student, offering.pk, "student")
-    services.create_enrollment(actor=world["admin"], offering=offering, student=world["student"])
-    services.create_enrollment(actor=world["admin"], offering=offering, student=second_student)
+    EnrollmentService(actor=world["admin"]).create(offering=offering, student=world["student"])
+    EnrollmentService(actor=world["admin"]).create(offering=offering, student=second_student)
 
     instructor = User.objects.create_user("instructor", password="x")
     grant_role(instructor, offering.pk, "instructor")
