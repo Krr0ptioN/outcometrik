@@ -266,6 +266,9 @@ importers:
       '@outcometrik/api':
         specifier: workspace:*
         version: link:../../libs/ui/api
+      '@outcometrik/reports':
+        specifier: workspace:*
+        version: link:../../libs/ui/modules/reports
       '@outcometrik/system':
         specifier: workspace:*
         version: link:../../libs/ui/modules/system
@@ -349,6 +352,21 @@ importers:
       lucide-react:
         specifier: ^1.68.0
         version: 1.68.0(@types/react@19.1.16)(react@19.1.1)
+      react:
+        specifier: ^19.1.1
+        version: 19.1.1
+
+  libs/ui/modules/reports:
+    dependencies:
+      '@outcometrik/api':
+        specifier: workspace:*
+        version: link:../../api
+      '@outcometrik/ui':
+        specifier: workspace:*
+        version: link:../../core
+      '@tanstack/react-query':
+        specifier: ^5.104.2
+        version: 5.104.2(react@19.1.1)
       react:
         specifier: ^19.1.1
         version: 19.1.1

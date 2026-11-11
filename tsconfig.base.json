@@ -31,6 +31,9 @@
       "@outcometrik/academic": [
         "libs/ui/modules/academic/src/index.ts"
       ],
+      "@outcometrik/reports": [
+        "libs/ui/modules/reports/src/index.ts"
+      ],
       "@outcometrik/ui/*": [
         "libs/ui/core/src/*"
       ]

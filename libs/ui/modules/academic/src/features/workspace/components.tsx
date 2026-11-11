@@ -46,7 +46,7 @@ export function InstructorDashboard() {
     </main>
   );
 }
-export function CoordinatorAcademicOverview() {
+export function CoordinatorAcademicOverview({ children }: { children?: ReactNode }) {
   const session = useSession();
   const allowed = hasRole(session, 'program-coordinator');
   const workspace = useQuery({ queryKey: ['academic', 'coordinator'], queryFn: ({ signal }) => getCoordinatorWorkspace(signal), enabled: allowed });
@@ -67,10 +67,11 @@ export function CoordinatorAcademicOverview() {
           </Card>
         ))}
       </div>
+      {children}
     </section>
   );
 }
-export function StudentDashboard() {
+export function StudentDashboard({ children }: { children?: ReactNode }) {
   const session = useSession();
   const allowed = hasRole(session, 'student');
   const workspace = useQuery({ queryKey: ['academic', 'student'], queryFn: ({ signal }) => getStudentWorkspace(signal), enabled: allowed });
@@ -85,6 +86,7 @@ export function StudentDashboard() {
       {workspace.data?.courses.length === 0 && <p>You are not enrolled in any offerings yet.</p>}
       <section aria-labelledby="my-courses-title"><h2 id="my-courses-title" className="mb-3 text-xl font-semibold">My courses</h2><div className="grid gap-4 md:grid-cols-2">{workspace.data?.courses.map((course) => <Card key={course.enrollment_id}><CardHeader><CardTitle>{course.course_code} · {course.section}</CardTitle><CardDescription>{course.course}</CardDescription></CardHeader><CardContent className="flex flex-wrap items-center justify-between gap-3"><span>{course.program} · {course.term}</span><Badge variant="outline">{course.enrollment_status}</Badge></CardContent></Card>)}</div></section>
       <section aria-labelledby="outcomes-title"><h2 id="outcomes-title" className="mb-3 text-xl font-semibold">Learning outcomes</h2>{workspace.data?.outcomes.length ? <p>Published outcome profile available.</p> : <p className="text-sm text-muted-foreground">No published outcome profile is available yet.</p>}</section>
+      {children}
       <Button asChild variant="outline" className="self-start"><a href="/">All dashboards</a></Button>
     </main>
   );
