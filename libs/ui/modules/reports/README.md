@@ -2,7 +2,8 @@
 
 `@outcometrik/reports` owns report features for published outcome results.
 
-- `features/exports/` — CSV/PDF report export client and download helper. It follows the
+- `features/exports/` — CSV/PDF report export: typed client, download helper, `useExportReport`
+  hook and the `ExportPanel` component (loading, error, empty and success states). It follows the
   draft [EXP-01 export contract](../../../../docs/plan/EXP-01-contract.md). Authorization,
   publication state and the audit trail are enforced by the server, never by this module.
 
