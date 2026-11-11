@@ -38,21 +38,22 @@ Roles bundle capabilities. Administrators may grant individual capabilities dire
 
 ## Implementation tasks
 
-- [ ] Confirm API/data contract and authorization scope against the owning domain module.
-- [ ] Implement the smallest vertical slice that satisfies the acceptance criteria.
-- [ ] Add focused unit/integration coverage for success, invalid input, and denied scope.
-- [ ] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
-- [ ] Update API/UI documentation and verify downstream stories remain compatible.
+- [x] Confirm API/data contract and authorization scope against the owning domain module.
+- [x] Implement the smallest vertical slice that satisfies the acceptance criteria.
+- [x] Add focused unit/integration coverage for success, invalid input, and denied scope.
+- [x] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
+- [x] Update API/UI documentation and verify downstream stories remain compatible.
 
 ## Implemented backend contract
 
 See [API authorization documentation](../../apps/api/README.md#scoped-authorization-auth-01)
 for the assignment/revocation endpoints, role matrix, bootstrap procedure, and
 selector/service integration contract. The `access` application implements the
-centralized policy described in `deep-research-report(2).md`, with database-backed
-scope ancestry and exact-scope direct grants. Its tests cover the acceptance
-matrix using a protected-record fixture because academic, grade, evidence, and
-outcome models/endpoints have not been introduced yet. Those domains must consume
-the shared selectors and service checks when implemented. The institution dashboard at `/admin` now provides account creation, role and
-direct-grant management, program/offering setup and audit activity. Session
-sign-in is available at `/login`.
+centralized policy, database-backed scope ancestry, scoped roles, exact-scope
+direct grants, and transactional audits. Access tests exercise grade/evidence
+publication rules with protected-record fixtures; the academic API separately
+tests real program, offering, and enrollment scoping. Grade, evidence, and
+outcome endpoints remain downstream work and must use the shared selectors and
+service checks. `/admin` manages accounts, roles, grants, and audit activity;
+`/admin/academic` provisions academic structure through scoped APIs. Sign-in is
+available at `/login`.
