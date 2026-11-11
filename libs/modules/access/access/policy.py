@@ -19,6 +19,8 @@ CAPABILITIES = (
     "evidence.view",
     "faculty.preview",
     "grades.export",
+    "syllabus.draft",
+    "syllabus.approve",
 )
 
 
