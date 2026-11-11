@@ -1,0 +1,26 @@
+{
+  "name": "ui-access",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/ui/modules/access/src",
+  "projectType": "library",
+  "targets": {
+    "lint": {
+      "command": "eslint src",
+      "options": {
+        "cwd": "libs/ui/modules/access"
+      }
+    },
+    "test": {
+      "command": "vitest run",
+      "options": {
+        "cwd": "libs/ui/modules/access"
+      }
+    },
+    "typecheck": {
+      "command": "tsc --noEmit -p tsconfig.json",
+      "options": {
+        "cwd": "libs/ui/modules/access"
+      }
+    }
+  }
+}

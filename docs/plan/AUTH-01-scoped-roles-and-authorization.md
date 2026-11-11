@@ -35,6 +35,7 @@ Roles bundle capabilities. Administrators may grant individual capabilities dire
 - [ ] A student cannot access unreleased grades, faculty previews, or another student's evidence.
 - [ ] Role/direct-capability assignment and revocation, and sensitive exports, are audited.
 - [ ] A direct grant authorizes only its named action and scope, and revoking it removes that access unless another applicable grant remains.
+
 ## Implementation tasks
 
 - [ ] Confirm API/data contract and authorization scope against the owning domain module.
@@ -43,3 +44,15 @@ Roles bundle capabilities. Administrators may grant individual capabilities dire
 - [ ] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
 - [ ] Update API/UI documentation and verify downstream stories remain compatible.
 
+## Implemented backend contract
+
+See [API authorization documentation](../../apps/api/README.md#scoped-authorization-auth-01)
+for the assignment/revocation endpoints, role matrix, bootstrap procedure, and
+selector/service integration contract. The `access` application implements the
+centralized policy described in `deep-research-report(2).md`, with database-backed
+scope ancestry and exact-scope direct grants. Its tests cover the acceptance
+matrix using a protected-record fixture because academic, grade, evidence, and
+outcome models/endpoints have not been introduced yet. Those domains must consume
+the shared selectors and service checks when implemented. The institution dashboard at `/admin` now provides account creation, role and
+direct-grant management, program/offering setup and audit activity. Session
+sign-in is available at `/login`.

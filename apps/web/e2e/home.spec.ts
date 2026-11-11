@@ -5,8 +5,12 @@ test('shows available API and keyboard navigation', async ({ page }) => {
     route.fulfill({ json: { status: 'ok' } }),
   );
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Outcometrik' })).toBeVisible();
-  await expect(page.getByRole('status')).toHaveText('API available');
+  await expect(
+    page.getByRole('heading', { name: 'Outcometrik' }),
+  ).toBeVisible();
+  await expect(page.locator('#status').getByRole('status')).toHaveText(
+    'API available',
+  );
   await page.keyboard.press('Tab');
   await expect(
     page.getByRole('link', { name: 'Skip to main content' }),
@@ -22,7 +26,7 @@ for (const status of [401, 403, 400, 409, 503]) {
       route.fulfill({ status, json: { detail: 'error' } }),
     );
     await page.goto('/');
-    await expect(page.getByRole('status')).not.toHaveText(
+    await expect(page.locator('#status').getByRole('status')).not.toHaveText(
       'Checking API availability…',
     );
     await expect(
@@ -32,7 +36,9 @@ for (const status of [401, 403, 400, 409, 503]) {
       route.fulfill({ json: { status: 'ok' } }),
     );
     await page.getByRole('button', { name: 'Check again' }).click();
-    await expect(page.getByRole('status')).toHaveText('API available');
+    await expect(page.locator('#status').getByRole('status')).toHaveText(
+      'API available',
+    );
     expect(errors).toEqual([]);
   });
 }
@@ -41,7 +47,7 @@ test('shows loading, empty workspace, and network failure', async ({
 }) => {
   await page.route('**/api/health/status', () => {});
   await page.goto('/');
-  await expect(page.getByRole('status')).toHaveText(
+  await expect(page.locator('#status').getByRole('status')).toHaveText(
     'Checking API availability…',
   );
   await expect(page.getByRole('button', { name: 'Checking…' })).toBeDisabled();
@@ -49,7 +55,7 @@ test('shows loading, empty workspace, and network failure', async ({
   await page.unrouteAll({ behavior: 'ignoreErrors' });
   await page.route('**/api/health/status', (route) => route.abort());
   await page.reload();
-  await expect(page.getByRole('status')).toHaveText(
+  await expect(page.locator('#status').getByRole('status')).toHaveText(
     'API unavailable. Please try again.',
   );
 });

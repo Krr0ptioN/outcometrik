@@ -4,16 +4,18 @@ FROM python:3.13-slim AS base
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
-WORKDIR /app
+WORKDIR /workspace/apps/api
 COPY --from=uv /uv /uvx /bin/
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 
 FROM base AS dependencies
-COPY pyproject.toml uv.lock* ./
+COPY apps/api/pyproject.toml apps/api/uv.lock ./
+COPY libs/modules/access /workspace/libs/modules/access
 RUN uv sync --locked --no-dev
 
 FROM base
 COPY --from=dependencies /opt/venv /opt/venv
-COPY . .
+COPY libs/modules/access /workspace/libs/modules/access
+COPY apps/api .
 EXPOSE 8000
 CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]

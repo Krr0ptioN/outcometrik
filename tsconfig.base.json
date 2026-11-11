@@ -24,6 +24,12 @@
       ],
       "@outcometrik/system": [
         "libs/ui/modules/system/src/index.ts"
+      ],
+      "@outcometrik/access": [
+        "libs/ui/modules/access/src/index.ts"
+      ],
+      "@outcometrik/ui/*": [
+        "libs/ui/core/src/*"
       ]
     }
   }
