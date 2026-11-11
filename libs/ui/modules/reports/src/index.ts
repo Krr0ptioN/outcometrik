@@ -1,8 +1,14 @@
-export { downloadExport, exportPath, saveFile } from './features/exports';
+'use client';
+
+export {
+  ExportPanel,
+  downloadExport,
+  exportErrorMessage,
+  useExportReport,
+} from './features/exports';
 export type {
-  CohortExportRequest,
   ExportFile,
   ExportFormat,
+  ExportPanelProps,
   ExportRequest,
-  StudentExportRequest,
 } from './features/exports';
