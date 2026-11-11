@@ -328,6 +328,118 @@ class Enrollment(TimestampedModel):
         super().save(*args, **kwargs)
 
 
+class Syllabus(TimestampedModel):
+    """A versioned syllabus configuration for one offering.
+
+    Approval freezes a version; further changes are made by creating a new
+    revision. The PO-set binding is reserved for OUT-01: ``po_set_version``
+    will hold the program's active versioned PO set once those exist, and
+    approval gains its active-PO-set compatibility check there.
+    """
+
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        APPROVED = "approved", "Approved"
+        RETIRED = "retired", "Retired"
+
+    offering = models.ForeignKey(
+        CourseOffering, on_delete=models.PROTECT, related_name="syllabi"
+    )
+    version = models.PositiveIntegerField(editable=False)
+    status = models.CharField(
+        max_length=16, choices=Status.choices, default=Status.DRAFT, editable=False
+    )
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="approved_syllabi",
+        editable=False,
+    )
+    approved_at = models.DateTimeField(null=True, blank=True, editable=False)
+    po_set_version = models.PositiveIntegerField(null=True, blank=True, editable=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["offering", "version"], name="uniq_syllabus_offering_version"
+            ),
+            models.UniqueConstraint(
+                fields=["offering"],
+                condition=models.Q(status="draft"),
+                name="uniq_draft_syllabus_per_offering",
+            ),
+            models.UniqueConstraint(
+                fields=["offering"],
+                condition=models.Q(status="approved"),
+                name="uniq_official_syllabus_per_offering",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.offering_id}:v{self.version}"
+
+
+class LearningOutcome(TimestampedModel):
+    """A course-level learning outcome that belongs to one syllabus version."""
+
+    syllabus = models.ForeignKey(
+        Syllabus, on_delete=models.PROTECT, related_name="learning_outcomes"
+    )
+    code = models.CharField(max_length=32)
+    description = models.TextField()
+    order = models.PositiveSmallIntegerField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["syllabus", "code"], name="uniq_lo_syllabus_code"),
+            models.UniqueConstraint(fields=["syllabus", "order"], name="uniq_lo_syllabus_order"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.syllabus_id}:{self.code}"
+
+
+class Assessment(TimestampedModel):
+    """A measurable course component with a positive maximum score."""
+
+    class Kind(models.TextChoices):
+        EXAM = "exam", "Exam"
+        HOMEWORK = "homework", "Homework"
+        PROJECT = "project", "Project"
+        QUIZ = "quiz", "Quiz"
+        LAB = "lab", "Lab"
+        OTHER = "other", "Other"
+
+    syllabus = models.ForeignKey(
+        Syllabus, on_delete=models.PROTECT, related_name="assessments"
+    )
+    code = models.CharField(max_length=32)
+    kind = models.CharField(max_length=16, choices=Kind.choices)
+    order = models.PositiveSmallIntegerField()
+    is_required = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True)
+    max_points = models.DecimalField(max_digits=7, decimal_places=2)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["syllabus", "code"], name="uniq_assessment_syllabus_code"
+            ),
+            models.UniqueConstraint(
+                fields=["syllabus", "order"], name="uniq_assessment_syllabus_order"
+            ),
+            models.CheckConstraint(
+                condition=models.Q(max_points__gt=0),
+                name="assessment_positive_max_points",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.syllabus_id}:{self.code}"
+
+
 class EnrollmentStatusEvent(TimestampedModel):
     """Append-only record of every status/eligibility decision for an enrollment."""
 
