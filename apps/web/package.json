@@ -6,6 +6,7 @@
     "@outcometrik/access": "workspace:*",
     "@outcometrik/academic": "workspace:*",
     "@outcometrik/api": "workspace:*",
+    "@outcometrik/reports": "workspace:*",
     "@outcometrik/system": "workspace:*",
     "@tailwindcss/postcss": "^4.3.3",
     "@tanstack/react-query": "^5.104.2",

@@ -29,3 +29,6 @@ institution administration dashboard. See [its README](access/README.md).
 
 `academic/` (`@outcometrik/academic`, Nx `ui-academic`) owns instructor and
 student workspaces backed by the scoped academic API.
+
+`reports/` (`@outcometrik/reports`, Nx `ui-reports`) owns report features such as
+CSV/PDF export of published outcome results. See [its README](reports/README.md).
