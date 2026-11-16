@@ -425,8 +425,10 @@ function InstitutionWorkspace({ institutions }: { institutions: Scope[] }) {
                   >
                     <AccountForm
                       data={data}
-                      onSaved={() =>
-                        void saved('Account created and initial role assigned.')
+                      onSaved={(created) =>
+                        void saved(
+                          `Account ${created.username} created (ID ${created.id}) and initial role assigned.`,
+                        )
                       }
                     />
                   </Modal>

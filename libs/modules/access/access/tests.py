@@ -117,6 +117,41 @@ def test_student_policy_and_selectors(world, capability, released, published, ow
     assert not allowed(student, capability, offerings[1], context)
 
 
+def test_issue_41_student_cannot_read_private_grades_previews_or_foreign_evidence(world):
+    users, _, _, offerings = world
+    student = users["student"]
+    own_released_grade = ProtectedRecord.objects.create(
+        scope=offerings[0], owner_id=student.pk, released=True
+    )
+    own_unreleased_grade = ProtectedRecord.objects.create(
+        scope=offerings[0], owner_id=student.pk, released=False
+    )
+    another_students_evidence = ProtectedRecord.objects.create(
+        scope=offerings[0], owner_id=users["other"].pk, released=True
+    )
+
+    visible_grades = visible_resources(
+        ProtectedRecord.objects.all(), principal=student, capability="grades.view"
+    )
+    visible_evidence = visible_resources(
+        ProtectedRecord.objects.all(), principal=student, capability="evidence.view"
+    )
+    visible_previews = visible_resources(
+        ProtectedRecord.objects.all(), principal=student, capability="faculty.preview"
+    )
+
+    assert visible_grades.filter(pk=own_released_grade.pk).exists()
+    assert not visible_grades.filter(pk=own_unreleased_grade.pk).exists()
+    assert not visible_evidence.filter(pk=another_students_evidence.pk).exists()
+    assert not visible_previews.exists()
+    assert not authorization.allows(
+        principal=student,
+        capability="faculty.preview",
+        scope=offerings[0],
+        resource=ResourceContext(student.pk, released=True),
+    )
+
+
 def test_coordinator_cannot_enumerate_foreign_drafts(world):
     users, _, _, offerings = world
     foreign = ProtectedRecord.objects.create(scope=offerings[1], owner_id=users["other"].pk)

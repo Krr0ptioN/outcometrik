@@ -30,11 +30,16 @@ As a coordinator, I can define a program's academic structure and offering roste
 - [ ] An offering cannot be created for an inactive or unrelated program-course association.
 - [ ] Roster status and attempt data are available to downstream calculations.
 - [ ] Historical references remain readable after catalog edits.
+
 ## Implementation tasks
 
-- [ ] Confirm API/data contract and authorization scope against the owning domain module.
-- [ ] Implement the smallest vertical slice that satisfies the acceptance criteria.
-- [ ] Add focused unit/integration coverage for success, invalid input, and denied scope.
-- [ ] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
-- [ ] Update API/UI documentation and verify downstream stories remain compatible.
+- [x] Confirm API/data contract and authorization scope against the owning domain module.
+- [x] Implement the smallest vertical slice that satisfies the acceptance criteria.
+- [x] Add focused unit/integration coverage for success, invalid input, and denied scope.
+- [x] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
+- [x] Update API/UI documentation and verify downstream stories remain compatible.
 
+The catalog UI provisions terms, programs, courses, approved program-course
+links, offerings, memberships, instructor assignments, and enrollments. Binding
+offerings to versioned syllabi and PO sets belongs to CUR-01 and OUT-01; those
+models are not part of ACAD-01's current catalog schema.

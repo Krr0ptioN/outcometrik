@@ -72,7 +72,7 @@ export function AccountForm({
   onSaved,
 }: {
   data: Dashboard;
-  onSaved: () => void;
+  onSaved: (created: { id: number; username: string }) => void;
 }) {
   const [scopeId, setScopeId] = useState(
     data.scopes.find((s) => s.kind === 'offering')?.id ?? data.scope_id,

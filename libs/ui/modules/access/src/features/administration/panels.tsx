@@ -255,11 +255,16 @@ export function StructurePanel({
               </EmptyMedia>
               <EmptyTitle>Your first program starts here.</EmptyTitle>
               <EmptyDescription>
-                Create departments, programs, courses, terms and offerings
-                through the academic API. Each program and offering will appear
-                here with its matching access scope.
+                Set up departments, programs, courses, terms, offerings and
+                rosters in the academic workspace. Each program and offering
+                appears here with its matching access scope.
               </EmptyDescription>
             </EmptyHeader>
+            <EmptyContent>
+              <Button asChild variant="outline">
+                <a href="/admin/academic">Set up academic structure</a>
+              </Button>
+            </EmptyContent>
           </Empty>
         ) : (
           programs.map((program) => (
@@ -290,6 +295,9 @@ export function StructurePanel({
                     No course offerings yet.
                   </p>
                 )}
+                <Button asChild variant="outline" size="sm" className="mt-4">
+                  <a href="/admin/academic">Manage academic structure</a>
+                </Button>
               </CardContent>
             </Card>
           ))
