@@ -921,3 +921,62 @@ def test_stale_draft_objects_cannot_mutate_after_approval(world):
         service.update_assessment(instance=stale_assessment, max_points=Decimal(20))
     with pytest.raises(ValidationError):
         service.update_learning_outcome(instance=stale_outcome, description="late")
+
+
+def test_draft_children_can_be_removed_but_locked_ones_cannot(world):
+    offering = make_offering(world)
+    teacher = make_teacher(world, offering)
+    coordinator = make_coordinator(world)
+    syllabus = filled_draft(world, offering, teacher)
+    service = SyllabusService(actor=teacher)
+    extra = service.add_learning_outcome(syllabus=syllabus, code="LO2", description="x", order=2)
+    service.delete_learning_outcome(instance=extra)
+    assert syllabus.learning_outcomes.count() == 1
+    SyllabusService(actor=coordinator).approve(syllabus=syllabus)
+    with pytest.raises(ValidationError):
+        service.delete_assessment(instance=syllabus.assessments.get())
+    with pytest.raises(ValidationError):
+        service.delete_learning_outcome(instance=syllabus.learning_outcomes.get())
+
+
+def test_locked_rows_reject_direct_model_writes(world):
+    offering = make_offering(world)
+    teacher = make_teacher(world, offering)
+    syllabus = filled_draft(world, offering, teacher)
+    SyllabusService(actor=make_coordinator(world)).approve(syllabus=syllabus)
+    syllabus.refresh_from_db()
+    assessment = syllabus.assessments.get()
+    assessment.max_points = Decimal("99.00")
+    with pytest.raises(ValidationError):
+        assessment.save()
+    with pytest.raises(ValidationError):
+        assessment.delete()
+    with pytest.raises(ValidationError):
+        syllabus.delete()
+
+
+def test_db_rejects_approved_syllabus_without_approval_metadata(world):
+    from django.db import IntegrityError, transaction
+
+    from academic.models import Syllabus
+
+    offering = make_offering(world)
+    draft = SyllabusService(actor=make_teacher(world, offering)).create(offering=offering)
+    with pytest.raises(IntegrityError), transaction.atomic():
+        Syllabus.objects.filter(pk=draft.pk).update(status="approved")
+
+
+def test_child_ids_do_not_resolve_across_versions(world):
+    offering = make_offering(world)
+    teacher = make_teacher(world, offering)
+    old = filled_draft(world, offering, teacher)
+    SyllabusService(actor=make_coordinator(world)).approve(syllabus=old)
+    revision = SyllabusService(actor=teacher).revise(syllabus=old)
+    old_assessment = old.assessments.get()
+    client = APIClient()
+    client.force_authenticate(teacher)
+    url = f"/api/v1/syllabi/{revision.pk}/assessments/{old_assessment.pk}/"
+    assert client.patch(url, {"max_points": "5.00"}, format="json").status_code == 404
+    assert client.delete(url).status_code == 404
+    old_assessment.refresh_from_db()
+    assert old_assessment.max_points == Decimal("40.00")

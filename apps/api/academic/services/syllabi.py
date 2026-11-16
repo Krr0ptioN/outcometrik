@@ -258,6 +258,20 @@ class SyllabusService(AcademicService):
             ) from exc
         return instance
 
+    @transaction.atomic
+    def delete_learning_outcome(self, *, instance):
+        syllabus = Syllabus.objects.select_for_update().get(pk=instance.syllabus_id)
+        require(self.actor, "syllabus.draft", syllabus.offering_id)
+        self._editable(syllabus)
+        instance.delete()
+
+    @transaction.atomic
+    def delete_assessment(self, *, instance):
+        syllabus = Syllabus.objects.select_for_update().get(pk=instance.syllabus_id)
+        require(self.actor, "syllabus.draft", syllabus.offering_id)
+        self._editable(syllabus)
+        instance.delete()
+
     # -- deletion ----------------------------------------------------------
 
     @transaction.atomic

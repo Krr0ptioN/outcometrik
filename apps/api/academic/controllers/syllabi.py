@@ -91,18 +91,21 @@ class SyllabusController(AcademicController):
 
     @action(
         detail=True,
-        methods=["patch"],
+        methods=["patch", "delete"],
         url_path=r"learning-outcomes/(?P<child_pk>[^/.]+)",
     )
     def learning_outcome_detail(self, request, pk=None, child_pk=None):
-        """Edit one draft LO. Resolving via the syllabus prevents cross-references."""
+        """Edit or remove one draft LO. Resolving via the syllabus prevents cross-references."""
         syllabus = self.get_object()
         outcome = syllabus.learning_outcomes.filter(pk=child_pk).first()
         if outcome is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = LearningOutcomeSerializer(outcome, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
         try:
+            if request.method == "DELETE":
+                self.get_service().delete_learning_outcome(instance=outcome)
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            serializer = LearningOutcomeSerializer(outcome, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
             updated = self.get_service().update_learning_outcome(
                 instance=outcome, **serializer.validated_data
             )
@@ -126,16 +129,23 @@ class SyllabusController(AcademicController):
         queryset = syllabus.assessments.order_by("order", "created_at")
         return Response(AssessmentSerializer(queryset, many=True).data)
 
-    @action(detail=True, methods=["patch"], url_path=r"assessments/(?P<child_pk>[^/.]+)")
+    @action(
+        detail=True,
+        methods=["patch", "delete"],
+        url_path=r"assessments/(?P<child_pk>[^/.]+)",
+    )
     def assessment_detail(self, request, pk=None, child_pk=None):
-        """Edit one draft assessment, scoped through its owning syllabus version."""
+        """Edit or remove one draft assessment, scoped through its owning syllabus version."""
         syllabus = self.get_object()
         assessment = syllabus.assessments.filter(pk=child_pk).first()
         if assessment is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = AssessmentSerializer(assessment, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
         try:
+            if request.method == "DELETE":
+                self.get_service().delete_assessment(instance=assessment)
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            serializer = AssessmentSerializer(assessment, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
             updated = self.get_service().update_assessment(
                 instance=assessment, **serializer.validated_data
             )

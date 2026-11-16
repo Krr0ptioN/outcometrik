@@ -376,6 +376,30 @@ class ProgramOutcome(TimestampedModel):
         ]
 
 
+class DraftOnlyModel(TimestampedModel):
+    """Rows owned by a syllabus version: writable only while that version is a draft."""
+
+    class Meta:
+        abstract = True
+
+    def _assert_draft(self):
+        status = (
+            Syllabus.objects.filter(pk=self.syllabus_id).values_list("status", flat=True).first()
+        )
+        if status != Syllabus.Status.DRAFT:
+            raise ValidationError("This syllabus version is locked; create a revision instead.")
+
+    def save(self, *args, **kwargs):
+        self._assert_draft()
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        self._assert_draft()
+        # Draft-only unused rows may be removed (CUR-01). This deliberately skips the
+        # TimestampedModel "never deleted" guard; locked versions were rejected above.
+        return models.Model.delete(self, *args, **kwargs)
+
+
 class Syllabus(TimestampedModel):
     """A versioned syllabus configuration for one offering.
 
@@ -419,13 +443,31 @@ class Syllabus(TimestampedModel):
                 condition=models.Q(status="approved"),
                 name="uniq_official_syllabus_per_offering",
             ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(status="draft", approved_by__isnull=True, approved_at__isnull=True)
+                    | models.Q(
+                        status="approved",
+                        approved_by__isnull=False,
+                        approved_at__isnull=False,
+                        po_set_version__isnull=False,
+                    )
+                    | models.Q(status="retired")
+                ),
+                name="syllabus_status_matches_approval_metadata",
+            ),
         ]
+
+    def delete(self, *args, **kwargs):
+        if self.status != self.Status.DRAFT:
+            raise ValidationError("Only an unused draft syllabus can be deleted.")
+        return super().delete(*args, **kwargs)
 
     def __str__(self) -> str:
         return f"{self.offering_id}:v{self.version}"
 
 
-class LearningOutcome(TimestampedModel):
+class LearningOutcome(DraftOnlyModel):
     """A course-level learning outcome that belongs to one syllabus version."""
 
     syllabus = models.ForeignKey(
@@ -445,7 +487,7 @@ class LearningOutcome(TimestampedModel):
         return f"{self.syllabus_id}:{self.code}"
 
 
-class Assessment(TimestampedModel):
+class Assessment(DraftOnlyModel):
     """A measurable course component with a positive maximum score."""
 
     class Kind(models.TextChoices):
