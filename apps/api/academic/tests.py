@@ -20,6 +20,8 @@ from academic.models import (
     Program,
     ProgramCourse,
     ProgramMembership,
+    ProgramOutcome,
+    ProgramOutcomeSet,
 )
 from academic.services import (
     CourseOfferingService,
@@ -88,6 +90,15 @@ def world():
 
 
 def make_offering(w, section="01"):
+    ProgramOutcomeSet.objects.get_or_create(
+        program=w["program"],
+        version=1,
+        defaults={
+            "effective_date": dt.date(2020, 1, 1),
+            "source_reference": "test",
+            "active": True,
+        },
+    )
     offering = CourseOfferingService(actor=w["admin"]).create(
         program=w["program"], course=w["course"], term=w["term"], section=section
     )
@@ -552,7 +563,9 @@ def test_invalid_points_duplicate_codes_and_cross_references_rejected(world):
     with pytest.raises(ValidationError):
         service.add_learning_outcome(syllabus=syllabus, code="LO1", description="Dup", order=2)
     with pytest.raises(ValidationError):
-        service.add_learning_outcome(syllabus=syllabus, code="LO2", description="Dup order", order=1)
+        service.add_learning_outcome(
+            syllabus=syllabus, code="LO2", description="Dup order", order=1
+        )
 
     # cross-syllabus references rejected: the teacher cannot draft for another offering
     # they are not assigned to
@@ -609,13 +622,9 @@ def test_revision_preserves_prior_version(world):
 
     # editing the new draft is allowed; editing the locked prior version is not
     service = SyllabusService(actor=teacher)
-    service.update_assessment(
-        instance=revision.assessments.get(), max_points=Decimal("60.00")
-    )
+    service.update_assessment(instance=revision.assessments.get(), max_points=Decimal("60.00"))
     with pytest.raises(ValidationError):
-        service.update_assessment(
-            instance=syllabus.assessments.get(), max_points=Decimal("70.00")
-        )
+        service.update_assessment(instance=syllabus.assessments.get(), max_points=Decimal("70.00"))
     # second concurrent draft for the same offering is rejected
     with pytest.raises(ValidationError):
         service.revise(syllabus=syllabus)
@@ -627,9 +636,9 @@ def test_revision_preserves_prior_version(world):
     assert revision.status == "approved"
     assert syllabus.status == "retired"  # superseded, history preserved
     assert set(
-        SyllabusService.model.objects.filter(
-            offering=offering, status="approved"
-        ).values_list("pk", flat=True)
+        SyllabusService.model.objects.filter(offering=offering, status="approved").values_list(
+            "pk", flat=True
+        )
     ) == {revision.pk}
 
 
@@ -798,3 +807,117 @@ def test_only_one_draft_and_one_official_version(world):
     service.add_learning_outcome(syllabus=second, code="LO1", description="d", order=1)
     with pytest.raises(ValidationError):
         service.remove_unused_draft(syllabus=second)
+
+
+def test_po_sets_authorization_approval_and_official_selection(world):
+    from academic.services.syllabi import official_syllabus_for
+
+    offering = make_offering(world)
+    teacher = make_teacher(world, offering)
+    coordinator = make_coordinator(world)
+    syllabus = filled_draft(world, offering, teacher)
+    with pytest.raises(ValidationError):
+        official_syllabus_for(offering)
+    client = APIClient()
+    client.force_authenticate(teacher)
+    payload = {
+        "program": str(world["program"].pk),
+        "version": 2,
+        "effective_date": "2020-01-01",
+        "source_reference": "source",
+    }
+    assert client.post("/api/v1/po-sets/", payload, format="json").status_code == 403
+    client.force_authenticate(coordinator)
+    created = client.post("/api/v1/po-sets/", payload, format="json")
+    assert created.status_code == 201, created.data
+    set_id = created.data["id"]
+    assert client.post(f"/api/v1/po-sets/{set_id}/activate/").status_code == 400
+    for index in range(1, 12):
+        outcome = {
+            "code": f"PO{index}",
+            "order": index,
+            "label": f"Outcome {index}",
+            "description": "Definition",
+            "source_reference": "source",
+        }
+        response = client.post(f"/api/v1/po-sets/{set_id}/outcomes/", outcome, format="json")
+        assert response.status_code == 201, response.data
+    assert (
+        client.post(f"/api/v1/po-sets/{set_id}/outcomes/", outcome, format="json").status_code
+        == 400
+    )
+    assert client.post(f"/api/v1/po-sets/{set_id}/activate/").status_code == 200
+    assert (
+        client.patch(
+            f"/api/v1/po-sets/{set_id}/outcomes/{response.data['id']}/",
+            {"label": "Changed"},
+            format="json",
+        ).status_code
+        == 400
+    )
+    with pytest.raises(ValidationError):
+        SyllabusService(actor=coordinator).approve(syllabus=syllabus)
+    assert syllabus.po_set_version == 1
+    client.force_authenticate(teacher)
+    bound = client.post(f"/api/v1/syllabi/{syllabus.pk}/bind-active-po-set/")
+    assert bound.status_code == 200 and bound.data["po_set_version"] == 2
+    SyllabusService(actor=coordinator).approve(syllabus=syllabus)
+    assert client.post(f"/api/v1/syllabi/{syllabus.pk}/bind-active-po-set/").status_code == 400
+    client.force_authenticate(coordinator)
+    assert (
+        client.patch(
+            f"/api/v1/po-sets/{created.data['id']}/", {"version": 3}, format="json"
+        ).status_code
+        == 405
+    )
+
+
+def test_official_syllabus_requires_current_active_set(world):
+    from academic.services.po_sets import ProgramOutcomeSetService
+    from academic.services.syllabi import official_syllabus_for
+
+    offering = make_offering(world)
+    teacher = make_teacher(world, offering)
+    coordinator = make_coordinator(world)
+    draft = filled_draft(world, offering, teacher)
+    SyllabusService(actor=coordinator).approve(syllabus=draft)
+    assert official_syllabus_for(offering).pk == draft.pk
+    new_set = ProgramOutcomeSet.objects.create(
+        program=world["program"],
+        version=2,
+        effective_date=dt.date(2020, 1, 1),
+        source_reference="source",
+    )
+    for index in range(1, 12):
+        ProgramOutcome.objects.create(
+            po_set=new_set,
+            code=f"PO{index}",
+            order=index,
+            label=f"Outcome {index}",
+            description="Definition",
+            source_reference="source",
+        )
+    ProgramOutcomeSetService(actor=coordinator).activate(instance=new_set)
+    with pytest.raises(ValidationError):
+        official_syllabus_for(offering)
+    revision = SyllabusService(actor=teacher).revise(syllabus=draft)
+    assert revision.po_set_version == 2
+    SyllabusService(actor=coordinator).approve(syllabus=revision)
+    assert official_syllabus_for(offering).pk == revision.pk
+
+
+def test_stale_draft_objects_cannot_mutate_after_approval(world):
+    offering = make_offering(world)
+    teacher = make_teacher(world, offering)
+    coordinator = make_coordinator(world)
+    draft = filled_draft(world, offering, teacher)
+    stale_assessment = draft.assessments.get()
+    stale_outcome = draft.learning_outcomes.get()
+    SyllabusService(actor=coordinator).approve(syllabus=draft)
+    service = SyllabusService(actor=teacher)
+    with pytest.raises(ValidationError):
+        service.add_learning_outcome(syllabus=draft, code="LO2", description="late", order=2)
+    with pytest.raises(ValidationError):
+        service.update_assessment(instance=stale_assessment, max_points=Decimal(20))
+    with pytest.raises(ValidationError):
+        service.update_learning_outcome(instance=stale_outcome, description="late")

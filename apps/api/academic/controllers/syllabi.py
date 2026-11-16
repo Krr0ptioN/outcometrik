@@ -28,9 +28,7 @@ class SyllabusController(AcademicController):
             syllabus = self.get_service().create(**serializer.validated_data)
         except DjangoValidationError as exc:
             self.raise_validation_error(exc)
-        return Response(
-            self.get_serializer(syllabus).data, status=status.HTTP_201_CREATED
-        )
+        return Response(self.get_serializer(syllabus).data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
@@ -56,6 +54,14 @@ class SyllabusController(AcademicController):
             self.raise_validation_error(exc)
         return Response(self.get_serializer(revision).data, status=status.HTTP_201_CREATED)
 
+    @action(detail=True, methods=["post"], url_path="bind-active-po-set")
+    def bind_active_po_set(self, request, pk=None):
+        try:
+            syllabus = self.get_service().bind_active_po_set(syllabus=self.get_object())
+        except DjangoValidationError as exc:
+            self.raise_validation_error(exc)
+        return Response(self.get_serializer(syllabus).data)
+
     @action(detail=True, methods=["post"], url_path="retire")
     def retire(self, request, pk=None):
         syllabus = self.get_object()
@@ -79,9 +85,7 @@ class SyllabusController(AcademicController):
                 )
             except DjangoValidationError as exc:
                 self.raise_validation_error(exc)
-            return Response(
-                LearningOutcomeSerializer(outcome).data, status=status.HTTP_201_CREATED
-            )
+            return Response(LearningOutcomeSerializer(outcome).data, status=status.HTTP_201_CREATED)
         queryset = syllabus.learning_outcomes.order_by("order", "created_at")
         return Response(LearningOutcomeSerializer(queryset, many=True).data)
 
@@ -118,9 +122,7 @@ class SyllabusController(AcademicController):
                 assessment = service.add_assessment(syllabus=syllabus, **serializer.validated_data)
             except DjangoValidationError as exc:
                 self.raise_validation_error(exc)
-            return Response(
-                AssessmentSerializer(assessment).data, status=status.HTTP_201_CREATED
-            )
+            return Response(AssessmentSerializer(assessment).data, status=status.HTTP_201_CREATED)
         queryset = syllabus.assessments.order_by("order", "created_at")
         return Response(AssessmentSerializer(queryset, many=True).data)
 

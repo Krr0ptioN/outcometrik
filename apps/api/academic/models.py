@@ -328,13 +328,59 @@ class Enrollment(TimestampedModel):
         super().save(*args, **kwargs)
 
 
+class ProgramOutcomeSet(TimestampedModel):
+    """Program-scoped outcome-set version and activation metadata."""
+
+    program = models.ForeignKey(Program, on_delete=models.PROTECT, related_name="outcome_sets")
+    version = models.PositiveIntegerField()
+    effective_date = models.DateField()
+    source_reference = models.CharField(max_length=500)
+    active = models.BooleanField(default=False, editable=False)
+    activated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        on_delete=models.PROTECT,
+        related_name="activated_outcome_sets",
+        editable=False,
+    )
+    activated_at = models.DateTimeField(null=True, editable=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["program", "version"], name="uniq_po_set_program_version"
+            ),
+            models.UniqueConstraint(
+                fields=["program"],
+                condition=models.Q(active=True),
+                name="uniq_active_po_set_program",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(version__gt=0), name="po_set_version_positive"
+            ),
+        ]
+
+
+class ProgramOutcome(TimestampedModel):
+    po_set = models.ForeignKey(ProgramOutcomeSet, on_delete=models.PROTECT, related_name="outcomes")
+    code = models.CharField(max_length=4)
+    label = models.CharField(max_length=255)
+    description = models.TextField()
+    source_reference = models.CharField(max_length=500)
+    order = models.PositiveSmallIntegerField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["po_set", "code"], name="uniq_po_set_outcome_code"),
+            models.UniqueConstraint(fields=["po_set", "order"], name="uniq_po_set_outcome_order"),
+        ]
+
+
 class Syllabus(TimestampedModel):
     """A versioned syllabus configuration for one offering.
 
     Approval freezes a version; further changes are made by creating a new
-    revision. The PO-set binding is reserved for OUT-01: ``po_set_version``
-    will hold the program's active versioned PO set once those exist, and
-    approval gains its active-PO-set compatibility check there.
+    revision. The PO-set version is scoped to the offering program.
     """
 
     class Status(models.TextChoices):
@@ -342,9 +388,7 @@ class Syllabus(TimestampedModel):
         APPROVED = "approved", "Approved"
         RETIRED = "retired", "Retired"
 
-    offering = models.ForeignKey(
-        CourseOffering, on_delete=models.PROTECT, related_name="syllabi"
-    )
+    offering = models.ForeignKey(CourseOffering, on_delete=models.PROTECT, related_name="syllabi")
     version = models.PositiveIntegerField(editable=False)
     status = models.CharField(
         max_length=16, choices=Status.choices, default=Status.DRAFT, editable=False
@@ -412,9 +456,7 @@ class Assessment(TimestampedModel):
         LAB = "lab", "Lab"
         OTHER = "other", "Other"
 
-    syllabus = models.ForeignKey(
-        Syllabus, on_delete=models.PROTECT, related_name="assessments"
-    )
+    syllabus = models.ForeignKey(Syllabus, on_delete=models.PROTECT, related_name="assessments")
     code = models.CharField(max_length=32)
     kind = models.CharField(max_length=16, choices=Kind.choices)
     order = models.PositiveSmallIntegerField()

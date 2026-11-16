@@ -249,3 +249,37 @@ class SyllabusSerializer(AcademicSerializer):
 class SyllabusCreateSerializer(serializers.Serializer):
     offering = serializers.PrimaryKeyRelatedField(queryset=CourseOffering.objects.all())
     po_set_version = serializers.IntegerField(required=False, allow_null=True, min_value=1)
+
+
+class ProgramOutcomeSetSerializer(AcademicSerializer):
+    class Meta:
+        from .models import ProgramOutcomeSet
+
+        model = ProgramOutcomeSet
+        fields = (
+            "id",
+            "program",
+            "version",
+            "effective_date",
+            "source_reference",
+            "active",
+            "activated_by",
+            "activated_at",
+        )
+        read_only_fields = ("id", "active", "activated_by", "activated_at")
+
+
+class ProgramOutcomeSerializer(AcademicSerializer):
+    class Meta:
+        from .models import ProgramOutcome
+
+        model = ProgramOutcome
+        fields = ("id", "code", "label", "description", "source_reference", "order")
+        read_only_fields = ("id",)
+
+    def validate(self, attrs):
+        code = attrs.get("code", getattr(self.instance, "code", None))
+        order = attrs.get("order", getattr(self.instance, "order", None))
+        if order not in range(1, 12) or code != f"PO{order}":
+            raise serializers.ValidationError("Outcome code and order must match PO1 through PO11.")
+        return attrs

@@ -168,7 +168,11 @@ paginated (`page`, `page_size`, default 50, max 200) and filterable by query par
 | `/offerings/{id}/enrollments/` | GET, POST | roster of one offering |
 | `/instructor-assignments/` | same | `offering`, `user`, `assignment_role` |
 | `/enrollments/` | GET, POST, GET `{id}` | `offering`, `student`, `status`, `eligible_for_outcomes` |
+| `/po-sets/` | GET, POST, GET `{id}` | `program`, `active`; create with `program`, `version`, `effective_date`, `source_reference` |
+| `/po-sets/{id}/outcomes/` | GET, POST, PATCH `{childId}` | draft PO definitions |
+| `/po-sets/{id}/activate/` | POST | coordinator activation |
 | `/syllabi/` | GET, POST, GET `{id}` | `offering`, `status` |
+| `/syllabi/{id}/bind-active-po-set/` | POST | bind a draft to the current active PO-set version |
 | `/syllabi/{id}/learning-outcomes/` | GET, POST, PATCH `{childId}` | draft LO rows |
 | `/syllabi/{id}/assessments/` | GET, POST, PATCH `{childId}` | draft assessment rows |
 | `/syllabi/{id}/approve/` | POST | coordinator approval |
@@ -208,7 +212,7 @@ Syllabi (CUR-01):
   `max_points > 0`. Approving requires at least one LO and one assessment.
 - Empty drafts can be retired via `POST /syllabi/{id}/retire/`; versions holding configuration
   or approval are kept forever. There is no DELETE.
-- `po_set_version` is reserved for the OUT-01 program-outcome set binding.
+- `po_set_version` binds to a registered program PO-set version; approval requires the active version.
 
 Downstream stories should read rosters through `academic.selectors.eligible_roster(offering)`.
 
@@ -228,3 +232,15 @@ These responses use `Cache-Control: no-store`. Gradebook and published PO record
 of the academic schema; the student workspace reports no published outcomes until those records
 are implemented. The instructor workspace currently provides the assigned course roster, not grade
 entry.
+
+### PO-set compatibility and calculation handoff
+
+Coordinators or administrators can register a program PO-set version and activate it once its
+effective date has arrived. Registering a version records its identity, effective date, and source reference. Add complete,
+ordered PO1–PO11 definitions with label, description, and source reference before activation.
+Activated definitions are immutable; OUT-01 remains responsible for its pilot seed and lifecycle UI.
+Syllabus drafts bind to the active version at creation, or can be rebound using
+`bind-active-po-set/`; approval requires the binding to match the current active version.
+Activating a new set invalidates prior calculation input revisions. Future official calculation
+code must call `academic.services.syllabi.official_syllabus_for(offering)` and handle its
+validation error; no official scoring path is implemented by this API slice.

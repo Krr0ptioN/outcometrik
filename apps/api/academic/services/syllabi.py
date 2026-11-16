@@ -4,7 +4,14 @@ from django.utils import timezone
 
 from .. import scoping
 from ..access_control import require
-from ..models import Assessment, CourseOffering, LearningOutcome, Syllabus
+from ..models import (
+    Assessment,
+    CourseOffering,
+    LearningOutcome,
+    Program,
+    ProgramOutcomeSet,
+    Syllabus,
+)
 from .base import AcademicService
 from .offerings import bump_revisions
 
@@ -52,6 +59,11 @@ class SyllabusService(AcademicService):
     def create(self, *, offering, po_set_version=None):
         offering = _lock_offering_row(offering.pk)
         require(self.actor, "syllabus.draft", offering.pk)
+        active_set = ProgramOutcomeSet.objects.filter(
+            program_id=offering.program_id, active=True, effective_date__lte=timezone.localdate()
+        ).first()
+        if po_set_version is None and active_set:
+            po_set_version = active_set.version
         blocked = offering.syllabi.filter(
             status__in=(Syllabus.Status.DRAFT, Syllabus.Status.APPROVED)
         ).exists()
@@ -78,6 +90,7 @@ class SyllabusService(AcademicService):
 
     @transaction.atomic
     def approve(self, *, syllabus):
+        Program.objects.select_for_update().get(pk=syllabus.offering.program_id)
         # Lock every version row of this offering so no concurrent approve/create slips in.
         offering_versions = Syllabus.objects.select_for_update().filter(
             offering_id=syllabus.offering_id
@@ -90,21 +103,22 @@ class SyllabusService(AcademicService):
         self._editable(syllabus)
         if not syllabus.learning_outcomes.exists() or not syllabus.assessments.exists():
             raise ValidationError("A syllabus version needs at least one LO and one assessment.")
+        active_set = ProgramOutcomeSet.objects.filter(
+            program_id=offering.program_id, active=True, effective_date__lte=timezone.localdate()
+        ).first()
+        if not active_set or syllabus.po_set_version != active_set.version:
+            raise ValidationError("Syllabus must bind to the program's active PO-set version.")
         # Supersede: a newer approved version retires the previously official one so
         # the single-official-version constraint holds across the whole history.
-        offering_versions.exclude(pk=syllabus.pk).filter(
-            status=Syllabus.Status.APPROVED
-        ).update(status=Syllabus.Status.RETIRED)
-        # Compatibility with the offering's active PO set is validated here once
-        # OUT-01 introduces versioned PO sets; po_set_version records the binding.
+        offering_versions.exclude(pk=syllabus.pk).filter(status=Syllabus.Status.APPROVED).update(
+            status=Syllabus.Status.RETIRED
+        )
         syllabus.status = Syllabus.Status.APPROVED
         syllabus.approved_by = self.actor
         syllabus.approved_at = timezone.now()
         try:
             with transaction.atomic():
-                syllabus.save(
-                    update_fields=["status", "approved_by", "approved_at", "updated_at"]
-                )
+                syllabus.save(update_fields=["status", "approved_by", "approved_at", "updated_at"])
         except IntegrityError as exc:
             raise ValidationError(
                 "Another syllabus version is already approved for this offering."
@@ -115,8 +129,8 @@ class SyllabusService(AcademicService):
 
     @transaction.atomic
     def revise(self, *, syllabus):
-        syllabus = Syllabus.objects.select_for_update().select_related("offering").get(
-            pk=syllabus.pk
+        syllabus = (
+            Syllabus.objects.select_for_update().select_related("offering").get(pk=syllabus.pk)
         )
         offering = syllabus.offering
         require(self.actor, "syllabus.draft", offering.pk)
@@ -129,7 +143,15 @@ class SyllabusService(AcademicService):
             offering=offering,
             version=version,
             status=Syllabus.Status.DRAFT,
-            po_set_version=syllabus.po_set_version,
+            po_set_version=(
+                ProgramOutcomeSet.objects.filter(
+                    program_id=offering.program_id,
+                    active=True,
+                    effective_date__lte=timezone.localdate(),
+                )
+                .values_list("version", flat=True)
+                .first()
+            ),
         )
         try:
             with transaction.atomic():
@@ -152,18 +174,42 @@ class SyllabusService(AcademicService):
             )
         return revision
 
+    @transaction.atomic
+    def bind_active_po_set(self, *, syllabus):
+        syllabus = (
+            Syllabus.objects.select_for_update().select_related("offering").get(pk=syllabus.pk)
+        )
+        require(self.actor, "syllabus.draft", syllabus.offering_id)
+        self._editable(syllabus)
+        active = ProgramOutcomeSet.objects.filter(
+            program_id=syllabus.offering.program_id,
+            active=True,
+            effective_date__lte=timezone.localdate(),
+        ).first()
+        if not active:
+            raise ValidationError("No active PO-set exists for this program.")
+        syllabus.po_set_version = active.version
+        syllabus.save(update_fields=["po_set_version", "updated_at"])
+        return syllabus
+
     # -- draft-time mutation of children ---------------------------------
 
+    @transaction.atomic
     def add_learning_outcome(self, *, syllabus, **data):
+        syllabus = Syllabus.objects.select_for_update().get(pk=syllabus.pk)
         require(self.actor, "syllabus.draft", syllabus.offering_id)
         self._editable(syllabus)
         try:
             with transaction.atomic():
                 return LearningOutcome.objects.create(syllabus=syllabus, **data)
         except IntegrityError as exc:
-            raise ValidationError("LO code or order already exists in this syllabus version.") from exc
+            raise ValidationError(
+                "LO code or order already exists in this syllabus version."
+            ) from exc
 
+    @transaction.atomic
     def add_assessment(self, *, syllabus, **data):
+        syllabus = Syllabus.objects.select_for_update().get(pk=syllabus.pk)
         require(self.actor, "syllabus.draft", syllabus.offering_id)
         self._editable(syllabus)
         if data.get("max_points") is not None and data["max_points"] <= 0:
@@ -176,7 +222,9 @@ class SyllabusService(AcademicService):
                 "Assessment code or order already exists in this syllabus version."
             ) from exc
 
+    @transaction.atomic
     def update_learning_outcome(self, *, instance, **data):
+        instance.syllabus = Syllabus.objects.select_for_update().get(pk=instance.syllabus_id)
         require(self.actor, "syllabus.draft", instance.syllabus.offering_id)
         self._editable(instance.syllabus)
         for field in MANAGED_FIELDS:
@@ -186,10 +234,14 @@ class SyllabusService(AcademicService):
             with transaction.atomic():
                 instance.save()
         except IntegrityError as exc:
-            raise ValidationError("LO code or order already exists in this syllabus version.") from exc
+            raise ValidationError(
+                "LO code or order already exists in this syllabus version."
+            ) from exc
         return instance
 
+    @transaction.atomic
     def update_assessment(self, *, instance, **data):
+        instance.syllabus = Syllabus.objects.select_for_update().get(pk=instance.syllabus_id)
         require(self.actor, "syllabus.draft", instance.syllabus.offering_id)
         self._editable(instance.syllabus)
         for field in ASSESSMENT_FIELDS:
@@ -217,8 +269,8 @@ class SyllabusService(AcademicService):
         bump revisions because an empty draft never fed a calculation. Grade
         rows arrive with GRD-01 and will extend the referenced check there.
         """
-        syllabus = Syllabus.objects.select_for_update().select_related("offering").get(
-            pk=syllabus.pk
+        syllabus = (
+            Syllabus.objects.select_for_update().select_related("offering").get(pk=syllabus.pk)
         )
         require(self.actor, "syllabus.draft", syllabus.offering_id)
         self._editable(syllabus)
@@ -229,3 +281,18 @@ class SyllabusService(AcademicService):
         Syllabus.objects.filter(pk=syllabus.pk).update(status=Syllabus.Status.RETIRED)
         syllabus.status = Syllabus.Status.RETIRED
         return syllabus
+
+
+def official_syllabus_for(offering):
+    """Select compatible official inputs; calculation callers must use this boundary."""
+    active = ProgramOutcomeSet.objects.filter(
+        program_id=offering.program_id, active=True, effective_date__lte=timezone.localdate()
+    ).first()
+    if not active:
+        raise ValidationError("No active PO-set exists for this program.")
+    syllabus = offering.syllabi.filter(
+        status=Syllabus.Status.APPROVED, po_set_version=active.version
+    ).first()
+    if not syllabus:
+        raise ValidationError("No approved syllabus matches the active PO-set version.")
+    return syllabus
