@@ -54,8 +54,7 @@ def scope_syllabi(user, qs):
     if not staff_scopes:
         return qs.filter(offering_id__in=student_scopes, status=approved).distinct()
     return qs.filter(
-        Q(offering_id__in=staff_scopes)
-        | Q(offering_id__in=student_scopes, status=approved)
+        Q(offering_id__in=staff_scopes) | Q(offering_id__in=student_scopes, status=approved)
     ).distinct()
 
 

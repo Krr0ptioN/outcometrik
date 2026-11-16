@@ -22,9 +22,11 @@ def revoke(apps, schema_editor):
     capability_model = apps.get_model("access", "Capability")
     role_model = apps.get_model("access", "Role")
     for code, roles in GRANTS:
-        role_model.objects.using(alias).filter(slug__in=roles).remove(
-            *capability_model.objects.using(alias).filter(code=code)
-        )
+        capability = capability_model.objects.using(alias).filter(code=code).first()
+        if capability is None:
+            continue
+        for role in role_model.objects.using(alias).filter(slug__in=roles):
+            role.capabilities.remove(capability)
 
 
 class Migration(migrations.Migration):
