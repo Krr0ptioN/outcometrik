@@ -1,0 +1,31 @@
+name: Git Maintenance
+
+on:
+  schedule:
+    - cron: "0 5 * * 0" # Runs every Sunday at 5 AM
+  workflow_dispatch: # Allows manual triggering
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  maintenance:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Ensure full history is fetched
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Run Git Maintenance and Generate Statistics
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 .github/scripts/git_maintain_stats.py
