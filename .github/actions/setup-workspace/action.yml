@@ -30,7 +30,20 @@ runs:
         enable-cache: true
         cache-dependency-glob: '**/uv.lock'
 
+    - name: Cache workspace node_modules
+      if: inputs.install-dependencies == 'true'
+      uses: actions/cache@v4
+      id: node-modules-cache
+      with:
+        path: |
+          node_modules
+          apps/*/node_modules
+          libs/*/*/node_modules
+        key: ${{ runner.os }}-node-modules-${{ hashFiles('pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-node-modules-
+
     - name: Install workspace dependencies
       if: inputs.install-dependencies == 'true'
       shell: bash
-      run: pnpm install --frozen-lockfile
+      run: pnpm install --frozen-lockfile --prefer-offline
