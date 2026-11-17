@@ -30,30 +30,9 @@ jobs:
       - run: pnpm nx run-many -t lint --parallel=3
   test:
     runs-on: ubuntu-24.04
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: outcometrik
-          POSTGRES_USER: outcometrik
-          POSTGRES_PASSWORD: ${{ github.run_id }}
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U outcometrik -d outcometrik"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 10
-    env:
-      DJANGO_DEBUG: "true"
-      DJANGO_SECRET_KEY: ${{ github.run_id }}
-      POSTGRES_DB: outcometrik
-      POSTGRES_USER: outcometrik
-      POSTGRES_PASSWORD: ${{ github.run_id }}
-      POSTGRES_HOST: localhost
-      POSTGRES_PORT: "5432"
     steps:
       - uses: ./.github/actions/setup-workspace
+      - uses: ./.github/actions/setup-db
       - run: pnpm nx run-many -t test --parallel=3
       - name: Report Backend Tests
         uses: ./.github/actions/report-tests
