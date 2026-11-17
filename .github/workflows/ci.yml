@@ -26,11 +26,13 @@ jobs:
   lint:
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-workspace
       - run: pnpm nx run-many -t lint --parallel=3
   test:
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-workspace
       - uses: ./.github/actions/setup-db
       - run: pnpm nx run-many -t test --parallel=3
@@ -52,6 +54,7 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-workspace
       - run: pnpm nx run-many -t typecheck --parallel=2
       - run: pnpm nx run-many -t build --parallel=2
@@ -59,8 +62,10 @@ jobs:
     needs: [lint, test, build]
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-workspace
       - uses: ./.github/actions/setup-playwright
+
       - run: pnpm nx run-many -t e2e --parallel=1
       - name: Report E2E Tests
         uses: ./.github/actions/report-tests
