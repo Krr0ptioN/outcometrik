@@ -1,0 +1,45 @@
+
+name: PR Validation
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cpr:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check if issue reference is required
+        id: issue-check
+        run: |
+          TITLE="${{ github.event.pull_request.title }}"
+          if echo "$TITLE" | grep -qE '^(feat|fix|perf|refactor|improve|story)(\(.*\))?!?:'; then
+            echo "required=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "required=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate PR
+        uses: Namchee/conventional-pr@v0.16.0
+        with:
+          access_token: ${{ secrets.GITHUB_TOKEN }}
+          title_pattern: '^(feat|fix|docs|chore|refactor|test|ci|build|perf|revert|improve|story)(\([\w\-.,/ ]+\))?!?: .+$'
+          branch_pattern: '^((feat|fix|perf|docs|chore|refactor|test|ci|build|improve|work|wip|copilot)/[a-zA-Z0-9_.-]+|[a-zA-Z0-9]+-[a-zA-Z0-9_.-]+)$'
+          issue: ${{ steps.issue-check.outputs.required == 'true' }}
+          body: true
+          verbose: true
+          edit: true
+          draft: true
+          bot: true
+          strict: true
+
+

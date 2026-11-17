@@ -9,7 +9,7 @@ from ..models import (
     EnrollmentStatusEvent,
 )
 from .base import AcademicService
-from .offerings import bump_revisions
+from .revisions import RevisionTracker
 
 
 class EnrollmentService(AcademicService):
@@ -54,7 +54,7 @@ class EnrollmentService(AcademicService):
             changed_by=self.actor,
         )
         if enrollment.eligible_for_outcomes:
-            bump_revisions(program_id=offering.program_id, offering_id=offering.pk)
+            RevisionTracker.bump(program_id=offering.program_id, offering_id=offering.pk)
         return enrollment
 
     @transaction.atomic
@@ -80,7 +80,7 @@ class EnrollmentService(AcademicService):
             changed_by=self.actor,
         )
         if was_eligible != enrollment.eligible_for_outcomes:
-            bump_revisions(
+            RevisionTracker.bump(
                 program_id=enrollment.offering.program_id,
                 offering_id=enrollment.offering_id,
             )

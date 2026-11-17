@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.13"
 
 [[package]]
@@ -205,6 +205,7 @@ dependencies = [
     { name = "djangorestframework" },
     { name = "gunicorn" },
     { name = "outcometrik-access" },
+    { name = "outcometrik-calc" },
     { name = "psycopg", extra = ["binary"] },
 ]
 
@@ -222,6 +223,7 @@ requires-dist = [
     { name = "djangorestframework", specifier = ">=3.16,<4" },
     { name = "gunicorn", specifier = ">=23,<24" },
     { name = "outcometrik-access", editable = "../../libs/modules/access" },
+    { name = "outcometrik-calc", editable = "../../libs/modules/calc" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2,<4" },
 ]
 
@@ -231,6 +233,11 @@ dev = [
     { name = "pytest-django", specifier = ">=4.11,<5" },
     { name = "ruff", specifier = ">=0.12,<1" },
 ]
+
+[[package]]
+name = "outcometrik-calc"
+version = "0.1.0"
+source = { editable = "../../libs/modules/calc" }
 
 [[package]]
 name = "packaging"

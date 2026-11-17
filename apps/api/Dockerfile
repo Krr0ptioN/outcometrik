@@ -11,11 +11,13 @@ ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 FROM base AS dependencies
 COPY apps/api/pyproject.toml apps/api/uv.lock ./
 COPY libs/modules/access /workspace/libs/modules/access
+COPY libs/modules/calc /workspace/libs/modules/calc
 RUN uv sync --locked --no-dev
 
 FROM base
 COPY --from=dependencies /opt/venv /opt/venv
 COPY libs/modules/access /workspace/libs/modules/access
+COPY libs/modules/calc /workspace/libs/modules/calc 
 COPY apps/api .
 EXPOSE 8000
 CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]

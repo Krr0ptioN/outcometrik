@@ -8,6 +8,9 @@ from .models import (
     Department,
     Enrollment,
     EnrollmentStatusEvent,
+    Grade,
+    GradeBatch,
+    GradeHistory,
     Institution,
     InstructorAssignment,
     LearningOutcome,
@@ -185,6 +188,7 @@ class EnrollmentStatusUpdateSerializer(serializers.Serializer):
     reason = serializers.CharField(max_length=255, allow_blank=True, default="")
 
 
+
 class LearningOutcomeSerializer(AcademicSerializer):
     class Meta:
         model = LearningOutcome
@@ -196,15 +200,8 @@ class AssessmentSerializer(AcademicSerializer):
     class Meta:
         model = Assessment
         fields = [
-            "id",
-            "code",
-            "kind",
-            "order",
-            "is_required",
-            "is_active",
-            "max_points",
-            "created_at",
-            "updated_at",
+            "id", "code", "kind", "order", "is_required", "is_active", "max_points",
+            "created_at", "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
 
@@ -223,26 +220,11 @@ class SyllabusSerializer(AcademicSerializer):
     class Meta:
         model = Syllabus
         fields = [
-            "id",
-            "offering",
-            "version",
-            "status",
-            "approved_by",
-            "approved_at",
-            "po_set_version",
-            "learning_outcomes",
-            "assessments",
-            "created_at",
-            "updated_at",
+            "id", "offering", "version", "status", "approved_by", "approved_at",
+            "po_set_version", "learning_outcomes", "assessments", "created_at", "updated_at",
         ]
         read_only_fields = [
-            "id",
-            "version",
-            "status",
-            "approved_by",
-            "approved_at",
-            "created_at",
-            "updated_at",
+            "id", "version", "status", "approved_by", "approved_at", "created_at", "updated_at",
         ]
 
 
@@ -257,14 +239,8 @@ class ProgramOutcomeSetSerializer(AcademicSerializer):
 
         model = ProgramOutcomeSet
         fields = (
-            "id",
-            "program",
-            "version",
-            "effective_date",
-            "source_reference",
-            "active",
-            "activated_by",
-            "activated_at",
+            "id", "program", "version", "effective_date", "source_reference", "active",
+            "activated_by", "activated_at",
         )
         read_only_fields = ("id", "active", "activated_by", "activated_at")
 
@@ -283,3 +259,48 @@ class ProgramOutcomeSerializer(AcademicSerializer):
         if order not in range(1, 12) or code != f"PO{order}":
             raise serializers.ValidationError("Outcome code and order must match PO1 through PO11.")
         return attrs
+
+
+class GradeSerializer(serializers.ModelSerializer):
+    assessment_title = serializers.CharField(source="assessment.title", read_only=True)
+    batch_name = serializers.CharField(source="batch.name", read_only=True)
+
+    class Meta:
+        model = Grade
+        fields = (
+            "id", "offering", "enrollment", "assessment", "assessment_title", "batch", "batch_name",
+            "state", "points_earned", "points_possible", "version", "updated_at",
+        )
+        read_only_fields = fields
+
+
+class GradeWriteSerializer(serializers.Serializer):
+    enrollment = serializers.PrimaryKeyRelatedField(queryset=Enrollment.objects.all())
+    assessment = serializers.PrimaryKeyRelatedField(queryset=Assessment.objects.all())
+    batch = serializers.PrimaryKeyRelatedField(queryset=GradeBatch.objects.all())
+    state = serializers.ChoiceField(choices=Grade.State.choices)
+    points_earned = serializers.DecimalField(max_digits=7, decimal_places=2, required=False, allow_null=True)
+    reason = serializers.CharField(max_length=255, required=False, allow_blank=True, default="")
+
+
+class GradeUpdateSerializer(serializers.Serializer):
+    expected_version = serializers.IntegerField(min_value=1)
+    state = serializers.ChoiceField(choices=Grade.State.choices)
+    points_earned = serializers.DecimalField(max_digits=7, decimal_places=2, required=False, allow_null=True)
+    reason = serializers.CharField(max_length=255, required=False, allow_blank=True, default="")
+
+
+class GradeHistorySerializer(serializers.ModelSerializer):
+    changed_by = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = GradeHistory
+        fields = ("version", "old_state", "old_points_earned", "new_state", "new_points_earned", "reason", "changed_by", "created_at")
+        read_only_fields = fields
+
+
+class GradeBatchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GradeBatch
+        fields = ("id", "offering", "name", "released_at", "created_at")
+        read_only_fields = ("id", "released_at", "created_at")

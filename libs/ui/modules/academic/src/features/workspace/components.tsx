@@ -2,6 +2,13 @@
 
 import { useQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
+import { useState } from 'react';
+import {
+  BookOpenIcon,
+  GraduationCapIcon,
+  LayoutDashboardIcon,
+  UsersIcon,
+} from 'lucide-react';
 import {
   Badge,
   Button,
@@ -14,6 +21,19 @@ import {
   EmptyDescription,
   EmptyHeader,
   EmptyTitle,
+  Separator,
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger,
   Skeleton,
 } from '@outcometrik/ui';
 import { SessionMenu, useSession } from '@outcometrik/access';
@@ -24,6 +44,10 @@ import {
   getInstructorWorkspace,
   getStudentWorkspace,
 } from './api';
+import {
+  InstructorGradebook,
+  StudentGradeSummary,
+} from '../gradebook/components';
 
 function AccessGate({
   children,
@@ -58,12 +82,21 @@ export function InstructorDashboard() {
     queryFn: ({ signal }) => getInstructorWorkspace(signal),
     enabled: allowed,
   });
+  const [tab, setTab] = useState<'overview' | 'gradebook'>('overview');
+  const [selectedOffering, setSelectedOffering] = useState('');
   if (session.isPending)
     return (
       <main className="mx-auto max-w-5xl space-y-4 p-8" role="status">
         <Skeleton className="h-12 w-64" />
         <Skeleton className="h-64 w-full" />
       </main>
+    );
+  if (session.isError)
+    return (
+      <AccessGate title="Unable to load your session.">
+        <p role="alert">{errorMessage(session.error)}</p>
+        <Button onClick={() => void session.refetch()}>Try again</Button>
+      </AccessGate>
     );
   if (!session.data?.user)
     return (
@@ -78,68 +111,248 @@ export function InstructorDashboard() {
         <SessionMenu />
       </AccessGate>
     );
+  const offerings = workspace.data?.offerings ?? [];
+  const enrolledCount = offerings.reduce(
+    (total, offering) =>
+      total +
+      offering.roster.filter((student) => student.status === 'enrolled').length,
+    0,
+  );
+  const offering = offerings.find((item) => item.id === selectedOffering);
+  const currentTitle = tab === 'overview' ? 'Instructor dashboard' : 'Gradebook';
   return (
-    <main className="mx-auto flex min-h-svh max-w-6xl flex-col gap-6 p-8">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="text-sm text-muted-foreground">Teaching workspace</p>
-          <h1 className="text-3xl font-semibold">Instructor dashboard</h1>
-        </div>
-        <SessionMenu />
-      </header>
-      {workspace.isPending && (
-        <p role="status">Loading your assigned offerings…</p>
-      )}
-      {workspace.isError && <p role="alert">{errorMessage(workspace.error)}</p>}
-      {workspace.data?.offerings.length === 0 && (
-        <p>No offerings are assigned to this account.</p>
-      )}
-      <div className="grid gap-4 md:grid-cols-2">
-        {workspace.data?.offerings.map((offering) => (
-          <Card key={offering.id}>
-            <CardHeader>
-              <CardTitle>{offering.label}</CardTitle>
-              <CardDescription>
-                {offering.course} · {offering.program} · {offering.term}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <h2 className="mb-3 font-medium">
-                Roster ({offering.roster.length})
-              </h2>
-              {offering.roster.length ? (
-                <ul className="divide-y">
-                  {offering.roster.map((student) => (
-                    <li
-                      key={student.enrollment_id}
-                      className="flex items-center justify-between gap-4 py-2"
-                    >
-                      <span>{student.name}</span>
-                      <Badge variant="outline">{student.status}</Badge>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No students are enrolled in this offering.
-                </p>
-              )}
-              <SyllabusWorkspace
-                offering={offering.id}
-                canDraft
-                canApprove={false}
-              />
-              <p className="mt-4 text-sm text-muted-foreground">
-                Grade entry will appear when the gradebook is available.
+    <SidebarProvider>
+      <a className="skip-link" href="#instructor-main">
+        Skip to main content
+      </a>
+      <Sidebar role="complementary" aria-label="Instructor workspace">
+        <SidebarHeader>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton size="lg" asChild>
+                <a href="/">
+                  <GraduationCapIcon />
+                  <span>Outcometrik</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+          <div className="flex items-center gap-3 px-2 py-4">
+            <BookOpenIcon aria-hidden="true" />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold">
+                Teaching workspace
               </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-      <Button asChild variant="outline" className="self-start">
-        <a href="/">All dashboards</a>
-      </Button>
-    </main>
+              <p className="text-xs text-muted-foreground">Instructor tools</p>
+            </div>
+          </div>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupLabel>Teaching</SidebarGroupLabel>
+            <SidebarMenu aria-label="Instructor navigation">
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={tab === 'overview'}
+                  onClick={() => setTab('overview')}
+                >
+                  <LayoutDashboardIcon />
+                  <span>Overview</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={tab === 'gradebook'}
+                  onClick={() => setTab('gradebook')}
+                >
+                  <UsersIcon />
+                  <span>Grades & roster</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
+        </SidebarContent>
+        <SidebarFooter>
+          <Button asChild variant="outline" className="w-full">
+            <a href="/">All dashboards</a>
+          </Button>
+        </SidebarFooter>
+      </Sidebar>
+      <SidebarInset>
+        <header className="flex flex-wrap items-center justify-between gap-4 px-6 py-4">
+          <div className="flex items-center gap-3">
+            <SidebarTrigger />
+            <Separator orientation="vertical" className="h-5" />
+            <span className="text-sm text-muted-foreground">
+              Teaching workspace
+            </span>
+          </div>
+          <SessionMenu />
+        </header>
+        <Separator />
+        <section
+          id="instructor-main"
+          tabIndex={-1}
+          className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6 lg:p-8"
+        >
+          <div>
+            <p className="text-sm text-muted-foreground">
+              Instructor workspace
+            </p>
+            <h1 className="text-3xl font-semibold tracking-tight">
+              {currentTitle}
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {tab === 'overview'
+                ? 'Your assigned offerings, rosters, and grading work in one place.'
+                : 'Enter and correct grades, review history, and release grades to students.'}
+            </p>
+          </div>
+          {tab === 'overview' ? (
+            <>
+              {workspace.isPending && (
+                <p role="status">Loading your assigned offerings…</p>
+              )}
+              {workspace.isError && (
+                <p role="alert">{errorMessage(workspace.error)}</p>
+              )}
+              {workspace.data && (
+                <>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardDescription>Assigned offerings</CardDescription>
+                        <CardTitle className="text-3xl">
+                          {offerings.length}
+                        </CardTitle>
+                      </CardHeader>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardDescription>
+                          Active students across your rosters
+                        </CardDescription>
+                        <CardTitle className="text-3xl">
+                          {enrolledCount}
+                        </CardTitle>
+                      </CardHeader>
+                    </Card>
+                  </div>
+                  {offerings.length ? (
+                    <section
+                      aria-labelledby="assigned-offerings-title"
+                      className="space-y-4"
+                    >
+                      <div>
+                        <h2
+                          id="assigned-offerings-title"
+                          className="text-xl font-semibold"
+                        >
+                          Assigned offerings
+                        </h2>
+                        <p className="text-sm text-muted-foreground">
+                          Choose an offering to open its gradebook and roster
+                          operations.
+                        </p>
+                      </div>
+                      <div className="grid gap-4 xl:grid-cols-2">
+                        {offerings.map((item) => {
+                          const activeStudents = item.roster.filter(
+                            (student) => student.status === 'enrolled',
+                          ).length;
+                          return (
+                            <Card key={item.id}>
+                              <CardHeader>
+                                <CardTitle>{item.label}</CardTitle>
+                                <CardDescription>
+                                  {item.course} · {item.program} · {item.term}
+                                </CardDescription>
+                              </CardHeader>
+                              <CardContent className="space-y-4">
+                                <div className="flex flex-wrap gap-2">
+                                  <Badge variant="outline">
+                                    {activeStudents} active students
+                                  </Badge>
+                                  {activeStudents !== item.roster.length && (
+                                    <Badge variant="secondary">
+                                      {item.roster.length - activeStudents}{' '}
+                                      inactive
+                                    </Badge>
+                                  )}
+                                </div>
+                                {item.roster.length ? (
+                                  <ul className="divide-y rounded-md border px-3">
+                                    {item.roster.slice(0, 5).map((student) => (
+                                      <li
+                                        key={student.enrollment_id}
+                                        className="flex items-center justify-between gap-4 py-2 text-sm"
+                                      >
+                                        <span>{student.name}</span>
+                                        <Badge
+                                          variant={
+                                            student.status === 'enrolled'
+                                              ? 'outline'
+                                              : 'secondary'
+                                          }
+                                        >
+                                          {student.status}
+                                        </Badge>
+                                      </li>
+                                    ))}
+                                    {item.roster.length > 5 && (
+                                      <li className="py-2 text-sm text-muted-foreground">
+                                        and {item.roster.length - 5} more
+                                        students
+                                      </li>
+                                    )}
+                                  </ul>
+                                ) : (
+                                  <p className="text-sm text-muted-foreground">
+                                    No students are enrolled in this offering.
+                                  </p>
+                                )}
+                                <SyllabusWorkspace
+                                  offering={item.id}
+                                  canDraft
+                                  canApprove={false}
+                                />
+                                <Button
+                                  onClick={() => {
+                                    setSelectedOffering(item.id);
+                                    setTab('gradebook');
+                                  }}
+                                >
+                                  Open gradebook
+                                </Button>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  ) : (
+                    <Empty>
+                      <EmptyHeader>
+                        <EmptyTitle>No offerings assigned</EmptyTitle>
+                        <EmptyDescription>
+                          When an offering is assigned to you, its roster and
+                          grade operations will appear here.
+                        </EmptyDescription>
+                      </EmptyHeader>
+                    </Empty>
+                  )}
+                </>
+              )}
+            </>
+          ) : (
+            <InstructorGradebook
+              embedded
+              defaultOfferingId={offering?.id ?? selectedOffering}
+            />
+          )}
+        </section>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
 export function CoordinatorAcademicOverview() {
@@ -189,7 +402,10 @@ export function CoordinatorAcademicOverview() {
                     {workspace.data.offerings
                       .filter((offering) => offering.program_id === program.id)
                       .map((offering) => (
-                        <li key={offering.id} className="space-y-2 text-sm">
+                        <li
+                          key={offering.id}
+                          className="flex items-center justify-between gap-3 text-sm"
+                        >
                           <span>
                             {offering.label} · {offering.term}
                           </span>
@@ -325,6 +541,7 @@ export function StudentDashboard() {
           </p>
         )}
       </section>
+      <StudentGradeSummary />
       <Button asChild variant="outline" className="self-start">
         <a href="/">All dashboards</a>
       </Button>

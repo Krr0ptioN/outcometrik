@@ -2,79 +2,65 @@ name: CI
 
 on:
   pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - '.gitignore'
   push:
     branches: [main]
+    paths:
+      - 'apps/**'
+      - 'libs/**'
 
 permissions:
   contents: read
   pull-requests: read
+  checks: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 
 jobs:
-  title:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: amannn/action-semantic-pull-request@v6
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          types: |
-            feat
-            fix
-            docs
-            chore
-            refactor
-            test
-            ci
-            build
-            perf
   lint:
-    needs: [title]
-    if: >-
-      always() && (needs.title.result == 'success' || needs.title.result == 'skipped')
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
       - uses: ./.github/actions/setup-workspace
       - run: pnpm nx run-many -t lint --parallel=3
   test:
-    needs: [title]
-    if: >-
-      always() && (needs.title.result == 'success' || needs.title.result == 'skipped')
     runs-on: ubuntu-24.04
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: outcometrik
-          POSTGRES_USER: outcometrik
-          POSTGRES_PASSWORD: ${{ github.run_id }}
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U outcometrik -d outcometrik"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 10
-    env:
-      DJANGO_DEBUG: "true"
-      DJANGO_SECRET_KEY: ${{ github.run_id }}
-      POSTGRES_DB: outcometrik
-      POSTGRES_USER: outcometrik
-      POSTGRES_PASSWORD: ${{ github.run_id }}
-      POSTGRES_HOST: localhost
-      POSTGRES_PORT: "5432"
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
       - uses: ./.github/actions/setup-workspace
+      - uses: ./.github/actions/setup-db
       - run: pnpm nx run-many -t test --parallel=3
+      - name: Report Backend Tests
+        uses: ./.github/actions/report-tests
+        if: success() || failure()
+        with:
+          name: Backend Tests (Pytest)
+          path: 'apps/api/reports/junit-api.xml'
+      - name: Report Frontend Tests
+        uses: ./.github/actions/report-tests
+        if: success() || failure()
+        with:
+          name: Frontend Tests (Vitest)
+          path: '**/reports/junit.xml'
+          upload-artifact: 'true'
+          artifact-name: junit-test-reports
+          artifact-path: '**/reports/junit*.xml'
   build:
-    needs: [title]
-    if: >-
-      always() && (needs.title.result == 'success' || needs.title.result == 'skipped')
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
       - uses: ./.github/actions/setup-workspace
       - run: pnpm nx run-many -t typecheck --parallel=2
       - run: pnpm nx run-many -t build --parallel=2
@@ -83,6 +69,30 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
       - uses: ./.github/actions/setup-workspace
-      - run: pnpm exec playwright install --with-deps chromium
+      - uses: ./.github/actions/setup-playwright
+
       - run: pnpm nx run-many -t e2e --parallel=1
+      - name: Report E2E Tests
+        uses: ./.github/actions/report-tests
+        if: success() || failure()
+        with:
+          name: E2E Tests (Playwright)
+          path: 'apps/web/reports/junit-e2e.xml'
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7
+          compression-level: 9
+      - name: Generate CI Summary
+        uses: ./.github/actions/generate-summary
+        if: ${{ !cancelled() }}
+        with:
+          status: ${{ job.status }}
+
+

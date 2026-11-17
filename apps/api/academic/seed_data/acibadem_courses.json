@@ -1,0 +1,1748 @@
+[
+  {
+    "code": "ACU1001",
+    "raw_code": "ACU 1001",
+    "title": "Elective Course",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU1002",
+    "raw_code": "ACU 1002",
+    "title": "Elective Course",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU102",
+    "raw_code": "ACU 102",
+    "title": "Music Throughout History I",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU103",
+    "raw_code": "ACU 103",
+    "title": "Nutrition for Healthy Living",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU104",
+    "raw_code": "ACU 104",
+    "title": "History of Science / History of World Science",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU105",
+    "raw_code": "ACU 105",
+    "title": "Story in Turkish Literature",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU110",
+    "raw_code": "ACU 110",
+    "title": "Culture, Body and Gender Roles",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU111",
+    "raw_code": "ACU 111",
+    "title": "Music Throughout History II",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU125",
+    "raw_code": "ACU 125",
+    "title": "Sign Language I",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU130",
+    "raw_code": "ACU 130",
+    "title": "Sign Language II",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU132",
+    "raw_code": "ACU 132",
+    "title": "Voluntary Training and Spreadaki Practices",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU134",
+    "raw_code": "ACU 134",
+    "title": "20th Century Political and Social History",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU135",
+    "raw_code": "ACU 135",
+    "title": "Academic Turkish I",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU136",
+    "raw_code": "ACU 136",
+    "title": "Science Communication",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU138",
+    "raw_code": "ACU 138",
+    "title": "Academic Turkish II",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU139",
+    "raw_code": "ACU 139",
+    "title": "Life Skills for Psychological Wellbeing",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU140",
+    "raw_code": "ACU 140",
+    "title": "Marketing and Communication Management in Health Services",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU141",
+    "raw_code": "ACU 141",
+    "title": "Introduction to Gender Equality",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU142",
+    "raw_code": "ACU 142",
+    "title": "History of World Culture and Civilisation",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU143",
+    "raw_code": "ACU 143",
+    "title": "Ancient Philosophy",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU145",
+    "raw_code": "ACU 145",
+    "title": "Islamic Philosophy",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU156",
+    "raw_code": "ACU 156",
+    "title": "Sports for All",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU158",
+    "raw_code": "ACU 158",
+    "title": "Science Reporting and Popular Science Publishing",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU162",
+    "raw_code": "ACU 162",
+    "title": "Career Planning",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU163",
+    "raw_code": "ACU 163",
+    "title": "Technology Addiction",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU166",
+    "raw_code": "ACU 166",
+    "title": "Volunteering Studies",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU167",
+    "raw_code": "ACU 167",
+    "title": "Entrepreneurship",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU168",
+    "raw_code": "ACU 168",
+    "title": "Disability and Life",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU169",
+    "raw_code": "ACU 169",
+    "title": "Physical Activity",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU170",
+    "raw_code": "ACU 170",
+    "title": "Stress Management and Well-Being",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU171",
+    "raw_code": "ACU 171",
+    "title": "Introduction to Neuroscience",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU172",
+    "raw_code": "ACU 172",
+    "title": "Communication Skills and Presentation Techniques",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU173",
+    "raw_code": "ACU 173",
+    "title": "Health Law",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU174",
+    "raw_code": "ACU 174",
+    "title": "Environmental Pollution and Climate Change",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU175",
+    "raw_code": "ACU 175",
+    "title": "Creativity and Art",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU176",
+    "raw_code": "ACU 176",
+    "title": "Music, Individual and Society",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU178",
+    "raw_code": "ACU 178",
+    "title": "Modern Scientific Research Methods",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU179",
+    "raw_code": "ACU 179",
+    "title": "Project Management",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU180",
+    "raw_code": "ACU 180",
+    "title": "History of World Culture and Civilization",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU181",
+    "raw_code": "ACU 181",
+    "title": "Civil Society and Volunteering Activities",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU182",
+    "raw_code": "ACU 182",
+    "title": "General Health Insurance and SUT Applications",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU183",
+    "raw_code": "ACU 183",
+    "title": "Diction",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU184",
+    "raw_code": "ACU 184",
+    "title": "Popular Culture, Media and Communication",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU185",
+    "raw_code": "ACU 185",
+    "title": "The Art of Living",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU186",
+    "raw_code": "ACU 186",
+    "title": "Change Management",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU187",
+    "raw_code": "ACU 187",
+    "title": "Design Thinking",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU188",
+    "raw_code": "ACU 188",
+    "title": "Startup Design with Design Thinking",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU189",
+    "raw_code": "ACU 189",
+    "title": "Forensic Informatics",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU190",
+    "raw_code": "ACU 190",
+    "title": "Philosophy of Cinema",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU191",
+    "raw_code": "ACU 191",
+    "title": "Business Analysis",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU192",
+    "raw_code": "ACU 192",
+    "title": "Reading the 20th Century through Cinema Films",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU193",
+    "raw_code": "ACU 193",
+    "title": "Women in Modern Turkey",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU194",
+    "raw_code": "ACU 194",
+    "title": "Communication and Presentation Skills with Drama Method in Education",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU195",
+    "raw_code": "ACU 195",
+    "title": "World Music Cultures",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU196",
+    "raw_code": "ACU 196",
+    "title": "Teaching Turkish to Foreigners",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU197",
+    "raw_code": "ACU 197",
+    "title": "Introduction to Art Therapy",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU198",
+    "raw_code": "ACU 198",
+    "title": "Non-Clinical Applications in Art Therapy",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU199",
+    "raw_code": "ACU 199",
+    "title": "Women's Studies",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU2001",
+    "raw_code": "ACU 2001",
+    "title": "Elective Course",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 6,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU2002",
+    "raw_code": "ACU 2002",
+    "title": "Elective Course",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 6,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU213",
+    "raw_code": "ACU 213",
+    "title": "English Language Course for Erasmus I",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU215",
+    "raw_code": "ACU 215",
+    "title": "Human Rights and Health",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU217",
+    "raw_code": "ACU 217",
+    "title": "History of Cinema",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU221",
+    "raw_code": "ACU 221",
+    "title": "History of the Horror Film",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU223",
+    "raw_code": "ACU 223",
+    "title": "Modern Scientific Research Methods",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU225",
+    "raw_code": "ACU 225",
+    "title": "Strategic Brand Management",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU226",
+    "raw_code": "ACU 226",
+    "title": "Project Management",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU227",
+    "raw_code": "ACU 227",
+    "title": "Sustainability",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU229",
+    "raw_code": "ACU 229",
+    "title": "Translational Cancer Research",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU230",
+    "raw_code": "ACU 230",
+    "title": "Good Manufacturing Practices (GMP) - Good Laboratory Practices (GLP)",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU231",
+    "raw_code": "ACU 231",
+    "title": "Prized Topics in Molecular Biology and Genetics",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU232",
+    "raw_code": "ACU 232",
+    "title": "Social Roles and Identities",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU233",
+    "raw_code": "ACU 233",
+    "title": "Scientific and Experimental Approach to Vermicomposting",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU234",
+    "raw_code": "ACU 234",
+    "title": "Media and Health Discourses",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU235",
+    "raw_code": "ACU 235",
+    "title": "Stres Management in Health Care",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU236",
+    "raw_code": "ACU 236",
+    "title": "History of Modernisation in Turkey",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU237",
+    "raw_code": "ACU 237",
+    "title": "Cultural Artifacts and Social Identity",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU238",
+    "raw_code": "ACU 238",
+    "title": "Reading and Walking Istanbul",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU239",
+    "raw_code": "ACU 239",
+    "title": "Biopolitics and Health",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU240",
+    "raw_code": "ACU 240",
+    "title": "History, Culture and Society of Turkey through Cinema",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU241",
+    "raw_code": "ACU 241",
+    "title": "Human Microbiota in Health and Disease",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU300",
+    "raw_code": "ACU 300",
+    "title": "Technology Addiction and Mind",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU3002",
+    "raw_code": "ACU 3002",
+    "title": "Elective Course",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 6,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU301",
+    "raw_code": "ACU 301",
+    "title": "Social Emotional Skills Development",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU302",
+    "raw_code": "ACU 302",
+    "title": "Quality Oriented Perspective in Health Services",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU310",
+    "raw_code": "ACU 310",
+    "title": "Population Policies",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU312",
+    "raw_code": "ACU 312",
+    "title": "Interpersonal Violence and Its Management",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU313",
+    "raw_code": "ACU 313",
+    "title": "Social Criticism and Utopia",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU314",
+    "raw_code": "ACU 314",
+    "title": "Film Culture",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU315",
+    "raw_code": "ACU 315",
+    "title": "UN Sustainable Development Goals and Applications",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU316",
+    "raw_code": "ACU 316",
+    "title": "The Individual, Society and Aesthetics",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU317",
+    "raw_code": "ACU 317",
+    "title": "Gastronomy and Lifestyle",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU318",
+    "raw_code": "ACU 318",
+    "title": "Introduction to Forensic Science",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU319",
+    "raw_code": "ACU 319",
+    "title": "Cultural Memory and Photographs: How do we remember? Why do we forget?",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU320",
+    "raw_code": "ACU 320",
+    "title": "Sign Language in Sign Language in Everyday Life",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU321",
+    "raw_code": "ACU 321",
+    "title": "Sign Language in Healthcare Services",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU322",
+    "raw_code": "ACU 322",
+    "title": "Geography of Countries and Türkiye",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU323",
+    "raw_code": "ACU 323",
+    "title": "Women in Society",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU324",
+    "raw_code": "ACU 324",
+    "title": "Introduction to Social Policy",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU325",
+    "raw_code": "ACU 325",
+    "title": "Social Impact Project Development and Management",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU326",
+    "raw_code": "ACU 326",
+    "title": "Academic Success and Life Skills",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU327",
+    "raw_code": "ACU 327",
+    "title": "Simulation Technologies in Health Professions Education",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU328",
+    "raw_code": "ACU 328",
+    "title": "Age-Friendly Culture and Social Innovation",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU329",
+    "raw_code": "ACU 329",
+    "title": "Legal Liability in Medical Intervention",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU330",
+    "raw_code": "ACU 330",
+    "title": "Adaptation Skills for Organizational Life",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU4001",
+    "raw_code": "ACU 4001",
+    "title": "Elective Course",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ACU4002",
+    "raw_code": "ACU 4002",
+    "title": "Elective Course",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "ADS4002",
+    "raw_code": "ADS 4002",
+    "title": "General Elective",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 5,
+    "type": "Elective"
+  },
+  {
+    "code": "ATA101",
+    "raw_code": "ATA 101",
+    "title": "Ataturk's Principles and History of Revolution I",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 2,
+    "type": "Compulsory"
+  },
+  {
+    "code": "ATA102",
+    "raw_code": "ATA 102",
+    "title": "Ataturk's Principles and History of Revolution I",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 2,
+    "type": "Compulsory"
+  },
+  {
+    "code": "BME105",
+    "raw_code": "BME 105",
+    "title": "Humanities in Science",
+    "tal": "1+0+0",
+    "credits": 1,
+    "ects": 1,
+    "type": "Compulsory"
+  },
+  {
+    "code": "BME218",
+    "raw_code": "BME 218",
+    "title": "Probability and Biostatistics",
+    "tal": "2+2+0",
+    "credits": 3,
+    "ects": 4,
+    "type": "Compulsory"
+  },
+  {
+    "code": "BME220",
+    "raw_code": "BME 220",
+    "title": "Engineering Ethics",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 2,
+    "type": "Compulsory"
+  },
+  {
+    "code": "BME319",
+    "raw_code": "BME 319",
+    "title": "Optimizasyon",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 7,
+    "type": "Elective"
+  },
+  {
+    "code": "BME419",
+    "raw_code": "BME 419",
+    "title": "Biomedical Technologies",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 7,
+    "type": "Elective"
+  },
+  {
+    "code": "BME506",
+    "raw_code": "BME 506",
+    "title": "Medical Image Processing",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 7,
+    "type": "Elective"
+  },
+  {
+    "code": "BME560",
+    "raw_code": "BME 560",
+    "title": "Functional Neuroimaging",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 7,
+    "type": "Elective"
+  },
+  {
+    "code": "CSE101",
+    "raw_code": "CSE 101",
+    "title": "Introduction to Programming",
+    "tal": "2+2+0",
+    "credits": 3,
+    "ects": 6,
+    "type": "Compulsory"
+  },
+  {
+    "code": "CSE102",
+    "raw_code": "CSE 102",
+    "title": "Programming Practice",
+    "tal": "2+2+0",
+    "credits": 3,
+    "ects": 6,
+    "type": "Compulsory"
+  },
+  {
+    "code": "CSE200",
+    "raw_code": "CSE 200",
+    "title": "Summer Internship",
+    "tal": "0+160+0",
+    "credits": 0,
+    "ects": 5,
+    "type": "Compulsory"
+  },
+  {
+    "code": "CSE201",
+    "raw_code": "CSE 201",
+    "title": "Algorithms I",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 6,
+    "type": "Compulsory"
+  },
+  {
+    "code": "CSE202",
+    "raw_code": "CSE 202",
+    "title": "Algorithms II",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 6,
+    "type": "Compulsory"
+  },
+  {
+    "code": "CSE211",
+    "raw_code": "CSE 211",
+    "title": "Digital Logic Design",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 6,
+    "type": "Compulsory"
+  },
+  {
+    "code": "CSE220",
+    "raw_code": "CSE 220",
+    "title": "Web Programming",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 6,
+    "type": "Compulsory"
+  },
+  {
+    "code": "CSE300",
+    "raw_code": "CSE 300",
+    "title": "Summer Internship",
+    "tal": "0+160+0",
+    "credits": 0,
+    "ects": 5,
+    "type": "Compulsory"
+  },
+  {
+    "code": "CSE301",
+    "raw_code": "CSE 301",
+    "title": "Computer Architecture",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 6,
+    "type": "Compulsory"
+  },
+  {
+    "code": "CSE302",
+    "raw_code": "CSE 302",
+    "title": "Operating Systems",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 6,
+    "type": "Compulsory"
+  },
+  {
+    "code": "CSE311",
+    "raw_code": "CSE 311",
+    "title": "Software",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 6,
+    "type": "Compulsory"
+  },
+  {
+    "code": "CSE312",
+    "raw_code": "CSE 312",
+    "title": "Computer & Social Networks",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 6,
+    "type": "Compulsory"
+  },
+  {
+    "code": "CSE321",
+    "raw_code": "CSE 321",
+    "title": "Data Systems",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 6,
+    "type": "Compulsory"
+  },
+  {
+    "code": "CSE322",
+    "raw_code": "CSE 322",
+    "title": "Cloud Computing",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 6,
+    "type": "Compulsory"
+  },
+  {
+    "code": "CSE331",
+    "raw_code": "CSE 331",
+    "title": "Exploratory Data Analysis",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 6,
+    "type": "Compulsory"
+  },
+  {
+    "code": "CSE332",
+    "raw_code": "CSE 332",
+    "title": "Data Science & AI",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 6,
+    "type": "Compulsory"
+  },
+  {
+    "code": "CSE4001",
+    "raw_code": "CSE 4001",
+    "title": "Technical Elective",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 14,
+    "type": "Elective"
+  },
+  {
+    "code": "CSE4002",
+    "raw_code": "CSE 4002",
+    "title": "Technical Elective",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 14,
+    "type": "Elective"
+  },
+  {
+    "code": "CSE405",
+    "raw_code": "CSE 405",
+    "title": "Senior Design Project I",
+    "tal": "0+4+0",
+    "credits": 2,
+    "ects": 6,
+    "type": "Compulsory"
+  },
+  {
+    "code": "CSE406",
+    "raw_code": "CSE 406",
+    "title": "Senior Design Project II",
+    "tal": "0+4+0",
+    "credits": 2,
+    "ects": 6,
+    "type": "Compulsory"
+  },
+  {
+    "code": "CSE411",
+    "raw_code": "CSE 411",
+    "title": "Artificial Intelligence",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 7,
+    "type": "Elective"
+  },
+  {
+    "code": "CSE412",
+    "raw_code": "CSE 412",
+    "title": "AI in Healthcare",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 7,
+    "type": "Elective"
+  },
+  {
+    "code": "CSE413",
+    "raw_code": "CSE 413",
+    "title": "Health Informatics",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 7,
+    "type": "Elective"
+  },
+  {
+    "code": "CSE415",
+    "raw_code": "CSE 415",
+    "title": "Social Networks",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 7,
+    "type": "Elective"
+  },
+  {
+    "code": "CSE421",
+    "raw_code": "CSE 421",
+    "title": "Special Topics in Computer Science",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 7,
+    "type": "Elective"
+  },
+  {
+    "code": "CSE422",
+    "raw_code": "CSE 422",
+    "title": "Information Retrieval",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 7,
+    "type": "Elective"
+  },
+  {
+    "code": "CSE425",
+    "raw_code": "CSE 425",
+    "title": "Linear Dynamical Systems",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 7,
+    "type": "Elective"
+  },
+  {
+    "code": "CSE427",
+    "raw_code": "CSE 427",
+    "title": "Automata Theory and Formal Languages",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 7,
+    "type": "Elective"
+  },
+  {
+    "code": "CSE433",
+    "raw_code": "CSE 433",
+    "title": "Machine Learning",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 7,
+    "type": "Elective"
+  },
+  {
+    "code": "CSE435",
+    "raw_code": "CSE 435",
+    "title": "SQL Server",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 7,
+    "type": "Elective"
+  },
+  {
+    "code": "CSE441",
+    "raw_code": "CSE 441",
+    "title": "Computer Systems",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 7,
+    "type": "Elective"
+  },
+  {
+    "code": "CSE451",
+    "raw_code": "CSE 451",
+    "title": "Microprocessors/Microcontrollers",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 7,
+    "type": "Elective"
+  },
+  {
+    "code": "CSE452",
+    "raw_code": "CSE 452",
+    "title": "Embedded Systems",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 7,
+    "type": "Elective"
+  },
+  {
+    "code": "CSE472",
+    "raw_code": "CSE 472",
+    "title": "Numerical Methods",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 7,
+    "type": "Elective"
+  },
+  {
+    "code": "ENG105",
+    "raw_code": "ENG 105",
+    "title": "English for Academic Purposes",
+    "tal": "2+2+0",
+    "credits": 3,
+    "ects": 5,
+    "type": "Compulsory"
+  },
+  {
+    "code": "ENG106",
+    "raw_code": "ENG 106",
+    "title": "English for Academic Purposes",
+    "tal": "2+2+0",
+    "credits": 3,
+    "ects": 5,
+    "type": "Compulsory"
+  },
+  {
+    "code": "MAT111",
+    "raw_code": "MAT 111",
+    "title": "Calculus I",
+    "tal": "3+2+0",
+    "credits": 4,
+    "ects": 6,
+    "type": "Compulsory"
+  },
+  {
+    "code": "MAT112",
+    "raw_code": "MAT 112",
+    "title": "Calculus II",
+    "tal": "3+2+0",
+    "credits": 4,
+    "ects": 6,
+    "type": "Compulsory"
+  },
+  {
+    "code": "MAT211",
+    "raw_code": "MAT 211",
+    "title": "Linear Algebra",
+    "tal": "3+2+0",
+    "credits": 4,
+    "ects": 6,
+    "type": "Compulsory"
+  },
+  {
+    "code": "MAT222",
+    "raw_code": "MAT 222",
+    "title": "Differential Equations",
+    "tal": "3+2+0",
+    "credits": 4,
+    "ects": 6,
+    "type": "Compulsory"
+  },
+  {
+    "code": "MAT241",
+    "raw_code": "MAT 241",
+    "title": "Discrete Mathematics",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 6,
+    "type": "Compulsory"
+  },
+  {
+    "code": "MBG042",
+    "raw_code": "MBG 042",
+    "title": "Epigenetics",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 5,
+    "type": "Elective"
+  },
+  {
+    "code": "MBG043",
+    "raw_code": "MBG 043",
+    "title": "Developmental Biology",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 5,
+    "type": "Elective"
+  },
+  {
+    "code": "MBG044",
+    "raw_code": "MBG 044",
+    "title": "Proteoimics",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 5,
+    "type": "Elective"
+  },
+  {
+    "code": "MBG045",
+    "raw_code": "MBG 045",
+    "title": "DNA Repair and Mutgenesis",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 5,
+    "type": "Elective"
+  },
+  {
+    "code": "MBG046",
+    "raw_code": "MBG 046",
+    "title": "RNA World",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 5,
+    "type": "Elective"
+  },
+  {
+    "code": "MBG047",
+    "raw_code": "MBG 047",
+    "title": "Animal Models of Human Pathology",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 5,
+    "type": "Elective"
+  },
+  {
+    "code": "MBG048",
+    "raw_code": "MBG 048",
+    "title": "Molecular Mechanisms of Disease",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 5,
+    "type": "Elective"
+  },
+  {
+    "code": "MBG049",
+    "raw_code": "MBG 049",
+    "title": "Genetic Counselling",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 5,
+    "type": "Elective"
+  },
+  {
+    "code": "MBG050",
+    "raw_code": "MBG 050",
+    "title": "Research Project Management",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 5,
+    "type": "Elective"
+  },
+  {
+    "code": "MBG051",
+    "raw_code": "MBG 051",
+    "title": "Structural Biology",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 5,
+    "type": "Elective"
+  },
+  {
+    "code": "MBG052",
+    "raw_code": "MBG 052",
+    "title": "Plant Biology and Ecology",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 5,
+    "type": "Elective"
+  },
+  {
+    "code": "MBG053",
+    "raw_code": "MBG 053",
+    "title": "Biophysics",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 5,
+    "type": "Elective"
+  },
+  {
+    "code": "MBG054",
+    "raw_code": "MBG 054",
+    "title": "Molecular Biology of Cancer",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 5,
+    "type": "Elective"
+  },
+  {
+    "code": "MBG055",
+    "raw_code": "MBG 055",
+    "title": "Stem Cell and Therapy",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 5,
+    "type": "Elective"
+  },
+  {
+    "code": "MBG056",
+    "raw_code": "MBG 056",
+    "title": "Genomics",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 5,
+    "type": "Elective"
+  },
+  {
+    "code": "MBG057",
+    "raw_code": "MBG 057",
+    "title": "Introduction to Bioinformatics",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 5,
+    "type": "Elective"
+  },
+  {
+    "code": "MBG058",
+    "raw_code": "MBG 058",
+    "title": "Cell Cycle And Apoptosis",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 5,
+    "type": "Elective"
+  },
+  {
+    "code": "MBG059",
+    "raw_code": "MBG 059",
+    "title": "Summer Research (20 days)",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 5,
+    "type": "Elective"
+  },
+  {
+    "code": "MBG060",
+    "raw_code": "MBG 060",
+    "title": "Biology of Aging",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 5,
+    "type": "Elective"
+  },
+  {
+    "code": "MBG061",
+    "raw_code": "MBG 061",
+    "title": "Computational Omics Analysis",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 5,
+    "type": "Elective"
+  },
+  {
+    "code": "MBG062",
+    "raw_code": "MBG 062",
+    "title": "Personalized Medicine",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 5,
+    "type": "Elective"
+  },
+  {
+    "code": "MBG063",
+    "raw_code": "MBG 063",
+    "title": "Computational Structural Biology",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 5,
+    "type": "Elective"
+  },
+  {
+    "code": "MBG442",
+    "raw_code": "MBG 442",
+    "title": "Bioethics",
+    "tal": "3+0+0",
+    "credits": 3,
+    "ects": 5,
+    "type": "Elective"
+  },
+  {
+    "code": "MTH101",
+    "raw_code": "MTH 101",
+    "title": "Entrepreneurship",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "MTH102",
+    "raw_code": "MTH 102",
+    "title": "Introduction to Business",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "MTH103",
+    "raw_code": "MTH 103",
+    "title": "Sağlık Profesyonellerinin Eğitiminde Simülasyon Teknolojileri",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "MTH104",
+    "raw_code": "MTH 104",
+    "title": "Yaş Dostu Kültür ve Sosyal İnovasyon",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "MTH105",
+    "raw_code": "MTH 105",
+    "title": "Systems Engineering Concepts and Processess",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "MTH106",
+    "raw_code": "MTH 106",
+    "title": "Data Governance and Ethical Frameworks for Artificial Intelligence",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "MTH201",
+    "raw_code": "MTH 201",
+    "title": "Entrepreneurship",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 3,
+    "type": "Elective"
+  },
+  {
+    "code": "OHS001",
+    "raw_code": "OHS 001",
+    "title": "Occupational Health and Safety I",
+    "tal": "1+0+0",
+    "credits": 1,
+    "ects": 2,
+    "type": "Compulsory"
+  },
+  {
+    "code": "OHS002",
+    "raw_code": "OHS 002",
+    "title": "Occupational Health and Safety II",
+    "tal": "1+0+0",
+    "credits": 1,
+    "ects": 2,
+    "type": "Compulsory"
+  },
+  {
+    "code": "PHY101",
+    "raw_code": "PHY 101",
+    "title": "Physics I",
+    "tal": "3+2+0",
+    "credits": 4,
+    "ects": 6,
+    "type": "Compulsory"
+  },
+  {
+    "code": "PHY102",
+    "raw_code": "PHY 102",
+    "title": "Physics II",
+    "tal": "3+2+0",
+    "credits": 4,
+    "ects": 6,
+    "type": "Compulsory"
+  },
+  {
+    "code": "TUR101",
+    "raw_code": "TUR 101",
+    "title": "Turkish Language I",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 2,
+    "type": "Compulsory"
+  },
+  {
+    "code": "TUR102",
+    "raw_code": "TUR 102",
+    "title": "Turkish Language II",
+    "tal": "2+0+0",
+    "credits": 2,
+    "ects": 2,
+    "type": "Compulsory"
+  }
+]

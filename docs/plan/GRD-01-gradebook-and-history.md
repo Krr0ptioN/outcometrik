@@ -35,6 +35,6 @@ As an authorized instructor, I can record and correct assessment grades for an o
 - [ ] Confirm API/data contract and authorization scope against the owning domain module.
 - [ ] Implement the smallest vertical slice that satisfies the acceptance criteria.
 - [ ] Add focused unit/integration coverage for success, invalid input, and denied scope.
-- [ ] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
+- [x] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
 - [ ] Update API/UI documentation and verify downstream stories remain compatible.
 

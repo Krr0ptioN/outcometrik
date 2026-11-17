@@ -10,7 +10,7 @@ from .policy import ResourceContext, authorization
 from .selectors import visible_resource, visible_resources
 from .services import assign, revoke, sensitive_export
 
-pytestmark = pytest.mark.django_db
+pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("record_table")]
 
 
 class ProtectedRecord(models.Model):
@@ -24,7 +24,7 @@ class ProtectedRecord(models.Model):
         managed = False
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="module")
 def record_table(django_db_setup, django_db_blocker):
     with django_db_blocker.unblock(), connection.schema_editor() as editor:
         editor.create_model(ProtectedRecord)
@@ -34,7 +34,7 @@ def record_table(django_db_setup, django_db_blocker):
 
 
 @pytest.fixture
-def world(django_user_model):
+def access_world(django_user_model):
     users = {
         name: django_user_model.objects.create_user(name)
         for name in ("admin", "coordinator", "instructor", "student", "other", "outsider")
@@ -59,8 +59,8 @@ def allowed(user, capability, scope, resource=None):
 
 
 @pytest.mark.parametrize("name", ["coordinator", "instructor"])
-def test_scope_isolation(world, name):
-    users, _, _, offerings = world
+def test_scope_isolation(access_world, name):
+    users, _, _, offerings = access_world
     assert allowed(users[name], "grades.edit", offerings[0])
     assert not allowed(users[name], "grades.edit", offerings[1])
     with pytest.raises(PermissionDenied):
@@ -68,8 +68,8 @@ def test_scope_isolation(world, name):
     assert allowed(users["admin"], "grades.edit", offerings[1])
 
 
-def test_deny_default_inactive_and_superuser(world):
-    users, _, _, offerings = world
+def test_deny_default_inactive_and_superuser(access_world):
+    users, _, _, offerings = access_world
     assert not allowed(AnonymousUser(), "grades.view", offerings[0])
     user = users["outsider"]
     user.is_superuser = True
@@ -93,8 +93,8 @@ def test_deny_default_inactive_and_superuser(world):
         ("grades.edit", True, True, True, False),
     ],
 )
-def test_student_policy_and_selectors(world, capability, released, published, own, expected):
-    users, _, _, offerings = world
+def test_student_policy_and_selectors(access_world, capability, released, published, own, expected):
+    users, _, _, offerings = access_world
     student = users["student"]
     owner = student if own else users["other"]
     record = ProtectedRecord.objects.create(
@@ -117,8 +117,8 @@ def test_student_policy_and_selectors(world, capability, released, published, ow
     assert not allowed(student, capability, offerings[1], context)
 
 
-def test_issue_41_student_cannot_read_private_grades_previews_or_foreign_evidence(world):
-    users, _, _, offerings = world
+def test_issue_41_student_cannot_read_private_grades_previews_or_foreign_evidence(access_world):
+    users, _, _, offerings = access_world
     student = users["student"]
     own_released_grade = ProtectedRecord.objects.create(
         scope=offerings[0], owner_id=student.pk, released=True
@@ -152,8 +152,8 @@ def test_issue_41_student_cannot_read_private_grades_previews_or_foreign_evidenc
     )
 
 
-def test_coordinator_cannot_enumerate_foreign_drafts(world):
-    users, _, _, offerings = world
+def test_coordinator_cannot_enumerate_foreign_drafts(access_world):
+    users, _, _, offerings = access_world
     foreign = ProtectedRecord.objects.create(scope=offerings[1], owner_id=users["other"].pk)
     for name in ("coordinator", "instructor", "student"):
         with pytest.raises(Http404):
@@ -165,8 +165,8 @@ def test_coordinator_cannot_enumerate_foreign_drafts(world):
             )
 
 
-def test_direct_grants_exact_action_scope_and_immediate_revocation(world):
-    users, _, programs, offerings = world
+def test_direct_grants_exact_action_scope_and_immediate_revocation(access_world):
+    users, _, programs, offerings = access_world
     user = users["outsider"]
     grant = assign(
         actor=users["admin"],
@@ -186,8 +186,8 @@ def test_direct_grants_exact_action_scope_and_immediate_revocation(world):
     ]
 
 
-def test_revoking_direct_grant_preserves_role_and_other_grants(world):
-    users, _, _, offerings = world
+def test_revoking_direct_grant_preserves_role_and_other_grants(access_world):
+    users, _, _, offerings = access_world
     for name in ("instructor", "outsider"):
         grant = assign(
             actor=users["admin"],
@@ -199,8 +199,8 @@ def test_revoking_direct_grant_preserves_role_and_other_grants(world):
         assert allowed(users[name], "grades.edit", offerings[0]) is (name == "instructor")
 
 
-def test_role_assignment_audit_validation_and_revocation(world):
-    users, _, _, offerings = world
+def test_role_assignment_audit_validation_and_revocation(access_world):
+    users, _, _, offerings = access_world
     args = {
         "actor": users["admin"],
         "user": users["outsider"],
@@ -221,8 +221,8 @@ def test_role_assignment_audit_validation_and_revocation(world):
         assign(**{**args, "actor": users["coordinator"]})
 
 
-def test_audit_and_assignment_rollback_together(world, monkeypatch):
-    users, _, _, offerings = world
+def test_audit_and_assignment_rollback_together(access_world, monkeypatch):
+    users, _, _, offerings = access_world
 
     def fail(**kwargs):
         raise RuntimeError("audit unavailable")
@@ -238,8 +238,8 @@ def test_audit_and_assignment_rollback_together(world, monkeypatch):
     assert not RoleAssignment.objects.filter(user=users["outsider"]).exists()
 
 
-def test_sensitive_export_filters_and_audits(world):
-    users, _, _, offerings = world
+def test_sensitive_export_filters_and_audits(access_world):
+    users, _, _, offerings = access_world
     for scope in offerings:
         ProtectedRecord.objects.create(scope=scope, owner_id=users["other"].pk)
     payload = sensitive_export(
@@ -260,8 +260,8 @@ def test_sensitive_export_filters_and_audits(world):
     assert AuditEvent.objects.count() == 1
 
 
-def test_audit_immutable_in_orm_and_raw_sql(world):
-    users, institution, _, _ = world
+def test_audit_immutable_in_orm_and_raw_sql(access_world):
+    users, institution, _, _ = access_world
     event = AuditEvent.objects.create(actor=users["admin"], scope=institution, action="test")
     for mutate in (
         lambda: event.save(),
@@ -278,8 +278,8 @@ def test_audit_immutable_in_orm_and_raw_sql(world):
     assert event.action == "test"
 
 
-def test_api_auth_validation_denials_and_revocation(world):
-    users, _, _, offerings = world
+def test_api_auth_validation_denials_and_revocation(access_world):
+    users, _, _, offerings = access_world
     client = APIClient()
     body = {"user": users["outsider"].pk, "scope": str(offerings[0].pk), "role": "instructor"}
     assert client.post("/api/access/assignments/", body).status_code == 403
@@ -304,8 +304,8 @@ def test_api_auth_validation_denials_and_revocation(world):
     assert not allowed(users["outsider"], "grades.edit", offerings[0])
 
 
-def test_api_assigns_multiple_direct_capabilities_in_one_scoped_request(world):
-    users, _, _, offerings = world
+def test_api_assigns_multiple_direct_capabilities_in_one_scoped_request(access_world):
+    users, _, _, offerings = access_world
     client = APIClient()
     client.force_authenticate(users["admin"])
     response = client.post(
@@ -340,8 +340,8 @@ def test_api_assigns_multiple_direct_capabilities_in_one_scoped_request(world):
     assert duplicate.status_code == 400
 
 
-def test_session_authentication_enforces_csrf(world):
-    users, _, _, offerings = world
+def test_session_authentication_enforces_csrf(access_world):
+    users, _, _, offerings = access_world
     client = APIClient(enforce_csrf_checks=True)
     client.force_login(users["admin"])
     assert (
@@ -358,8 +358,8 @@ def test_session_authentication_enforces_csrf(world):
     assert RoleAssignment.objects.filter(user=users["outsider"]).count() == 0
 
 
-def test_scope_validation_and_ancestry_immutable(world):
-    _, institution, programs, offerings = world
+def test_scope_validation_and_ancestry_immutable(access_world):
+    _, institution, programs, offerings = access_world
     with pytest.raises(ValidationError):
         Scope.objects.create(kind="offering", parent=institution)
     offerings[0].parent = programs[1]
@@ -367,8 +367,8 @@ def test_scope_validation_and_ancestry_immutable(world):
         offerings[0].save()
 
 
-def test_assignment_api_direct_grant(world):
-    users, _, _, offerings = world
+def test_assignment_api_direct_grant(access_world):
+    users, _, _, offerings = access_world
     client = APIClient()
     client.force_authenticate(users["admin"])
     response = client.post(
@@ -386,14 +386,14 @@ def test_assignment_api_direct_grant(world):
     assert not allowed(users["outsider"], "grades.edit", offerings[0])
 
 
-def test_visible_object_forbidden_action_returns_403(world):
+def test_visible_object_forbidden_action_returns_403(access_world):
     from rest_framework.response import Response
     from rest_framework.test import APIRequestFactory, force_authenticate
     from rest_framework.views import APIView
 
     from .permissions import HasCapability
 
-    users, _, _, offerings = world
+    users, _, _, offerings = access_world
     record = ProtectedRecord.objects.create(scope=offerings[0], owner_id=users["other"].pk)
 
     class ReleaseView(APIView):
@@ -421,11 +421,11 @@ def test_visible_object_forbidden_action_returns_403(world):
     assert ReleaseView.as_view()(request, pk=record.pk).status_code == 404
 
 
-def test_password_session_and_csrf_success(world):
+def test_password_session_and_csrf_success(access_world):
     from django.middleware.csrf import get_token
     from django.test import RequestFactory
 
-    users, _, _, offerings = world
+    users, _, _, offerings = access_world
     user = users["admin"]
     user.set_password("auth01-test-password")
     user.save()

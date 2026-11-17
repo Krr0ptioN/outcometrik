@@ -1,0 +1,17 @@
+[project]
+name = "outcometrik-calc"
+version = "0.1.0"
+description = "Deterministic Decimal scoring kernel for Outcometrik"
+requires-python = ">=3.13"
+dependencies = []
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["calc"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"

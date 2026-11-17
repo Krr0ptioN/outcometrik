@@ -1,0 +1,56 @@
+name: Report Tests
+description: Publish test results to GitHub check runs and optionally upload report artifacts.
+
+inputs:
+  name:
+    description: Name of the test report check run
+    required: true
+  path:
+    description: Path or glob pattern to test results
+    required: true
+  reporter:
+    description: Test reporter format (e.g. java-junit, jest-junit)
+    required: false
+    default: java-junit
+  upload-artifact:
+    description: Whether to upload test reports as workflow artifact
+    required: false
+    default: 'false'
+  artifact-name:
+    description: Name of the artifact when uploaded
+    required: false
+    default: test-reports
+  artifact-path:
+    description: Specific path pattern for artifact upload (defaults to path input if empty)
+    required: false
+    default: ''
+  retention-days:
+    description: Artifact retention in days
+    required: false
+    default: '7'
+
+runs:
+  using: composite
+  steps:
+    - name: Report test results
+      uses: dorny/test-reporter@v2
+      with:
+        name: ${{ inputs.name }}
+        path: ${{ inputs.path }}
+        reporter: ${{ inputs.reporter }}
+
+    - name: Upload test report artifact
+      if: inputs.upload-artifact == 'true' && inputs.artifact-path != ''
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.artifact-path }}
+        retention-days: ${{ inputs.retention-days }}
+
+    - name: Upload test report artifact
+      if: inputs.upload-artifact == 'true' && inputs.artifact-path == ''
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.path }}
+        retention-days: ${{ inputs.retention-days }}

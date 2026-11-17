@@ -1,0 +1,7 @@
+{
+  "name": "api-calc",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/modules/calc/calc",
+  "projectType": "library",
+  "targets": {}
+}

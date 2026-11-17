@@ -5,6 +5,7 @@ description = "Outcometrik API"
 requires-python = ">=3.13"
 dependencies = [
   "outcometrik-access",
+  "outcometrik-calc",
   "celery[redis]>=5.5,<6",
   "Django>=5.2,<6",
   "djangorestframework>=3.16,<4",
@@ -22,7 +23,9 @@ dev = [
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings"
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
-testpaths = ["health", "academic", "../../libs/modules/access/access"]
+testpaths = ["health", "academic", "../../libs/modules/access/access", "../../libs/modules/calc/calc"]
+addopts = "--junitxml=reports/junit-api.xml -o junit_family=xunit2"
+
 
 [tool.ruff]
 line-length = 100
@@ -33,3 +36,4 @@ ignore = ["RUF012"]
 
 [tool.uv.sources]
 outcometrik-access = { path = "../../libs/modules/access", editable = true }
+outcometrik-calc = { path = "../../libs/modules/calc", editable = true }

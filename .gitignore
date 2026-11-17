@@ -9,10 +9,14 @@ __pycache__/
 *.py[cod]
 .venv/
 apps/api/db.sqlite3
+/seeded_creentials.json
+.omx/
 .pytest_cache/
 .mypy_cache/
 playwright-report/
 test-results/
+reports/
 /apps/web/.next
 
 *.tsbuildinfo
+

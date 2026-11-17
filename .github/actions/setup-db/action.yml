@@ -1,0 +1,123 @@
+name: Set up Database
+description: Start PostgreSQL container, wait for health readiness, and configure database environment variables.
+
+inputs:
+  database:
+    description: Database name
+    required: false
+    default: outcometrik
+  user:
+    description: Database user
+    required: false
+    default: outcometrik
+  password:
+    description: Database password (defaults to github.run_id or outcometrik)
+    required: false
+    default: ''
+  host:
+    description: Database host
+    required: false
+    default: localhost
+  port:
+    description: Database port
+    required: false
+    default: '5432'
+  image:
+    description: PostgreSQL Docker image
+    required: false
+    default: postgres:16
+  container-name:
+    description: Name of the Docker container
+    required: false
+    default: postgres
+  django-secret-key:
+    description: Secret key for Django (defaults to github.run_id)
+    required: false
+    default: ''
+  django-debug:
+    description: Django debug mode
+    required: false
+    default: 'true'
+  wait-timeout:
+    description: Maximum seconds to wait for database readiness
+    required: false
+    default: '30'
+
+runs:
+  using: composite
+  steps:
+    - name: Start PostgreSQL and export environment
+      shell: bash
+      run: |
+        DB_NAME="${{ inputs.database }}"
+        DB_USER="${{ inputs.user }}"
+        DB_PORT="${{ inputs.port }}"
+        DB_HOST="${{ inputs.host }}"
+        CONTAINER_NAME="${{ inputs.container-name }}"
+        IMAGE="${{ inputs.image }}"
+
+        # Resolve database password
+        DB_PASSWORD="${{ inputs.password }}"
+        if [ -z "$DB_PASSWORD" ] && [ -f ".env" ]; then
+          DB_PASSWORD=$(grep "^POSTGRES_PASSWORD=" .env | cut -d= -f2- || true)
+        fi
+        if [ -z "$DB_PASSWORD" ]; then
+          DB_PASSWORD="${{ github.run_id }}"
+        fi
+        if [ -z "$DB_PASSWORD" ]; then
+          DB_PASSWORD="choose-a-local-password"
+        fi
+
+        # Resolve Django secret key
+        SECRET_KEY="${{ inputs.django-secret-key }}"
+        if [ -z "$SECRET_KEY" ]; then
+          SECRET_KEY="${{ github.run_id }}"
+        fi
+        if [ -z "$SECRET_KEY" ]; then
+          SECRET_KEY="local-ci-test-secret-key"
+        fi
+
+        # Check if a container is already listening on DB_PORT
+        CONTAINER_ID=$(docker ps --filter "publish=${DB_PORT}" --format "{{.ID}}" | head -n 1)
+
+        if [ -n "$CONTAINER_ID" ]; then
+          echo "Found existing container $CONTAINER_ID already publishing port $DB_PORT."
+        else
+          echo "Starting PostgreSQL container '$CONTAINER_NAME' with image $IMAGE..."
+          docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+          CONTAINER_ID=$(docker run -d \
+            --name "$CONTAINER_NAME" \
+            -e POSTGRES_DB="$DB_NAME" \
+            -e POSTGRES_USER="$DB_USER" \
+            -e POSTGRES_PASSWORD="$DB_PASSWORD" \
+            -p "${DB_PORT}:5432" \
+            "$IMAGE")
+          echo "Started container $CONTAINER_ID"
+        fi
+
+        # Wait for PostgreSQL to be ready
+        echo "Waiting for PostgreSQL to be ready on port $DB_PORT..."
+        elapsed=0
+        timeout=${{ inputs.wait-timeout }}
+        until docker exec "$CONTAINER_ID" pg_isready -U "$DB_USER" -d "$DB_NAME" >/dev/null 2>&1; do
+          if [ "$elapsed" -ge "$timeout" ]; then
+            echo "Error: Timed out after ${timeout}s waiting for PostgreSQL container $CONTAINER_ID." >&2
+            docker logs "$CONTAINER_ID" >&2 || true
+            exit 1
+          fi
+          sleep 1
+          elapsed=$((elapsed + 1))
+        done
+        echo "PostgreSQL is ready (waited ${elapsed}s)."
+
+        # Export environment variables for subsequent workflow steps
+        if [ -n "${GITHUB_ENV:-}" ]; then
+          echo "POSTGRES_DB=$DB_NAME" >> "$GITHUB_ENV"
+          echo "POSTGRES_USER=$DB_USER" >> "$GITHUB_ENV"
+          echo "POSTGRES_PASSWORD=$DB_PASSWORD" >> "$GITHUB_ENV"
+          echo "POSTGRES_HOST=$DB_HOST" >> "$GITHUB_ENV"
+          echo "POSTGRES_PORT=$DB_PORT" >> "$GITHUB_ENV"
+          echo "DJANGO_DEBUG=${{ inputs.django-debug }}" >> "$GITHUB_ENV"
+          echo "DJANGO_SECRET_KEY=$SECRET_KEY" >> "$GITHUB_ENV"
+          echo "Configured PostgreSQL and Django environment variables in GITHUB_ENV."
+        fi

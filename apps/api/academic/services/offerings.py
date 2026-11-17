@@ -2,18 +2,12 @@ from access.models import Role, Scope
 from access.services import assign
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
-from django.db.models import F
 
 from .. import scoping
 from ..access_control import require
-from ..models import CourseOffering, InstructorAssignment, Program
+from ..models import CourseOffering, InstructorAssignment
 from .base import AcademicService
-
-
-def bump_revisions(*, program_id, offering_id=None):
-    Program.objects.filter(pk=program_id).update(input_revision=F("input_revision") + 1)
-    if offering_id is not None:
-        CourseOffering.objects.filter(pk=offering_id).update(input_revision=F("input_revision") + 1)
+from .revisions import RevisionTracker
 
 
 class CourseOfferingService(AcademicService):
@@ -40,7 +34,7 @@ class CourseOfferingService(AcademicService):
         except IntegrityError as exc:
             raise ValidationError("This offering already exists.") from exc
         if offering.status == CourseOffering.Status.ACTIVE:
-            bump_revisions(program_id=program.pk)
+            RevisionTracker.bump(program_id=program.pk)
         return offering
 
 

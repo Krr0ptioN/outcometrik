@@ -7,6 +7,7 @@ from ..access_control import require
 class AcademicService:
     """Request-scoped base for scoped academic queries and writes."""
 
+    # NOTE: The model class that this service operates on. Subclasses must set this.
     model = None
     immutable_fields = ()
 
