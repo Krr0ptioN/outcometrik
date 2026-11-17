@@ -6,6 +6,7 @@ from access.models import RoleAssignment
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db.models import ProtectedError
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from academic import selectors
@@ -98,9 +99,11 @@ def make_offering(w, section="01"):
         program=w["program"],
         version=1,
         defaults={
+            "status": ProgramOutcomeSet.Status.ACTIVE,
             "effective_date": dt.date(2020, 1, 1),
             "source_reference": "test",
-            "active": True,
+            "activated_at": timezone.now(),
+            "activated_by": w["admin"],
         },
     )
     offering = CourseOfferingService(actor=w["admin"]).create(
@@ -827,7 +830,7 @@ def test_po_sets_authorization_approval_and_official_selection(world):
     payload = {
         "program": str(world["program"].pk),
         "version": 2,
-        "effective_date": "2020-01-01",
+        "effective_date": "2021-01-01",
         "source_reference": "source",
     }
     assert client.post("/api/v1/po-sets/", payload, format="json").status_code == 403
@@ -889,7 +892,7 @@ def test_official_syllabus_requires_current_active_set(world):
     new_set = ProgramOutcomeSet.objects.create(
         program=world["program"],
         version=2,
-        effective_date=dt.date(2020, 1, 1),
+        effective_date=dt.date(2021, 1, 1),
         source_reference="source",
     )
     for index in range(1, 12):
@@ -984,6 +987,8 @@ def test_child_ids_do_not_resolve_across_versions(world):
     assert client.delete(url).status_code == 404
     old_assessment.refresh_from_db()
     assert old_assessment.max_points == Decimal("40.00")
+
+
 @pytest.fixture
 def gb(world):
     offering = make_offering(world)

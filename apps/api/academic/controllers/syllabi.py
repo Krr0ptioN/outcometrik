@@ -4,8 +4,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from ..serializers import (
-    AssessmentSerializer,
     LearningOutcomeSerializer,
+    SyllabusAssessmentSerializer,
     SyllabusCreateSerializer,
     SyllabusSerializer,
 )
@@ -119,15 +119,17 @@ class SyllabusController(AcademicController):
         syllabus = self.get_object()
         service = self.get_service()
         if request.method == "POST":
-            serializer = AssessmentSerializer(data=request.data)
+            serializer = SyllabusAssessmentSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             try:
                 assessment = service.add_assessment(syllabus=syllabus, **serializer.validated_data)
             except DjangoValidationError as exc:
                 self.raise_validation_error(exc)
-            return Response(AssessmentSerializer(assessment).data, status=status.HTTP_201_CREATED)
+            return Response(
+                SyllabusAssessmentSerializer(assessment).data, status=status.HTTP_201_CREATED
+            )
         queryset = syllabus.assessments.order_by("order", "created_at")
-        return Response(AssessmentSerializer(queryset, many=True).data)
+        return Response(SyllabusAssessmentSerializer(queryset, many=True).data)
 
     @action(
         detail=True,
@@ -144,11 +146,11 @@ class SyllabusController(AcademicController):
             if request.method == "DELETE":
                 self.get_service().delete_assessment(instance=assessment)
                 return Response(status=status.HTTP_204_NO_CONTENT)
-            serializer = AssessmentSerializer(assessment, data=request.data, partial=True)
+            serializer = SyllabusAssessmentSerializer(assessment, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
             updated = self.get_service().update_assessment(
                 instance=assessment, **serializer.validated_data
             )
         except DjangoValidationError as exc:
             self.raise_validation_error(exc)
-        return Response(AssessmentSerializer(updated).data)
+        return Response(SyllabusAssessmentSerializer(updated).data)

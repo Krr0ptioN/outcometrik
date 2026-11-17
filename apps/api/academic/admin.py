@@ -16,6 +16,9 @@ for model in (
     models.EnrollmentStatusEvent,
     models.Syllabus,
     models.LearningOutcome,
+    models.SyllabusAssessment,
     models.Assessment,
+    models.ProgramOutcomeSet,
+    models.ProgramOutcome,
 ):
     admin.site.register(model)

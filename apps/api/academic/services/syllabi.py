@@ -5,15 +5,15 @@ from django.utils import timezone
 from .. import scoping
 from ..access_control import require
 from ..models import (
-    Assessment,
     CourseOffering,
     LearningOutcome,
     Program,
     ProgramOutcomeSet,
     Syllabus,
+    SyllabusAssessment,
 )
 from .base import AcademicService
-from .offerings import bump_revisions
+from .revisions import RevisionTracker
 
 MANAGED_FIELDS = ("code", "description", "order")
 ASSESSMENT_FIELDS = ("code", "kind", "order", "is_required", "is_active", "max_points")
@@ -59,9 +59,15 @@ class SyllabusService(AcademicService):
     def create(self, *, offering, po_set_version=None):
         offering = _lock_offering_row(offering.pk)
         require(self.actor, "syllabus.draft", offering.pk)
-        active_set = ProgramOutcomeSet.objects.filter(
-            program_id=offering.program_id, active=True, effective_date__lte=timezone.localdate()
-        ).first()
+        active_set = (
+            ProgramOutcomeSet.objects.filter(
+                program_id=offering.program_id,
+                status=ProgramOutcomeSet.Status.ACTIVE,
+                effective_date__lte=timezone.localdate(),
+            )
+            .order_by("-effective_date")
+            .first()
+        )
         if po_set_version is None and active_set:
             po_set_version = active_set.version
         blocked = offering.syllabi.filter(
@@ -103,9 +109,15 @@ class SyllabusService(AcademicService):
         self._editable(syllabus)
         if not syllabus.learning_outcomes.exists() or not syllabus.assessments.exists():
             raise ValidationError("A syllabus version needs at least one LO and one assessment.")
-        active_set = ProgramOutcomeSet.objects.filter(
-            program_id=offering.program_id, active=True, effective_date__lte=timezone.localdate()
-        ).first()
+        active_set = (
+            ProgramOutcomeSet.objects.filter(
+                program_id=offering.program_id,
+                status=ProgramOutcomeSet.Status.ACTIVE,
+                effective_date__lte=timezone.localdate(),
+            )
+            .order_by("-effective_date")
+            .first()
+        )
         if not active_set or syllabus.po_set_version != active_set.version:
             raise ValidationError("Syllabus must bind to the program's active PO-set version.")
         # Supersede: a newer approved version retires the previously official one so
@@ -124,7 +136,7 @@ class SyllabusService(AcademicService):
                 "Another syllabus version is already approved for this offering."
             ) from exc
         # Activating a syllabus changes calculation inputs; detect stale results.
-        bump_revisions(program_id=offering.program_id, offering_id=offering.pk)
+        RevisionTracker.bump(program_id=offering.program_id, offering_id=offering.pk)
         return syllabus
 
     @transaction.atomic
@@ -146,9 +158,10 @@ class SyllabusService(AcademicService):
             po_set_version=(
                 ProgramOutcomeSet.objects.filter(
                     program_id=offering.program_id,
-                    active=True,
+                    status=ProgramOutcomeSet.Status.ACTIVE,
                     effective_date__lte=timezone.localdate(),
                 )
+                .order_by("-effective_date")
                 .values_list("version", flat=True)
                 .first()
             ),
@@ -163,7 +176,7 @@ class SyllabusService(AcademicService):
                 syllabus=revision, code=lo.code, description=lo.description, order=lo.order
             )
         for a in syllabus.assessments.all().order_by("order"):
-            Assessment.objects.create(
+            SyllabusAssessment.objects.create(
                 syllabus=revision,
                 code=a.code,
                 kind=a.kind,
@@ -181,11 +194,15 @@ class SyllabusService(AcademicService):
         )
         require(self.actor, "syllabus.draft", syllabus.offering_id)
         self._editable(syllabus)
-        active = ProgramOutcomeSet.objects.filter(
-            program_id=syllabus.offering.program_id,
-            active=True,
-            effective_date__lte=timezone.localdate(),
-        ).first()
+        active = (
+            ProgramOutcomeSet.objects.filter(
+                program_id=syllabus.offering.program_id,
+                status=ProgramOutcomeSet.Status.ACTIVE,
+                effective_date__lte=timezone.localdate(),
+            )
+            .order_by("-effective_date")
+            .first()
+        )
         if not active:
             raise ValidationError("No active PO-set exists for this program.")
         syllabus.po_set_version = active.version
@@ -216,7 +233,7 @@ class SyllabusService(AcademicService):
             raise ValidationError({"max_points": "Maximum points must be greater than zero."})
         try:
             with transaction.atomic():
-                return Assessment.objects.create(syllabus=syllabus, **data)
+                return SyllabusAssessment.objects.create(syllabus=syllabus, **data)
         except IntegrityError as exc:
             raise ValidationError(
                 "Assessment code or order already exists in this syllabus version."
@@ -299,9 +316,15 @@ class SyllabusService(AcademicService):
 
 def official_syllabus_for(offering):
     """Select compatible official inputs; calculation callers must use this boundary."""
-    active = ProgramOutcomeSet.objects.filter(
-        program_id=offering.program_id, active=True, effective_date__lte=timezone.localdate()
-    ).first()
+    active = (
+        ProgramOutcomeSet.objects.filter(
+            program_id=offering.program_id,
+            status=ProgramOutcomeSet.Status.ACTIVE,
+            effective_date__lte=timezone.localdate(),
+        )
+        .order_by("-effective_date")
+        .first()
+    )
     if not active:
         raise ValidationError("No active PO-set exists for this program.")
     syllabus = offering.syllabi.filter(

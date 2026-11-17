@@ -329,54 +329,6 @@ class Enrollment(TimestampedModel):
         super().save(*args, **kwargs)
 
 
-class ProgramOutcomeSet(TimestampedModel):
-    """Program-scoped outcome-set version and activation metadata."""
-
-    program = models.ForeignKey(Program, on_delete=models.PROTECT, related_name="outcome_sets")
-    version = models.PositiveIntegerField()
-    effective_date = models.DateField()
-    source_reference = models.CharField(max_length=500)
-    active = models.BooleanField(default=False, editable=False)
-    activated_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        null=True,
-        on_delete=models.PROTECT,
-        related_name="activated_outcome_sets",
-        editable=False,
-    )
-    activated_at = models.DateTimeField(null=True, editable=False)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["program", "version"], name="uniq_po_set_program_version"
-            ),
-            models.UniqueConstraint(
-                fields=["program"],
-                condition=models.Q(active=True),
-                name="uniq_active_po_set_program",
-            ),
-            models.CheckConstraint(
-                condition=models.Q(version__gt=0), name="po_set_version_positive"
-            ),
-        ]
-
-
-class ProgramOutcome(TimestampedModel):
-    po_set = models.ForeignKey(ProgramOutcomeSet, on_delete=models.PROTECT, related_name="outcomes")
-    code = models.CharField(max_length=4)
-    label = models.CharField(max_length=255)
-    description = models.TextField()
-    source_reference = models.CharField(max_length=500)
-    order = models.PositiveSmallIntegerField()
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=["po_set", "code"], name="uniq_po_set_outcome_code"),
-            models.UniqueConstraint(fields=["po_set", "order"], name="uniq_po_set_outcome_order"),
-        ]
-
-
 class DraftOnlyModel(TimestampedModel):
     """Rows owned by a syllabus version: writable only while that version is a draft."""
 
@@ -488,7 +440,7 @@ class LearningOutcome(DraftOnlyModel):
         return f"{self.syllabus_id}:{self.code}"
 
 
-class Assessment(DraftOnlyModel):
+class SyllabusAssessment(DraftOnlyModel):
     """A measurable course component with a positive maximum score."""
 
     class Kind(models.TextChoices):
@@ -680,3 +632,118 @@ class GradeHistory(TimestampedModel):
         if not self._state.adding:
             raise ValidationError("Grade history is immutable.")
         return super().save(*args, **kwargs)
+
+
+class ProgramOutcomeSet(TimestampedModel):
+    """Versioned set of program outcomes. Immutable once active."""
+
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        ACTIVE = "active", "Active"
+
+    program = models.ForeignKey(Program, on_delete=models.PROTECT, related_name="outcome_sets")
+    version = models.PositiveIntegerField()
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.DRAFT)
+    effective_date = models.DateField(null=True, blank=True)
+    source_reference = models.CharField(max_length=512)
+    activated_at = models.DateTimeField(null=True, blank=True, editable=False)
+    activated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        editable=False,
+        on_delete=models.PROTECT,
+        related_name="+",
+    )
+
+    class Meta:
+        ordering = ["program", "version"]
+        constraints = [
+            models.UniqueConstraint(fields=["program", "version"], name="uniq_po_set_version"),
+            models.CheckConstraint(
+                condition=models.Q(version__gte=1), name="po_set_version_positive"
+            ),
+            models.UniqueConstraint(
+                fields=["program", "effective_date"],
+                condition=models.Q(status="active"),
+                name="uniq_po_set_active_effective_date",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(status="draft")
+                | (
+                    models.Q(effective_date__isnull=False)
+                    & models.Q(activated_at__isnull=False)
+                    & models.Q(activated_by__isnull=False)
+                ),
+                name="po_set_active_requires_audit",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.program_id}:v{self.version}"
+
+    @property
+    def active(self) -> bool:
+        return self.status == self.Status.ACTIVE
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            stored = type(self).objects.filter(pk=self.pk).values_list("status", flat=True).first()
+            if stored == self.Status.ACTIVE:
+                raise ValidationError("An active outcome set is immutable. Create a new version.")
+        super().save(*args, **kwargs)
+
+
+class ProgramOutcome(TimestampedModel):
+    outcome_set = models.ForeignKey(
+        ProgramOutcomeSet, on_delete=models.PROTECT, related_name="outcomes"
+    )
+    code = models.CharField(max_length=16)
+    label = models.CharField(max_length=255)
+    description = models.TextField()
+    source_url = models.CharField(max_length=512)
+    ordering = models.PositiveSmallIntegerField()
+
+    class Meta:
+        ordering = ["outcome_set", "ordering"]
+        constraints = [
+            models.UniqueConstraint(fields=["outcome_set", "code"], name="uniq_po_set_code"),
+            models.UniqueConstraint(
+                fields=["outcome_set", "ordering"], name="uniq_po_set_ordering"
+            ),
+            models.CheckConstraint(
+                condition=models.Q(ordering__gte=1), name="po_ordering_positive"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return self.code
+
+    @property
+    def order(self) -> int:
+        return self.ordering
+
+    @order.setter
+    def order(self, value: int):
+        self.ordering = value
+
+    @property
+    def source_reference(self) -> str:
+        return self.source_url
+
+    @source_reference.setter
+    def source_reference(self, value: str):
+        self.source_url = value
+
+    @property
+    def po_set(self):
+        return self.outcome_set
+
+    @po_set.setter
+    def po_set(self, value):
+        self.outcome_set = value
+
+    def save(self, *args, **kwargs):
+        if self.outcome_set.status == ProgramOutcomeSet.Status.ACTIVE:
+            raise ValidationError("Outcomes of an active set are immutable.")
+        super().save(*args, **kwargs)

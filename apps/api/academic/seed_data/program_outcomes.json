@@ -1,0 +1,16 @@
+{
+  "source_reference": "docs/reference/v1-design-and-delivery.md §4.1 (provisional labels; official OBS text pending)",
+  "outcomes": [
+    {"code": "PO1", "label": "Mathematics, science and engineering knowledge", "description": "Provisional: Mathematics, science and engineering knowledge. Official OBS text pending.", "source_url": "docs/reference/v1-design-and-delivery.md#41-pilot-po-catalog"},
+    {"code": "PO2", "label": "Engineering problem identification and solution", "description": "Provisional: Engineering problem identification and solution. Official OBS text pending.", "source_url": "docs/reference/v1-design-and-delivery.md#41-pilot-po-catalog"},
+    {"code": "PO3", "label": "System design under realistic constraints", "description": "Provisional: System design under realistic constraints. Official OBS text pending.", "source_url": "docs/reference/v1-design-and-delivery.md#41-pilot-po-catalog"},
+    {"code": "PO4", "label": "Modern engineering tools and information technology", "description": "Provisional: Modern engineering tools and information technology. Official OBS text pending.", "source_url": "docs/reference/v1-design-and-delivery.md#41-pilot-po-catalog"},
+    {"code": "PO5", "label": "Experiment design, data collection and analysis", "description": "Provisional: Experiment design, data collection and analysis. Official OBS text pending.", "source_url": "docs/reference/v1-design-and-delivery.md#41-pilot-po-catalog"},
+    {"code": "PO6", "label": "Individual and collaborative work", "description": "Provisional: Individual and collaborative work. Official OBS text pending.", "source_url": "docs/reference/v1-design-and-delivery.md#41-pilot-po-catalog"},
+    {"code": "PO7", "label": "Written and oral communication", "description": "Provisional: Written and oral communication. Official OBS text pending.", "source_url": "docs/reference/v1-design-and-delivery.md#41-pilot-po-catalog"},
+    {"code": "PO8", "label": "Lifelong learning", "description": "Provisional: Lifelong learning. Official OBS text pending.", "source_url": "docs/reference/v1-design-and-delivery.md#41-pilot-po-catalog"},
+    {"code": "PO9", "label": "Ethics and professional responsibility", "description": "Provisional: Ethics and professional responsibility. Official OBS text pending.", "source_url": "docs/reference/v1-design-and-delivery.md#41-pilot-po-catalog"},
+    {"code": "PO10", "label": "Project/risk/change management and entrepreneurship", "description": "Provisional: Project/risk/change management and entrepreneurship. Official OBS text pending.", "source_url": "docs/reference/v1-design-and-delivery.md#41-pilot-po-catalog"},
+    {"code": "PO11", "label": "Health, safety, environment and legal impacts", "description": "Provisional: Health, safety, environment and legal impacts. Official OBS text pending.", "source_url": "docs/reference/v1-design-and-delivery.md#41-pilot-po-catalog"}
+  ]
+}

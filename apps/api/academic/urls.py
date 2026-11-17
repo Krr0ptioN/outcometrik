@@ -17,10 +17,11 @@ from .controllers import (
     ProgramController,
     ProgramCourseController,
     ProgramMembershipController,
+    ProgramOutcomeController,
+    ProgramOutcomeSetController,
     StudentWorkspaceController,
     SyllabusController,
 )
-from .controllers.po_sets import ProgramOutcomeSetController
 
 router = SimpleRouter()
 router.register("institutions", InstitutionController, basename="institution")
@@ -36,10 +37,13 @@ router.register(
 )
 router.register("enrollments", EnrollmentController, basename="enrollment")
 router.register("po-sets", ProgramOutcomeSetController, basename="po-set")
+router.register("program-outcome-sets", ProgramOutcomeSetController, basename="program-outcome-set")
+router.register("program-outcomes", ProgramOutcomeController, basename="program-outcome")
 router.register("syllabi", SyllabusController, basename="syllabus")
 router.register("grade-batches", GradeBatchController, basename="grade-batch")
 router.register("grades", GradeController, basename="grade")
 router.register("assessments", AssessmentController, basename="assessment")
+
 
 urlpatterns = [
     path("workspaces/instructor/", InstructorWorkspaceController.as_view()),
