@@ -59,33 +59,33 @@ def parse_repack_output(text):
         if "Enumerating objects:" in l and "done" in l:
             m = re.search(r"Enumerating objects:\s*(\d+)", l)
             if m:
-                table_rows.append(f"|[x]| Enumerating objects| {m.group(1)}|")
+                table_rows.append(f"| Enumerating objects | {m.group(1)} |")
         elif "Counting objects:" in l and "done" in l:
             m = re.search(r"Counting objects:\s*([^\,]+)", l)
             if m:
-                table_rows.append(f"|[x]| Counting objects| {m.group(1)}|")
+                table_rows.append(f"| Counting objects | {m.group(1)} |")
         elif "Delta compression" in l:
             m = re.search(r"(\d+)\s*threads", l)
             threads = f"{m.group(1)} threads" if m else "8 threads"
-            table_rows.append(f"|[x]| Delta compression | {threads} |")
+            table_rows.append(f"| Delta compression | {threads} |")
         elif "Compressing objects:" in l and "done" in l:
             m = re.search(r"Compressing objects:\s*([^\,]+)", l)
             if m:
-                table_rows.append(f"|[x]| Compressing objects| {m.group(1)}|")
+                table_rows.append(f"| Compressing objects | {m.group(1)} |")
         elif "Writing objects:" in l and "done" in l:
             m = re.search(r"Writing objects:\s*([^\,]+)", l)
             if m:
-                table_rows.append(f"|[x]| Writing objects| {m.group(1)}|")
+                table_rows.append(f"| Writing objects | {m.group(1)} |")
         elif l.startswith("Total ") and "reused" in l:
             m_tot = re.search(r"Total\s+(\d+)", l)
             m_reused = re.search(r"reused\s+([^,]+)", l)
             m_pack = re.search(r"pack-reused\s+([^\n]+)", l)
             if m_reused:
-                table_rows.append(f"| | Reused objects| {m_reused.group(1)}|")
+                table_rows.append(f"| Reused objects | {m_reused.group(1)} |")
             if m_pack:
-                table_rows.append(f"| | pack-reused| {m_pack.group(1)}|")
+                table_rows.append(f"| pack-reused | {m_pack.group(1)} |")
             if m_tot:
-                table_rows.append(f"| | Total objects| `{m_tot.group(1)}`|")
+                table_rows.append(f"| Total objects | `{m_tot.group(1)}` |")
 
     # Process cruft pack
     cruft_total_summary = ""
@@ -93,36 +93,38 @@ def parse_repack_output(text):
         if "Enumerating cruft objects:" in l:
             m = re.search(r"Enumerating cruft objects:\s*(\d+)", l)
             if m:
-                table_rows.append(f"|[x]| Enumerating cruft objects| {m.group(1)},|")
+                table_rows.append(f"| Enumerating cruft objects | {m.group(1)}, |")
         elif "Traversing cruft objects:" in l:
             m = re.search(r"Traversing cruft objects:\s*(\d+)", l)
             if m:
-                table_rows.append(f"|[x]| Traversing cruft objects| {m.group(1)},|")
+                table_rows.append(f"| Traversing cruft objects | {m.group(1)}, |")
         elif "Counting objects:" in l and "done" in l:
             m = re.search(r"Counting objects:\s*([^\,]+)", l)
             if m:
-                table_rows.append(f"|[x]| Counting objects| {m.group(1)}|")
+                table_rows.append(f"| Counting objects | {m.group(1)} |")
         elif "Delta compression" in l:
-            table_rows.append(f"|[x]| Delta compression using up to 8 threads| |")
+            m = re.search(r"(\d+)\s*threads", l)
+            threads = f"using up to {m.group(1)} threads" if m else "using up to 8 threads"
+            table_rows.append(f"| Delta compression | {threads} |")
         elif "Compressing objects:" in l and "done" in l:
             m = re.search(r"Compressing objects:\s*([^\,]+)", l)
             if m:
-                table_rows.append(f"|[x]| Compressing objects| {m.group(1)}|")
+                table_rows.append(f"| Compressing objects | {m.group(1)} |")
         elif "Writing objects:" in l and "done" in l:
             m = re.search(r"Writing objects:\s*([^\,]+)", l)
             if m:
-                table_rows.append(f"|[x]| Writing objects| {m.group(1)}|")
+                table_rows.append(f"| Writing objects | {m.group(1)} |")
         elif l.startswith("Total ") and "reused" in l:
             cruft_total_summary = l
 
     # If any fields were missed due to empty delta/cruft, provide sensible fallbacks
     if not table_rows:
         count_obj = run_cmd(["git", "count-objects", "-v"])
-        table_rows.append(f"| [x] | Git count-objects | {count_obj} |")
+        table_rows.append(f"| Git count-objects | {count_obj} |")
 
     header = [
-        "| Status | Operation | Value |",
-        "|:---:|:---|:---|",
+        "| Operation | Value |",
+        "|:---|:---|",
     ]
 
     report_content = "\n".join(header + table_rows)
