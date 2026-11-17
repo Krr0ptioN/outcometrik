@@ -13,5 +13,8 @@ export default defineConfig({
     environment: 'node',
     include: ['**/*.test.ts', '**/*.test.tsx'],
     passWithNoTests: true,
+    reporters: process.env.CI ? ['default', 'junit'] : ['default'],
+    outputFile: process.env.CI ? { junit: 'reports/junit.xml' } : undefined,
   },
 });
+

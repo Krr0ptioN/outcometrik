@@ -8,5 +8,11 @@ export default defineConfig({
       ),
     },
   },
-  test: { environment: 'node', include: ['src/**/*.test.ts'] },
+  test: {
+    environment: 'node',
+    include: ['src/**/*.test.ts'],
+    reporters: process.env.CI ? ['default', 'junit'] : ['default'],
+    outputFile: process.env.CI ? { junit: 'reports/junit.xml' } : undefined,
+  },
 });
+

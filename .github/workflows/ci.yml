@@ -15,6 +15,7 @@ on:
 permissions:
   contents: read
   pull-requests: read
+  checks: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -54,6 +55,27 @@ jobs:
     steps:
       - uses: ./.github/actions/setup-workspace
       - run: pnpm nx run-many -t test --parallel=3
+      - name: Report Backend Tests
+        uses: dorny/test-reporter@v2
+        if: success() || failure()
+        with:
+          name: Backend Tests (Pytest)
+          path: 'apps/api/reports/junit-api.xml'
+          reporter: java-junit
+      - name: Report Frontend Tests
+        uses: dorny/test-reporter@v2
+        if: success() || failure()
+        with:
+          name: Frontend Tests (Vitest)
+          path: '**/reports/junit.xml'
+          reporter: java-junit
+      - name: Upload Test Reports
+        uses: actions/upload-artifact@v4
+        if: success() || failure()
+        with:
+          name: junit-test-reports
+          path: '**/reports/junit*.xml'
+          retention-days: 7
   build:
     runs-on: ubuntu-24.04
     steps:
@@ -75,12 +97,19 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install --with-deps chromium
       - run: pnpm nx run-many -t e2e --parallel=1
+      - name: Report E2E Tests
+        uses: dorny/test-reporter@v2
+        if: success() || failure()
+        with:
+          name: E2E Tests (Playwright)
+          path: 'apps/web/reports/junit-e2e.xml'
+          reporter: java-junit
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: playwright-report
-          path: playwright-report/
+          path: apps/web/playwright-report/
           retention-days: 7
           compression-level: 9
       - name: Generate CI Summary

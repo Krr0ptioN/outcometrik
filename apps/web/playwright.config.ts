@@ -2,7 +2,15 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
+  reporter: process.env.CI
+    ? [
+        ['list'],
+        ['html', { open: 'never', outputFolder: 'playwright-report' }],
+        ['junit', { outputFile: 'reports/junit-e2e.xml' }],
+      ]
+    : [['list']],
   use: { baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:3000' },
+
   webServer: [
     {
       command: 'uv run --project ../api python ../../tools/auth-e2e-server.py',
