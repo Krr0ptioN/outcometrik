@@ -19,13 +19,8 @@ jobs:
         with:
           fetch-depth: 0 # Ensure full history is fetched
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-
       - name: Run Git Maintenance and Generate Statistics
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python3 .github/scripts/git_maintain_stats.py
+          bash .github/scripts/git_maintain_stats.sh
