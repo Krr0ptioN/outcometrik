@@ -43,7 +43,7 @@ class GradeController(AcademicController):
             return Response(
                 {
                     "code": "version_conflict",
-                    "detail": str(exc),
+                    "detail": "The grade was changed by someone else.",
                     "current_version": exc.current_version,
                 },
                 status=status.HTTP_409_CONFLICT,
