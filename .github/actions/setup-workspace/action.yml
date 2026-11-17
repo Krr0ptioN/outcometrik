@@ -26,6 +26,9 @@ runs:
 
     - name: Set up uv
       uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
+        cache-dependency-glob: '**/uv.lock'
 
     - name: Install workspace dependencies
       if: inputs.install-dependencies == 'true'
