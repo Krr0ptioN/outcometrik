@@ -33,7 +33,4 @@ jobs:
             ci
             build
             perf
-      - name: Validates the pull request
-        uses: Namchee/conventional-pr@v(version)
-        with:
-          access_token: YOUR_GITHUB_ACCESS_TOKEN_HERE
+
