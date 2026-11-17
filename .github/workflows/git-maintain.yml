@@ -19,8 +19,7 @@ jobs:
         with:
           fetch-depth: 0 # Ensure full history is fetched
 
-      - name: Run Git Maintenance and Generate Statistics
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          bash .github/scripts/git_maintain_stats.sh
+      - name: Run Git Maintenance
+        uses: Krr0ptioN/git-maintain@v1
+        with:
+          notify-users: krr0ption
