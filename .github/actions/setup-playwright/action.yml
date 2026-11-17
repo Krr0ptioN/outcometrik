@@ -1,0 +1,32 @@
+name: Set up Playwright
+description: Cache and install Playwright browsers and system dependencies.
+
+inputs:
+  browser:
+    description: Browser to install (e.g. chromium, firefox, webkit)
+    required: false
+    default: chromium
+  install-deps:
+    description: Whether to install system dependencies with --with-deps
+    required: false
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - name: Cache Playwright browsers
+      uses: actions/cache@v4
+      id: playwright-cache
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
+
+    - name: Install Playwright browsers
+      if: steps.playwright-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        if [ "${{ inputs.install-deps }}" = "true" ]; then
+          pnpm exec playwright install --with-deps ${{ inputs.browser }}
+        else
+          pnpm exec playwright install ${{ inputs.browser }}
+        fi
