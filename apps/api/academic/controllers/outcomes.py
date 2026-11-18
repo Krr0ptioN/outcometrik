@@ -45,13 +45,16 @@ class ProgramOutcomeSetController(AcademicController):
             self.raise_validation_error(exc)
         return Response(self.get_serializer(instance).data)
 
-    @action(detail=True, methods=["get", "post"])
-    def outcomes(self, request, pk=None):
+    @action(detail=True, methods=["get"], url_path="outcomes", url_name="outcomes")
+    def list_outcomes(self, request, pk=None):
         po_set = self.get_object()
-        if request.method == "GET":
-            return Response(
-                ProgramOutcomeSerializer(po_set.outcomes.order_by("ordering"), many=True).data
-            )
+        return Response(
+            ProgramOutcomeSerializer(po_set.outcomes.order_by("ordering"), many=True).data
+        )
+
+    @action(detail=True, methods=["post"], url_path="outcomes", url_name="outcomes")
+    def create_outcome(self, request, pk=None):
+        po_set = self.get_object()
         data = request.data.copy() if hasattr(request.data, "copy") else dict(request.data)
         data["outcome_set"] = str(po_set.pk)
         serializer = ProgramOutcomeSerializer(data=data)
@@ -62,8 +65,13 @@ class ProgramOutcomeSetController(AcademicController):
             self.raise_validation_error(exc)
         return Response(ProgramOutcomeSerializer(outcome).data, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=["patch"], url_path=r"outcomes/(?P<child_pk>[^/.]+)")
-    def outcome_detail(self, request, pk=None, child_pk=None):
+    @action(
+        detail=True,
+        methods=["patch"],
+        url_path=r"outcomes/(?P<child_pk>[^/.]+)",
+        url_name="outcome-detail",
+    )
+    def update_outcome(self, request, pk=None, child_pk=None):
         po_set = self.get_object()
         outcome = po_set.outcomes.filter(pk=child_pk).first()
         if outcome is None:

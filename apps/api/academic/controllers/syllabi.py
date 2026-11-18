@@ -71,41 +71,52 @@ class SyllabusController(AcademicController):
             self.raise_validation_error(exc)
         return Response(self.get_serializer(retired).data)
 
-    @action(detail=True, methods=["get", "post"], url_path="learning-outcomes")
-    def learning_outcomes(self, request, pk=None):
-        """Return or add draft LO rows for this syllabus version."""
+    @action(
+        detail=True,
+        methods=["get"],
+        url_path="learning-outcomes",
+        url_name="learning-outcomes",
+    )
+    def list_learning_outcomes(self, request, pk=None):
+        """Return draft LO rows for this syllabus version."""
         syllabus = self.get_object()
-        service = self.get_service()
-        if request.method == "POST":
-            serializer = LearningOutcomeSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            try:
-                outcome = service.add_learning_outcome(
-                    syllabus=syllabus, **serializer.validated_data
-                )
-            except DjangoValidationError as exc:
-                self.raise_validation_error(exc)
-            return Response(LearningOutcomeSerializer(outcome).data, status=status.HTTP_201_CREATED)
         queryset = syllabus.learning_outcomes.order_by("order", "created_at")
         return Response(LearningOutcomeSerializer(queryset, many=True).data)
 
     @action(
         detail=True,
-        methods=["patch", "delete"],
-        url_path=r"learning-outcomes/(?P<child_pk>[^/.]+)",
+        methods=["post"],
+        url_path="learning-outcomes",
+        url_name="learning-outcomes",
     )
-    def learning_outcome_detail(self, request, pk=None, child_pk=None):
-        """Edit or remove one draft LO. Resolving via the syllabus prevents cross-references."""
+    def create_learning_outcome(self, request, pk=None):
+        """Add draft LO row for this syllabus version."""
+        syllabus = self.get_object()
+        serializer = LearningOutcomeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            outcome = self.get_service().add_learning_outcome(
+                syllabus=syllabus, **serializer.validated_data
+            )
+        except DjangoValidationError as exc:
+            self.raise_validation_error(exc)
+        return Response(LearningOutcomeSerializer(outcome).data, status=status.HTTP_201_CREATED)
+
+    @action(
+        detail=True,
+        methods=["patch"],
+        url_path=r"learning-outcomes/(?P<child_pk>[^/.]+)",
+        url_name="learning-outcome-detail",
+    )
+    def update_learning_outcome(self, request, pk=None, child_pk=None):
+        """Edit one draft LO, scoped through its owning syllabus version."""
         syllabus = self.get_object()
         outcome = syllabus.learning_outcomes.filter(pk=child_pk).first()
         if outcome is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = LearningOutcomeSerializer(outcome, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
         try:
-            if request.method == "DELETE":
-                self.get_service().delete_learning_outcome(instance=outcome)
-                return Response(status=status.HTTP_204_NO_CONTENT)
-            serializer = LearningOutcomeSerializer(outcome, data=request.data, partial=True)
-            serializer.is_valid(raise_exception=True)
             updated = self.get_service().update_learning_outcome(
                 instance=outcome, **serializer.validated_data
             )
@@ -113,44 +124,83 @@ class SyllabusController(AcademicController):
             self.raise_validation_error(exc)
         return Response(LearningOutcomeSerializer(updated).data)
 
-    @action(detail=True, methods=["get", "post"], url_path="assessments")
-    def assessments(self, request, pk=None):
-        """Return or add draft assessment rows for this syllabus version."""
+    @action(
+        detail=True,
+        methods=["delete"],
+        url_path=r"learning-outcomes/(?P<child_pk>[^/.]+)",
+        url_name="learning-outcome-detail",
+    )
+    def delete_learning_outcome(self, request, pk=None, child_pk=None):
+        """Remove one draft LO, scoped through its owning syllabus version."""
         syllabus = self.get_object()
-        service = self.get_service()
-        if request.method == "POST":
-            serializer = SyllabusAssessmentSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            try:
-                assessment = service.add_assessment(syllabus=syllabus, **serializer.validated_data)
-            except DjangoValidationError as exc:
-                self.raise_validation_error(exc)
-            return Response(
-                SyllabusAssessmentSerializer(assessment).data, status=status.HTTP_201_CREATED
-            )
+        outcome = syllabus.learning_outcomes.filter(pk=child_pk).first()
+        if outcome is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        try:
+            self.get_service().delete_learning_outcome(instance=outcome)
+        except DjangoValidationError as exc:
+            self.raise_validation_error(exc)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=["get"], url_path="assessments", url_name="assessments")
+    def list_assessments(self, request, pk=None):
+        """Return draft assessment rows for this syllabus version."""
+        syllabus = self.get_object()
         queryset = syllabus.assessments.order_by("order", "created_at")
         return Response(SyllabusAssessmentSerializer(queryset, many=True).data)
 
+    @action(detail=True, methods=["post"], url_path="assessments", url_name="assessments")
+    def create_assessment(self, request, pk=None):
+        """Add draft assessment row for this syllabus version."""
+        syllabus = self.get_object()
+        serializer = SyllabusAssessmentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            assessment = self.get_service().add_assessment(
+                syllabus=syllabus, **serializer.validated_data
+            )
+        except DjangoValidationError as exc:
+            self.raise_validation_error(exc)
+        return Response(
+            SyllabusAssessmentSerializer(assessment).data, status=status.HTTP_201_CREATED
+        )
+
     @action(
         detail=True,
-        methods=["patch", "delete"],
+        methods=["patch"],
         url_path=r"assessments/(?P<child_pk>[^/.]+)",
+        url_name="assessment-detail",
     )
-    def assessment_detail(self, request, pk=None, child_pk=None):
-        """Edit or remove one draft assessment, scoped through its owning syllabus version."""
+    def update_assessment(self, request, pk=None, child_pk=None):
+        """Edit one draft assessment, scoped through its owning syllabus version."""
         syllabus = self.get_object()
         assessment = syllabus.assessments.filter(pk=child_pk).first()
         if assessment is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = SyllabusAssessmentSerializer(assessment, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
         try:
-            if request.method == "DELETE":
-                self.get_service().delete_assessment(instance=assessment)
-                return Response(status=status.HTTP_204_NO_CONTENT)
-            serializer = SyllabusAssessmentSerializer(assessment, data=request.data, partial=True)
-            serializer.is_valid(raise_exception=True)
             updated = self.get_service().update_assessment(
                 instance=assessment, **serializer.validated_data
             )
         except DjangoValidationError as exc:
             self.raise_validation_error(exc)
         return Response(SyllabusAssessmentSerializer(updated).data)
+
+    @action(
+        detail=True,
+        methods=["delete"],
+        url_path=r"assessments/(?P<child_pk>[^/.]+)",
+        url_name="assessment-detail",
+    )
+    def delete_assessment(self, request, pk=None, child_pk=None):
+        """Remove one draft assessment, scoped through its owning syllabus version."""
+        syllabus = self.get_object()
+        assessment = syllabus.assessments.filter(pk=child_pk).first()
+        if assessment is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        try:
+            self.get_service().delete_assessment(instance=assessment)
+        except DjangoValidationError as exc:
+            self.raise_validation_error(exc)
+        return Response(status=status.HTTP_204_NO_CONTENT)

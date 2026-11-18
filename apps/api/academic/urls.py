@@ -1,5 +1,4 @@
 from django.urls import path
-from rest_framework.routers import SimpleRouter
 
 from .controllers import (
     AcademicTermController,
@@ -22,8 +21,9 @@ from .controllers import (
     StudentWorkspaceController,
     SyllabusController,
 )
+from .router import AcademicRouter
 
-router = SimpleRouter()
+router = AcademicRouter()
 router.register("institutions", InstitutionController, basename="institution")
 router.register("departments", DepartmentController, basename="department")
 router.register("programs", ProgramController, basename="program")
