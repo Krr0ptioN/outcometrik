@@ -1,5 +1,6 @@
 from .assessments import AssessmentService
 from .enrollments import EnrollmentService
+from .grade_import import GradeImportConflict, GradeImportService
 from .grade_validation import GradeValidator
 from .grades import GradeBatchService, GradeService
 from .offerings import CourseOfferingService, InstructorAssignmentService
@@ -20,6 +21,8 @@ __all__ = [
     "DepartmentService",
     "EnrollmentService",
     "GradeBatchService",
+    "GradeImportConflict",
+    "GradeImportService",
     "GradeService",
     "GradeValidator",
     "InstitutionService",

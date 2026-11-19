@@ -25,16 +25,16 @@ As authorized faculty, I can validate and apply a grade CSV safely, so one malfo
 
 ## Acceptance criteria
 
-- [ ] Dry-run returns actionable errors and leaves the gradebook unchanged.
-- [ ] Valid CSV applies once and is safe to retry.
-- [ ] Malformed, stale, unauthorized, duplicate, and out-of-range rows fail safely.
-- [ ] Concurrent apply cannot create duplicate grade history.
-- [ ] Import actor, checksum, counts, errors, and resulting revision are auditable.
+- [x] Dry-run returns actionable errors and leaves the gradebook unchanged.
+- [x] Valid CSV applies once and is safe to retry.
+- [x] Malformed, stale, unauthorized, duplicate, and out-of-range rows fail safely.
+- [x] Concurrent apply cannot create duplicate grade history.
+- [x] Import actor, checksum, counts, errors, and resulting revision are auditable.
 ## Implementation tasks
 
-- [ ] Confirm API/data contract and authorization scope against the owning domain module.
-- [ ] Implement the smallest vertical slice that satisfies the acceptance criteria.
-- [ ] Add focused unit/integration coverage for success, invalid input, and denied scope.
-- [ ] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
-- [ ] Update API/UI documentation and verify downstream stories remain compatible.
+- [x] Confirm API/data contract and authorization scope against the owning domain module.
+- [x] Implement the smallest vertical slice that satisfies the acceptance criteria.
+- [x] Add focused unit/integration coverage for success, invalid input, and denied scope.
+- [x] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
+- [x] Update API/UI documentation and verify downstream stories remain compatible.
 

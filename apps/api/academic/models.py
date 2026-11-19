@@ -635,6 +635,37 @@ class GradeHistory(TimestampedModel):
         return super().save(*args, **kwargs)
 
 
+class GradeImportRecord(TimestampedModel):
+    """Idempotency and audit ledger for applied CSV grade imports."""
+
+    offering = models.ForeignKey(
+        CourseOffering, on_delete=models.PROTECT, related_name="grade_imports"
+    )
+    batch = models.ForeignKey(GradeBatch, on_delete=models.PROTECT, related_name="grade_imports")
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+    idempotency_key = models.CharField(max_length=128)
+    file_checksum = models.CharField(max_length=64)
+    sanitized_filename = models.CharField(max_length=255, blank=True)
+    total_rows = models.PositiveIntegerField()
+    created_count = models.PositiveIntegerField()
+    updated_count = models.PositiveIntegerField()
+    unchanged_count = models.PositiveIntegerField(default=0)
+    resulting_input_revision = models.PositiveIntegerField()
+    response_payload = models.JSONField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["offering", "idempotency_key"],
+                name="uniq_grade_import_offering_idempotency",
+            )
+        ]
+        ordering = ["-created_at", "id"]
+
+    def __str__(self) -> str:
+        return f"{self.offering_id}:{self.idempotency_key}"
+
+
 class ProgramOutcomeSet(TimestampedModel):
     """Versioned set of program outcomes. Immutable once active."""
 

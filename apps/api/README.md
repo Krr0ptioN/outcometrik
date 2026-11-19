@@ -266,7 +266,7 @@ assessment, enrollment, batch, and grade IDs are UUIDs. List endpoints support
 | ----------------- | ----------------------------------------------------------------- | -------------------------------------------------------- |
 | `/assessments/`   | GET list and `{id}`                                               | `offering`                                               |
 | `/grade-batches/` | GET, POST; GET `{id}`; POST `{id}/release/`                       | `offering`                                               |
-| `/grades/`        | GET, POST; POST `bulk/`; GET/PATCH `{id}`; GET `{id}/history/`    | `offering`, `enrollment`, `assessment`, `batch`, `state` |
+| `/grades/`        | GET, POST; POST `bulk/`; GET `import/template/`; POST `import/dry-run/`; POST `import/apply/`; GET/PATCH `{id}`; GET `{id}/history/` | `offering`, `enrollment`, `assessment`, `batch`, `state` |
 
 Assessment reads return approved assessments for offerings where the actor has
 `grades.edit`; assessment authoring is not provided here. Create a batch with
@@ -297,6 +297,19 @@ Each item specifies `enrollment`, `assessment`, `batch`, `state`, `points_earned
 is returned and no grades are modified. If `expected_input_revision` or any item's
 `expected_version` does not match the current database state (and values differ),
 HTTP 409 (`code: "version_conflict"`) is returned with no partial writes.
+
+For CSV grade imports (IMP-01), all endpoints require `grades.edit` on the target offering:
+- `GET /api/v1/grades/import/template/?offering=<UUID>`: returns limits (5 MB, 10,000 rows),
+  required columns (`student_identifier`, `assessment`, `state`, `points_earned`, optional `reason`),
+  and a formula-escaped sample CSV.
+- `POST /api/v1/grades/import/dry-run/`: validates headers, enrollment/assessment scope, states,
+  ranges, duplicates, and released-batch reasons without writing any database rows; returns row
+  actions, actionable row/column errors, SHA-256 `file_checksum`, and `expected_input_revision`.
+- `POST /api/v1/grades/import/apply/`: applies all-or-nothing inside a single transaction using
+  `idempotency_key`, `file_checksum`, and optional `expected_input_revision`. Writes grades into an
+  unreleased batch by default, appends `GradeHistory`, records `AuditEvent` (`grades.csv_imported`),
+  and stores a `GradeImportRecord`. Repeating the same key and checksum returns `200 OK` without
+  duplicating history; reusing a key with a different payload or a stale revision returns `409 Conflict`.
 
 Only staff with `grades.edit` for an offering can access its gradebook, batches,
 assessment choices and history, and enter, correct or release grades. Students

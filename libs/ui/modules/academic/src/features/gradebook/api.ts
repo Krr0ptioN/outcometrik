@@ -83,6 +83,87 @@ export interface GradeBulkSaveResponse {
   grades: GradeRecord[];
 }
 
+export interface GradeImportTemplate {
+  offering_id: string;
+  columns: string[];
+  required_columns: string[];
+  max_bytes: number;
+  max_rows: number;
+  sample_csv: string;
+}
+
+export interface GradeImportRowError {
+  row_number: number;
+  column: string;
+  code: string;
+  message: string;
+}
+
+export type GradeImportRowAction = 'create' | 'update' | 'unchanged' | 'invalid';
+
+export interface GradeImportPreviewRow {
+  row_number: number;
+  student_identifier: string;
+  enrollment_id: string | null;
+  assessment_identifier: string;
+  assessment_id: string | null;
+  state: string;
+  points_earned: string | null;
+  reason: string;
+  action: GradeImportRowAction;
+  errors: GradeImportRowError[];
+}
+
+export interface GradeImportDryRunReport {
+  offering: string;
+  sanitized_filename: string;
+  file_checksum: string;
+  expected_input_revision: number;
+  total_rows: number;
+  valid_rows: number;
+  invalid_rows: number;
+  create_count: number;
+  update_count: number;
+  unchanged_count: number;
+  can_apply: boolean;
+  errors: GradeImportRowError[];
+  rows: GradeImportPreviewRow[];
+}
+
+export interface GradeImportApplyResult {
+  offering: string;
+  batch: string;
+  batch_name: string;
+  batch_released: boolean;
+  idempotency_key: string;
+  file_checksum: string;
+  sanitized_filename: string;
+  total_rows: number;
+  created_count: number;
+  updated_count: number;
+  unchanged_count: number;
+  resulting_input_revision: number;
+}
+
+export interface GradeImportDryRunRequest {
+  offering: string;
+  csv_text: string;
+  batch?: string;
+  batch_name?: string;
+  filename?: string;
+}
+
+export interface GradeImportApplyRequest {
+  offering: string;
+  csv_text: string;
+  idempotency_key: string;
+  file_checksum: string;
+  expected_input_revision?: number;
+  batch?: string;
+  batch_name?: string;
+  filename?: string;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -171,6 +252,105 @@ function isGradeBulkResponse(value: unknown): value is GradeBulkSaveResponse {
     typeof value.idempotency_key === 'string' &&
     Array.isArray(value.grades) &&
     value.grades.every(isGrade)
+  );
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) && value.every((item) => typeof item === 'string')
+  );
+}
+
+function isGradeImportTemplate(value: unknown): value is GradeImportTemplate {
+  return (
+    isRecord(value) &&
+    typeof value.offering_id === 'string' &&
+    isStringArray(value.columns) &&
+    isStringArray(value.required_columns) &&
+    typeof value.max_bytes === 'number' &&
+    typeof value.max_rows === 'number' &&
+    typeof value.sample_csv === 'string'
+  );
+}
+
+function isGradeImportRowError(value: unknown): value is GradeImportRowError {
+  return (
+    isRecord(value) &&
+    typeof value.row_number === 'number' &&
+    typeof value.column === 'string' &&
+    typeof value.code === 'string' &&
+    typeof value.message === 'string'
+  );
+}
+
+function isGradeImportRowAction(value: unknown): value is GradeImportRowAction {
+  return (
+    value === 'create' ||
+    value === 'update' ||
+    value === 'unchanged' ||
+    value === 'invalid'
+  );
+}
+
+function isGradeImportPreviewRow(
+  value: unknown,
+): value is GradeImportPreviewRow {
+  return (
+    isRecord(value) &&
+    typeof value.row_number === 'number' &&
+    typeof value.student_identifier === 'string' &&
+    (typeof value.enrollment_id === 'string' || value.enrollment_id === null) &&
+    typeof value.assessment_identifier === 'string' &&
+    (typeof value.assessment_id === 'string' || value.assessment_id === null) &&
+    typeof value.state === 'string' &&
+    (typeof value.points_earned === 'string' || value.points_earned === null) &&
+    typeof value.reason === 'string' &&
+    isGradeImportRowAction(value.action) &&
+    Array.isArray(value.errors) &&
+    value.errors.every(isGradeImportRowError)
+  );
+}
+
+function isGradeImportDryRunReport(
+  value: unknown,
+): value is GradeImportDryRunReport {
+  return (
+    isRecord(value) &&
+    typeof value.offering === 'string' &&
+    typeof value.sanitized_filename === 'string' &&
+    typeof value.file_checksum === 'string' &&
+    typeof value.expected_input_revision === 'number' &&
+    typeof value.total_rows === 'number' &&
+    typeof value.valid_rows === 'number' &&
+    typeof value.invalid_rows === 'number' &&
+    typeof value.create_count === 'number' &&
+    typeof value.update_count === 'number' &&
+    typeof value.unchanged_count === 'number' &&
+    typeof value.can_apply === 'boolean' &&
+    Array.isArray(value.errors) &&
+    value.errors.every(isGradeImportRowError) &&
+    Array.isArray(value.rows) &&
+    value.rows.every(isGradeImportPreviewRow)
+  );
+}
+
+function isGradeImportApplyResult(
+  value: unknown,
+): value is GradeImportApplyResult {
+  return (
+    isRecord(value) &&
+    typeof value.offering === 'string' &&
+    typeof value.batch === 'string' &&
+    typeof value.batch_name === 'string' &&
+    typeof value.batch_released === 'boolean' &&
+    typeof value.idempotency_key === 'string' &&
+    typeof value.file_checksum === 'string' &&
+    typeof value.sanitized_filename === 'string' &&
+    typeof value.total_rows === 'number' &&
+    typeof value.created_count === 'number' &&
+    typeof value.updated_count === 'number' &&
+    typeof value.unchanged_count === 'number' &&
+    typeof value.resulting_input_revision === 'number'
   );
 }
 
@@ -301,5 +481,36 @@ export function saveGradesBulk(input: GradeBulkSaveRequest) {
     { method: 'POST', body: input, cache: 'no-store' },
     isGradeBulkResponse,
     200,
+  );
+}
+
+export function getGradeImportTemplate(
+  offering: string,
+  signal?: AbortSignal,
+) {
+  const params = new URLSearchParams({ offering });
+  return requestValidated(
+    `/api/v1/grades/import/template/?${params}`,
+    { signal, cache: 'no-store' },
+    isGradeImportTemplate,
+    200,
+  );
+}
+
+export function dryRunGradeImport(input: GradeImportDryRunRequest) {
+  return requestValidated(
+    '/api/v1/grades/import/dry-run/',
+    { method: 'POST', body: input, cache: 'no-store' },
+    isGradeImportDryRunReport,
+    200,
+  );
+}
+
+export function applyGradeImport(input: GradeImportApplyRequest) {
+  return requestValidated(
+    '/api/v1/grades/import/apply/',
+    { method: 'POST', body: input, cache: 'no-store' },
+    isGradeImportApplyResult,
+    201,
   );
 }

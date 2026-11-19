@@ -2,6 +2,7 @@
 
 import {
   useState,
+  type ChangeEvent,
   type FormEvent,
   type KeyboardEvent,
   type ReactNode,
@@ -33,12 +34,15 @@ import {
   TableRow,
 } from '@outcometrik/ui';
 import {
+  applyGradeImport,
   correctGrade,
   createGrade,
   createGradeBatch,
+  dryRunGradeImport,
   getApprovedAssessments,
   getGradeBatches,
   getGradeHistory,
+  getGradeImportTemplate,
   getGrades,
   getReleasedStudentGrades,
   releaseGradeBatch,
@@ -47,6 +51,8 @@ import {
   type GradeBatch,
   type GradeBulkItemWrite,
   type GradeCorrection,
+  type GradeImportApplyResult,
+  type GradeImportDryRunReport,
   type GradeRecord,
   type GradeState,
   type GradeWrite,
@@ -245,6 +251,429 @@ function makeIdempotencyKey(offeringId: string) {
       ? crypto.randomUUID()
       : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   return `gradebook-${offeringId}-${randomPart}`;
+}
+
+export function canApplyCsvImport(
+  report: GradeImportDryRunReport | null,
+  currentCsvText: string,
+  previewedCsvText: string,
+): boolean {
+  return Boolean(
+    report &&
+      report.can_apply &&
+      report.invalid_rows === 0 &&
+      currentCsvText.trim().length > 0 &&
+      currentCsvText === previewedCsvText,
+  );
+}
+
+export function CsvGradeImportCard({
+  offeringId,
+  batches,
+  onImported,
+  initialReport = null,
+  initialCsvText = '',
+  initialPreviewedCsvText = '',
+}: {
+  offeringId: string;
+  batches: readonly GradeBatch[];
+  onImported: () => Promise<void>;
+  initialReport?: GradeImportDryRunReport | null;
+  initialCsvText?: string;
+  initialPreviewedCsvText?: string;
+}) {
+  const unreleasedBatches = batches.filter((item) => !item.released_at);
+  const [csvText, setCsvText] = useState(initialCsvText);
+  const [filename, setFilename] = useState('grades.csv');
+  const [targetBatchId, setTargetBatchId] = useState('');
+  const [newBatchName, setNewBatchName] = useState('');
+  const [previewedCsvText, setPreviewedCsvText] = useState(
+    initialPreviewedCsvText,
+  );
+  const [dryRunReport, setDryRunReport] =
+    useState<GradeImportDryRunReport | null>(initialReport);
+  const [applyResult, setApplyResult] = useState<GradeImportApplyResult | null>(
+    null,
+  );
+  const [importIdempotencyKey, setImportIdempotencyKey] = useState('');
+  const [conflictMessage, setConflictMessage] = useState('');
+
+  const loadTemplate = useMutation({
+    mutationFn: () => getGradeImportTemplate(offeringId),
+    onSuccess: (template) => {
+      setCsvText(template.sample_csv);
+      setFilename('grades-template.csv');
+      setDryRunReport(null);
+      setPreviewedCsvText('');
+      setApplyResult(null);
+      setConflictMessage('');
+    },
+  });
+
+  const dryRunMutation = useMutation({
+    mutationFn: () =>
+      dryRunGradeImport({
+        offering: offeringId,
+        csv_text: csvText,
+        filename,
+        ...(targetBatchId
+          ? { batch: targetBatchId }
+          : newBatchName.trim()
+            ? { batch_name: newBatchName.trim() }
+            : {}),
+      }),
+    onMutate: () => {
+      setApplyResult(null);
+      setConflictMessage('');
+    },
+    onSuccess: (report) => {
+      setDryRunReport(report);
+      setPreviewedCsvText(csvText);
+      setImportIdempotencyKey(makeIdempotencyKey(offeringId));
+    },
+  });
+
+  const applyMutation = useMutation({
+    mutationFn: () => {
+      if (!dryRunReport) {
+        throw new Error('Run CSV dry-run validation before applying.');
+      }
+      const key = importIdempotencyKey || makeIdempotencyKey(offeringId);
+      setImportIdempotencyKey(key);
+      return applyGradeImport({
+        offering: offeringId,
+        csv_text: csvText,
+        idempotency_key: key,
+        file_checksum: dryRunReport.file_checksum,
+        expected_input_revision: dryRunReport.expected_input_revision,
+        filename,
+        ...(targetBatchId
+          ? { batch: targetBatchId }
+          : newBatchName.trim()
+            ? { batch_name: newBatchName.trim() }
+            : {}),
+      });
+    },
+    onMutate: () => {
+      setConflictMessage('');
+    },
+    onSuccess: async (result) => {
+      setApplyResult(result);
+      await onImported();
+    },
+    onError: (error) => {
+      if (error instanceof ApiError && error.kind === 'conflict') {
+        setConflictMessage(
+          'CSV import conflict (HTTP 409): the offering revision changed since your dry-run preview, or this idempotency key was already used with a different CSV payload. Re-run dry-run validation before applying again.',
+        );
+      }
+    },
+  });
+
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setFilename(file.name);
+    const text = await file.text();
+    setCsvText(text);
+    setDryRunReport(null);
+    setPreviewedCsvText('');
+    setApplyResult(null);
+    setConflictMessage('');
+  }
+
+  const applyEnabled =
+    canApplyCsvImport(dryRunReport, csvText, previewedCsvText) &&
+    !dryRunMutation.isPending &&
+    !applyMutation.isPending;
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-wrap items-start justify-between gap-4 sm:flex-row">
+        <div>
+          <CardTitle>CSV Grade Import (Dry-Run &amp; Atomic Apply)</CardTitle>
+          <CardDescription>
+            Validate UTF-8 CSV grades (up to 5 MB / 10,000 rows) before writing.
+            Dry-run never modifies grades; apply is all-or-nothing and defaults
+            to an unreleased faculty-only batch.
+          </CardDescription>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => loadTemplate.mutate()}
+          disabled={
+            loadTemplate.isPending ||
+            dryRunMutation.isPending ||
+            applyMutation.isPending
+          }
+        >
+          {loadTemplate.isPending
+            ? 'Loading template…'
+            : 'Load sample CSV template'}
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-3">
+          <Field>
+            <FieldLabel htmlFor="csv-import-file">
+              Upload CSV file (.csv)
+            </FieldLabel>
+            <Input
+              id="csv-import-file"
+              type="file"
+              accept=".csv,text/csv"
+              onChange={(event) => void handleFileChange(event)}
+              disabled={dryRunMutation.isPending || applyMutation.isPending}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="csv-import-batch">
+              Target unreleased batch
+            </FieldLabel>
+            <NativeSelect
+              id="csv-import-batch"
+              value={targetBatchId}
+              onChange={(event) => {
+                setTargetBatchId(event.target.value);
+                setDryRunReport(null);
+                setPreviewedCsvText('');
+              }}
+              disabled={dryRunMutation.isPending || applyMutation.isPending}
+            >
+              <NativeSelectOption value="">
+                Create new unreleased batch
+              </NativeSelectOption>
+              {unreleasedBatches.map((batch) => (
+                <NativeSelectOption key={batch.id} value={batch.id}>
+                  {batch.name} · Unreleased (draft)
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="csv-import-batch-name">
+              New batch name (optional)
+            </FieldLabel>
+            <Input
+              id="csv-import-batch-name"
+              value={newBatchName}
+              onChange={(event) => {
+                setNewBatchName(event.target.value);
+                setDryRunReport(null);
+                setPreviewedCsvText('');
+              }}
+              placeholder="CSV Import (grades.csv)"
+              maxLength={120}
+              disabled={
+                Boolean(targetBatchId) ||
+                dryRunMutation.isPending ||
+                applyMutation.isPending
+              }
+            />
+          </Field>
+        </div>
+
+        <Field>
+          <FieldLabel htmlFor="csv-import-text">
+            CSV content (required columns: student_identifier, assessment,
+            state, points_earned; optional: reason)
+          </FieldLabel>
+          <textarea
+            id="csv-import-text"
+            rows={6}
+            value={csvText}
+            onChange={(event) => {
+              setCsvText(event.target.value);
+              setApplyResult(null);
+              setConflictMessage('');
+            }}
+            placeholder="student_identifier,assessment,state,points_earned,reason"
+            className="flex min-h-32 w-full rounded-md border border-input bg-transparent px-3 py-2 font-mono text-xs shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={dryRunMutation.isPending || applyMutation.isPending}
+          />
+        </Field>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => dryRunMutation.mutate()}
+            disabled={
+              !csvText.trim() ||
+              dryRunMutation.isPending ||
+              applyMutation.isPending
+            }
+          >
+            {dryRunMutation.isPending
+              ? 'Validating CSV…'
+              : 'Validate CSV (Dry-run)'}
+          </Button>
+          <Button
+            type="button"
+            onClick={() => applyMutation.mutate()}
+            disabled={!applyEnabled}
+          >
+            {applyMutation.isPending ? 'Applying import…' : 'Apply CSV Import'}
+          </Button>
+          {dryRunReport && csvText !== previewedCsvText && (
+            <span className="text-xs text-muted-foreground">
+              CSV was edited after preview. Re-run dry-run validation before
+              applying.
+            </span>
+          )}
+        </div>
+
+        {loadTemplate.isError && (
+          <p role="alert" className="text-sm text-destructive">
+            {errorMessage(loadTemplate.error)}
+          </p>
+        )}
+
+        {dryRunMutation.isError && (
+          <p role="alert" className="text-sm text-destructive">
+            {errorMessage(dryRunMutation.error)}
+          </p>
+        )}
+
+        {conflictMessage && (
+          <Alert className="border-destructive">
+            <AlertDescription>
+              <p role="alert" className="font-medium text-destructive">
+                {conflictMessage}
+              </p>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {applyMutation.isError && !conflictMessage && (
+          <p role="alert" className="text-sm text-destructive">
+            {errorMessage(applyMutation.error)}
+          </p>
+        )}
+
+        {applyResult && (
+          <Alert>
+            <AlertDescription>
+              <p role="status" aria-live="polite" className="font-medium">
+                CSV import committed to {applyResult.batch_name} (
+                {applyResult.batch_released ? 'Released' : 'Unreleased draft'}):{' '}
+                {applyResult.created_count} created, {applyResult.updated_count}{' '}
+                updated, {applyResult.unchanged_count} unchanged · resulting
+                revision v{applyResult.resulting_input_revision}.
+              </p>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {dryRunReport && (
+          <div className="space-y-4 rounded-md border p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium">
+                  Dry-run preview: {dryRunReport.sanitized_filename}
+                </p>
+                <p className="font-mono text-xs text-muted-foreground">
+                  SHA-256: {dryRunReport.file_checksum} · revision v
+                  {dryRunReport.expected_input_revision}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                <Badge variant="outline">
+                  {dryRunReport.total_rows} total
+                </Badge>
+                <Badge variant="secondary">
+                  {dryRunReport.create_count} create
+                </Badge>
+                <Badge variant="secondary">
+                  {dryRunReport.update_count} update
+                </Badge>
+                <Badge variant="outline">
+                  {dryRunReport.unchanged_count} unchanged
+                </Badge>
+                <Badge
+                  variant={
+                    dryRunReport.invalid_rows > 0 ? 'destructive' : 'default'
+                  }
+                >
+                  {dryRunReport.invalid_rows} invalid
+                </Badge>
+              </div>
+            </div>
+
+            {dryRunReport.invalid_rows > 0 && (
+              <Alert className="border-destructive">
+                <AlertDescription>
+                  <div role="alert" className="space-y-1">
+                    <p className="font-medium text-destructive">
+                      {dryRunReport.errors.length} validation error
+                      {dryRunReport.errors.length === 1 ? '' : 's'} found. Fix
+                      all errors before applying (all-or-nothing import):
+                    </p>
+                    <ul className="list-disc pl-5 text-xs text-destructive">
+                      {dryRunReport.errors.map((err, idx) => (
+                        <li
+                          key={`${err.row_number}-${err.column}-${err.code}-${idx}`}
+                        >
+                          Row {err.row_number} · Column {err.column}:{' '}
+                          {err.message}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <div className="overflow-x-auto">
+              <Table aria-label="CSV grade import dry-run preview">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead scope="col">Row</TableHead>
+                    <TableHead scope="col">Student</TableHead>
+                    <TableHead scope="col">Assessment</TableHead>
+                    <TableHead scope="col">State</TableHead>
+                    <TableHead scope="col">Points</TableHead>
+                    <TableHead scope="col">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {dryRunReport.rows.slice(0, 50).map((row) => (
+                    <TableRow key={row.row_number}>
+                      <TableCell>{row.row_number}</TableCell>
+                      <TableCell>{row.student_identifier || '—'}</TableCell>
+                      <TableCell>{row.assessment_identifier || '—'}</TableCell>
+                      <TableCell>{row.state || '—'}</TableCell>
+                      <TableCell>{row.points_earned ?? '—'}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            row.action === 'invalid'
+                              ? 'destructive'
+                              : row.action === 'unchanged'
+                                ? 'outline'
+                                : 'secondary'
+                          }
+                        >
+                          {row.action}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {dryRunReport.rows.length > 50 && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Showing first 50 of {dryRunReport.rows.length} rows.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 function GradeMatrixCell({
@@ -1226,6 +1655,18 @@ export function InstructorGradebook({
                   )}
                 </CardContent>
               </Card>
+
+              <CsvGradeImportCard
+                key={offeringId}
+                offeringId={offeringId}
+                batches={batches}
+                onImported={async () => {
+                  await Promise.all([
+                    queryClient.invalidateQueries({ queryKey: boardKey }),
+                    queryClient.invalidateQueries({ queryKey: workspaceKey }),
+                  ]);
+                }}
+              />
 
               {selectedBatch &&
                 visibleAssessments.length > 0 &&

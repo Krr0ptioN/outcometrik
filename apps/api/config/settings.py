@@ -64,6 +64,7 @@ WIREUP = WireupSettings(
         "academic.services.enrollments",
         "academic.services.outcomes",
         "academic.services.grades",
+        "academic.services.grade_import",
         "academic.services.workspaces",
         "academic.services.syllabi",
         "academic.services.assessments",

@@ -1,17 +1,22 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import mixins, status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from ..decorators import controller, get, patch, post, require_permission, validate_payload
+from ..models import CourseOffering
 from ..serializers import (
     GradeBatchSerializer,
     GradeBulkSaveSerializer,
     GradeHistorySerializer,
+    GradeImportApplySerializer,
+    GradeImportDryRunSerializer,
     GradeSerializer,
     GradeUpdateSerializer,
     GradeWriteSerializer,
 )
 from ..services import academic_service_provider
+from ..services.grade_import import GradeImportConflict, GradeImportService
 from ..services.grades import (
     GradeBatchService,
     GradeService,
@@ -33,9 +38,17 @@ class GradeController(
     pagination_class = AcademicPagination
     http_method_names = ["get", "post", "patch", "head", "options"]
 
-    def __init__(self, service: GradeService | None = None, **kwargs):
+    def __init__(
+        self,
+        service: GradeService | None = None,
+        import_service: GradeImportService | None = None,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.service = service or academic_service_provider.provide(GradeService)
+        self.import_service = import_service or academic_service_provider.provide(
+            GradeImportService
+        )
 
     def get_queryset(self):
         filters = dict(self.request.query_params.items())
@@ -106,6 +119,36 @@ class GradeController(
         grade = self.get_object()
         rows = self.service.history(grade=grade)
         return Response(GradeHistorySerializer(rows, many=True).data)
+
+    @get("import/template", url_name="import-template")
+    @require_permission("grades.edit", scope_field="offering")
+    def import_template(self, request, *args, **kwargs):
+        offering = get_object_or_404(CourseOffering, pk=request.query_params.get("offering"))
+        payload = self.import_service.template_payload(offering=offering)
+        return Response(payload, status=status.HTTP_200_OK)
+
+    @post("import/dry-run", url_name="import-dry-run")
+    @require_permission("grades.edit", scope_field="offering")
+    @validate_payload(GradeImportDryRunSerializer)
+    def import_dry_run(self, request, *args, payload=None, **kwargs):
+        report = self.import_service.dry_run(**payload)
+        return Response(report, status=status.HTTP_200_OK)
+
+    @post("import/apply", url_name="import-apply")
+    @require_permission("grades.edit", scope_field="offering")
+    @validate_payload(GradeImportApplySerializer)
+    def import_apply(self, request, *args, payload=None, **kwargs):
+        try:
+            result, replayed = self.import_service.apply(actor=request.user, **payload)
+        except GradeImportConflict as exc:
+            return Response(
+                {"code": exc.code, "detail": exc.detail},
+                status=status.HTTP_409_CONFLICT,
+            )
+        return Response(
+            result,
+            status=status.HTTP_200_OK if replayed else status.HTTP_201_CREATED,
+        )
 
     def finalize_response(self, request, response, *args, **kwargs):
         response = super().finalize_response(request, response, *args, **kwargs)

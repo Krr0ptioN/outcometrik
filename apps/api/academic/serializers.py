@@ -569,3 +569,40 @@ class GradeBatchSerializer(serializers.ModelSerializer):
         model = GradeBatch
         fields = ("id", "offering", "name", "released_at", "created_at")
         read_only_fields = ("id", "released_at", "created_at")
+
+
+class GradeImportDryRunSerializer(serializers.Serializer):
+    offering = serializers.PrimaryKeyRelatedField(queryset=CourseOffering.objects.all())
+    csv_text = serializers.CharField(allow_blank=True, trim_whitespace=False)
+    batch = serializers.PrimaryKeyRelatedField(
+        queryset=GradeBatch.objects.all(), required=False, allow_null=True, default=None
+    )
+    batch_name = serializers.CharField(max_length=120, required=False, allow_blank=True, default="")
+    filename = serializers.CharField(max_length=255, required=False, allow_blank=True, default="")
+
+
+class GradeImportApplySerializer(serializers.Serializer):
+    offering = serializers.PrimaryKeyRelatedField(queryset=CourseOffering.objects.all())
+    csv_text = serializers.CharField(allow_blank=True, trim_whitespace=False)
+    idempotency_key = serializers.CharField(max_length=128)
+    file_checksum = serializers.CharField(max_length=64)
+    expected_input_revision = serializers.IntegerField(
+        min_value=0, required=False, allow_null=True, default=None
+    )
+    batch = serializers.PrimaryKeyRelatedField(
+        queryset=GradeBatch.objects.all(), required=False, allow_null=True, default=None
+    )
+    batch_name = serializers.CharField(max_length=120, required=False, allow_blank=True, default="")
+    filename = serializers.CharField(max_length=255, required=False, allow_blank=True, default="")
+
+    def validate_idempotency_key(self, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise serializers.ValidationError("This field may not be blank.")
+        return cleaned
+
+    def validate_file_checksum(self, value: str) -> str:
+        cleaned = value.strip().lower()
+        if not cleaned:
+            raise serializers.ValidationError("This field may not be blank.")
+        return cleaned

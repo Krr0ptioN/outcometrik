@@ -111,6 +111,10 @@ def require_permission(
                 payload = getattr(request, "data", getattr(request, "POST", {}))
                 if isinstance(payload, dict):
                     scope_id = _resolve_scope_from_data(self, payload, scope_field)
+                if scope_id is None:
+                    query_params = getattr(request, "query_params", getattr(request, "GET", {}))
+                    if query_params:
+                        scope_id = _resolve_scope_from_data(self, query_params, scope_field)
 
             if scope_id is None:
                 raise PermissionDenied("This action is not permitted in this scope.")

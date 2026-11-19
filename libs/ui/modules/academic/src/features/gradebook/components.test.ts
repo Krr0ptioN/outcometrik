@@ -30,7 +30,9 @@ vi.mock('@tanstack/react-query', () => ({
 }));
 
 import {
+  canApplyCsvImport,
   computeNextGridCell,
+  CsvGradeImportCard,
   InstructorGradebook,
   isDraftDirty,
   paginateRoster,
@@ -348,4 +350,93 @@ it('detects dirty drafts, sorts and paginates rosters deterministically, and com
     colIndex: 0,
   });
   expect(computeNextGridCell(1, 1, 3, 2, 'Enter')).toBeNull();
+});
+
+it('renders CSV import dry-run row/column errors and enforces atomic apply enablement', () => {
+  const csvSample =
+    'student_identifier,assessment,state,points_earned\nS1001,Midterm,scored,120\n';
+
+  const failingReport = {
+    offering: 'off-1',
+    sanitized_filename: 'grades.csv',
+    file_checksum: 'b'.repeat(64),
+    expected_input_revision: 3,
+    total_rows: 1,
+    valid_rows: 0,
+    invalid_rows: 1,
+    create_count: 0,
+    update_count: 0,
+    unchanged_count: 0,
+    can_apply: false,
+    errors: [
+      {
+        row_number: 1,
+        column: 'points_earned',
+        code: 'out_of_range',
+        message: 'Points earned must be between 0 and 100.00.',
+      },
+    ],
+    rows: [
+      {
+        row_number: 1,
+        student_identifier: 'S1001',
+        enrollment_id: 'enr-1',
+        assessment_identifier: 'Midterm',
+        assessment_id: 'asmt-1',
+        state: 'scored',
+        points_earned: '120.00',
+        reason: '',
+        action: 'invalid' as const,
+        errors: [
+          {
+            row_number: 1,
+            column: 'points_earned',
+            code: 'out_of_range',
+            message: 'Points earned must be between 0 and 100.00.',
+          },
+        ],
+      },
+    ],
+  };
+
+  expect(canApplyCsvImport(failingReport, csvSample, csvSample)).toBe(false);
+
+  const validReport = {
+    ...failingReport,
+    valid_rows: 1,
+    invalid_rows: 0,
+    create_count: 1,
+    can_apply: true,
+    errors: [],
+    rows: [{ ...failingReport.rows[0], action: 'create' as const, errors: [] }],
+  };
+  expect(canApplyCsvImport(validReport, csvSample, csvSample)).toBe(true);
+  expect(canApplyCsvImport(validReport, `${csvSample}\n`, csvSample)).toBe(
+    false,
+  );
+  expect(canApplyCsvImport(null, csvSample, csvSample)).toBe(false);
+
+  const errorMarkup = renderToStaticMarkup(
+    createElement(CsvGradeImportCard, {
+      offeringId: 'off-1',
+      batches: [
+        {
+          id: 'b-1',
+          offering: 'off-1',
+          name: 'Draft Batch',
+          released_at: null,
+          created_at: '2026-01-01T00:00:00Z',
+        },
+      ],
+      onImported: async () => {},
+      initialReport: failingReport,
+      initialCsvText: csvSample,
+      initialPreviewedCsvText: csvSample,
+    }),
+  );
+  expect(errorMarkup).toContain('CSV Grade Import (Dry-Run &amp; Atomic Apply)');
+  expect(errorMarkup).toContain(
+    'Row 1 · Column points_earned: Points earned must be between 0 and 100.00.',
+  );
+  expect(errorMarkup).toContain('Apply CSV Import');
 });
