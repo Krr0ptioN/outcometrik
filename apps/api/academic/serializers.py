@@ -4,6 +4,7 @@ from . import policy
 from .models import (
     AcademicTerm,
     Assessment,
+    AssessmentLOMapping,
     Course,
     CourseOffering,
     CoursePOContribution,
@@ -16,6 +17,7 @@ from .models import (
     Institution,
     InstructorAssignment,
     LearningOutcome,
+    LOPOMapping,
     Program,
     ProgramCourse,
     ProgramMembership,
@@ -229,6 +231,7 @@ class AssessmentSerializer(AcademicSerializer):
         read_only_fields = fields
 
 
+<<<<<<< HEAD
 class StrictWeightIntegerField(serializers.Field):
     """Integer field that rejects booleans, floats, decimals, and fractional strings."""
 
@@ -292,6 +295,71 @@ class CoursePOContributionSerializer(AcademicSerializer):
 
     def get_governance_level(self, obj) -> str:
         return policy.COURSE_PO_WEIGHT_DEFAULT_LEVEL
+=======
+class AssessmentLOMappingSerializer(AcademicSerializer):
+    class Meta:
+        model = AssessmentLOMapping
+        fields = [
+            "id",
+            "syllabus",
+            "assessment",
+            "learning_outcome",
+            "weight",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "syllabus", "created_at", "updated_at"]
+
+
+class AssessmentLOMappingEntrySerializer(serializers.Serializer):
+    assessment = serializers.PrimaryKeyRelatedField(queryset=SyllabusAssessment.objects.all())
+    learning_outcome = serializers.PrimaryKeyRelatedField(queryset=LearningOutcome.objects.all())
+    weight = serializers.DecimalField(max_digits=7, decimal_places=2)
+    is_active = serializers.BooleanField(required=False, default=True)
+
+
+class AssessmentLOMatrixReplaceSerializer(serializers.Serializer):
+    expected_revision = serializers.IntegerField(min_value=1)
+    mappings = AssessmentLOMappingEntrySerializer(many=True)
+
+
+class LOPOMappingSerializer(AcademicSerializer):
+    class Meta:
+        model = LOPOMapping
+        fields = [
+            "id",
+            "syllabus",
+            "learning_outcome",
+            "program_outcome",
+            "weight",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "syllabus", "created_at", "updated_at"]
+
+
+class LOPOMappingEntrySerializer(serializers.Serializer):
+    learning_outcome = serializers.PrimaryKeyRelatedField(queryset=LearningOutcome.objects.all())
+    program_outcome = serializers.PrimaryKeyRelatedField(
+        queryset=ProgramOutcome.objects.select_related("outcome_set").all()
+    )
+    weight = serializers.JSONField()
+    is_active = serializers.BooleanField(required=False, default=True)
+
+    def validate_weight(self, value):
+        if not isinstance(value, int) or isinstance(value, bool):
+            raise serializers.ValidationError("Weight must be an integer between 0 and 5.")
+        if value < 0 or value > 5:
+            raise serializers.ValidationError("Weight must be an integer between 0 and 5.")
+        return value
+
+
+class LOPOMatrixReplaceSerializer(serializers.Serializer):
+    expected_revision = serializers.IntegerField(min_value=1)
+    mappings = LOPOMappingEntrySerializer(many=True)
+>>>>>>> origin/main
 
 
 class SyllabusSerializer(AcademicSerializer):
@@ -299,7 +367,12 @@ class SyllabusSerializer(AcademicSerializer):
 
     learning_outcomes = LearningOutcomeSerializer(many=True, read_only=True)
     assessments = SyllabusAssessmentSerializer(many=True, read_only=True)
+<<<<<<< HEAD
     po_contributions = CoursePOContributionSerializer(many=True, read_only=True)
+=======
+    assessment_lo_mappings = AssessmentLOMappingSerializer(many=True, read_only=True)
+    lo_po_mappings = LOPOMappingSerializer(many=True, read_only=True)
+>>>>>>> origin/main
 
     class Meta:
         model = Syllabus
@@ -311,9 +384,15 @@ class SyllabusSerializer(AcademicSerializer):
             "approved_by",
             "approved_at",
             "po_set_version",
+            "mapping_revision",
             "learning_outcomes",
             "assessments",
+<<<<<<< HEAD
             "po_contributions",
+=======
+            "assessment_lo_mappings",
+            "lo_po_mappings",
+>>>>>>> origin/main
             "created_at",
             "updated_at",
         ]
@@ -323,6 +402,7 @@ class SyllabusSerializer(AcademicSerializer):
             "status",
             "approved_by",
             "approved_at",
+            "mapping_revision",
             "created_at",
             "updated_at",
         ]

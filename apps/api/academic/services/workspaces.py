@@ -10,6 +10,14 @@ from wireup import injectable
 from .. import scoping
 from ..models import CourseOffering, Enrollment, Program, ProgramMembership
 
+INSTRUCTOR_CAPABILITIES = (
+    "grades.view",
+    "grades.edit",
+    "grades.release",
+    "offering.manage",
+    "syllabus.draft",
+)
+
 
 @injectable
 class WorkspaceService:
@@ -19,18 +27,27 @@ class WorkspaceService:
 
     def instructor_offerings(self, actor: Any = None):
         effective_actor = actor if actor is not None else self.actor
+        if (
+            not effective_actor
+            or not getattr(effective_actor, "is_authenticated", False)
+            or not getattr(effective_actor, "is_active", False)
+        ):
+            raise PermissionDenied("Instructor access is required.")
         assignments = RoleAssignment.objects.filter(
             user=effective_actor, role_id="instructor", revoked_at__isnull=True
         )
-        if not assignments.exists():
-            raise PermissionDenied("Instructor access is required.")
         grant_scopes = DirectCapabilityGrant.objects.filter(
-            user=effective_actor, capability_id="grades.view", revoked_at__isnull=True
+            user=effective_actor,
+            capability_id__in=INSTRUCTOR_CAPABILITIES,
+            revoked_at__isnull=True,
+            scope__kind=Scope.Kind.OFFERING,
         ).values_list("scope_id", flat=True)
         scopes = Scope.objects.filter(
             Q(pk__in=assignments.values_list("scope_id", flat=True)) | Q(pk__in=grant_scopes),
             kind=Scope.Kind.OFFERING,
         )
+        if not assignments.exists() and not scopes.exists():
+            raise PermissionDenied("Instructor access is required.")
         return (
             CourseOffering.objects.filter(pk__in=scopes)
             .select_related("course", "term", "program")

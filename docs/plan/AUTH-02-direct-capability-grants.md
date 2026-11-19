@@ -24,6 +24,28 @@ Honor API/domain ownership, scoped authorization, explicit null/error states, an
 
 ## Implementation tasks
 
-- [ ] Grant/revoke persistence; scope-aware policy evaluation; audit actor/action/scope; authorization tests for overlap and revocation.
-- [ ] Add focused automated tests for success, failure, and scope denial.
-- [ ] Document contract and update dependent stories.
+- [x] Grant/revoke persistence; scope-aware policy evaluation; audit actor/action/scope; authorization tests for overlap and revocation.
+- [x] Add focused automated tests for success, failure, and scope denial.
+- [x] Document contract and update dependent stories.
+
+## Completed implementation & contract
+
+- **Exact-scope policy rule (`libs/modules/access/access/policy.py`)**:
+  - `AuthorizationService.scope_ids` and `AuthorizationService.scope_filter` treat `RoleAssignment` as hierarchical (inheriting down `institution -> program -> offering`), while `DirectCapabilityGrant` is strictly exact-scope (`Q(pk__in=exact)` only, with zero program-to-offering inheritance).
+- **Audited grant and revocation (`libs/modules/access/access/services.py` & `api.py`)**:
+  - `POST /api/access/assignments/` accepts `capability` (single capability code) or `capabilities` (non-empty list of unique capability codes) scoped to a specific `Scope` UUID and guarded by `access.manage` on the target scope.
+  - `DELETE /api/access/grants/<UUID>/` revokes an active `DirectCapabilityGrant` (setting `revoked_at` idempotently under `select_for_update` lock) when the actor holds `access.manage` on the grant's scope; out-of-scope grants return `404`.
+  - Every new grant appends an immutable `AuditEvent` (`action="capability.granted"`) and every revocation appends `action="capability.revoked"` with actor, subject, scope, and assignment metadata in the same transaction.
+- **Instructor workspace & queryset scoping integration (`apps/api/academic/`)**:
+  - `WorkspaceService.instructor_offerings` (`apps/api/academic/services/workspaces.py`) authorizes users who hold either an active `instructor` role assignment OR an active offering-scoped `DirectCapabilityGrant` for any offering/instructor capability (`"grades.view"`, `"grades.edit"`, `"grades.release"`, `"offering.manage"`, `"syllabus.draft"`), unioning offering IDs from both sources.
+  - `scope_offerings` (`apps/api/academic/scoping.py`) unions offering IDs across `("offering.manage", "grades.view", "grades.edit", "grades.release", "syllabus.draft")` (plus student enrollments) so offering detail/list endpoints resolve for direct capability holders without requiring a full role assignment.
+  - `scope_enrollments` (`apps/api/academic/scoping.py`) unions offering IDs across `("grades.view", "grades.edit", "grades.release", "offering.manage")` (plus the student's own enrollment rows) so direct `grades.edit` or `offering.manage` holders can view the offering roster and enter grades.
+
+## Verification
+
+```bash
+uv run --directory apps/api ruff check . ../../libs/modules/access
+uv run --directory apps/api ruff format --check . ../../libs/modules/access
+POSTGRES_DB=outcometrik_auth_02 POSTGRES_USER=outcometrik POSTGRES_PASSWORD=outcometrik POSTGRES_HOST=127.0.0.1 POSTGRES_PORT=5432 uv run --directory apps/api python manage.py check
+POSTGRES_DB=outcometrik_auth_02 POSTGRES_USER=outcometrik POSTGRES_PASSWORD=outcometrik POSTGRES_HOST=127.0.0.1 POSTGRES_PORT=5432 uv run --directory apps/api pytest
+```

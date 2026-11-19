@@ -9,7 +9,7 @@ from .programs import ProgramCourseService, ProgramMembershipService, ProgramSer
 from .provider import WireupServiceProvider, academic_service_provider
 from .structure import AcademicTermService, CourseService, DepartmentService, InstitutionService
 from .syllabi import SyllabusService
-from .syllabus_validation import SyllabusValidator
+from .syllabus_validation import SyllabusMappingVersionConflict, SyllabusValidator
 from .workspaces import WorkspaceService
 
 __all__ = [
@@ -30,6 +30,7 @@ __all__ = [
     "ProgramOutcomeSetService",
     "ProgramOutcomeSetValidator",
     "ProgramService",
+    "SyllabusMappingVersionConflict",
     "SyllabusService",
     "SyllabusValidator",
     "WireupServiceProvider",

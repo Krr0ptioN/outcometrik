@@ -15,6 +15,7 @@ export interface Assessment {
   is_active: boolean;
   max_points: string;
 }
+<<<<<<< HEAD
 export interface CoursePOContribution {
   id: string;
   syllabus?: string;
@@ -23,6 +24,47 @@ export interface CoursePOContribution {
   weight: number;
   governance_role?: string;
   governance_level?: string;
+=======
+export interface AssessmentLOMapping {
+  id?: string;
+  syllabus?: string;
+  assessment: string;
+  learning_outcome: string;
+  weight: string;
+  is_active: boolean;
+}
+export interface LOPOMapping {
+  id?: string;
+  syllabus?: string;
+  learning_outcome: string;
+  program_outcome: string;
+  weight: number;
+  is_active: boolean;
+}
+export interface LearningOutcomeMappingStatus {
+  learning_outcome_id: string;
+  code: string;
+  status: 'MAPPED' | 'UNMAPPED';
+  total_assessment_weight: string;
+  mapped_po_count: number;
+}
+export interface ProgramOutcomeMappingStatus {
+  program_outcome_id: string;
+  code: string;
+  status: 'ASSESSED' | 'NOT_ASSESSED';
+  total_lo_weight: number;
+}
+export interface SyllabusMappingValidation {
+  syllabus_id: string;
+  mapping_revision: number;
+  is_valid_for_approval: boolean;
+  lo_statuses: LearningOutcomeMappingStatus[];
+  po_statuses: ProgramOutcomeMappingStatus[];
+  unmapped_learning_outcomes: string[];
+  orphaned_learning_outcomes: string[];
+  unreachable_program_outcomes: string[];
+  errors: string[];
+>>>>>>> origin/main
 }
 export interface Syllabus {
   id: string;
@@ -31,9 +73,15 @@ export interface Syllabus {
   status: 'draft' | 'approved' | 'retired';
   approved_at: string | null;
   po_set_version: number | null;
+  mapping_revision?: number;
   learning_outcomes: Outcome[];
   assessments: Assessment[];
+<<<<<<< HEAD
   po_contributions?: CoursePOContribution[];
+=======
+  assessment_lo_mappings?: AssessmentLOMapping[];
+  lo_po_mappings?: LOPOMapping[];
+>>>>>>> origin/main
 }
 const record = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -58,6 +106,7 @@ function isAssessment(v: unknown): v is Assessment {
     typeof v.max_points === 'string'
   );
 }
+<<<<<<< HEAD
 export function isCoursePOContribution(v: unknown): v is CoursePOContribution {
   return (
     record(v) &&
@@ -68,6 +117,24 @@ export function isCoursePOContribution(v: unknown): v is CoursePOContribution {
     Number.isInteger(v.weight) &&
     v.weight >= 1 &&
     v.weight <= 5
+=======
+function isAssessmentLOMapping(v: unknown): v is AssessmentLOMapping {
+  return (
+    record(v) &&
+    typeof v.assessment === 'string' &&
+    typeof v.learning_outcome === 'string' &&
+    typeof v.weight === 'string' &&
+    typeof v.is_active === 'boolean'
+  );
+}
+function isLOPOMapping(v: unknown): v is LOPOMapping {
+  return (
+    record(v) &&
+    typeof v.learning_outcome === 'string' &&
+    typeof v.program_outcome === 'string' &&
+    typeof v.weight === 'number' &&
+    typeof v.is_active === 'boolean'
+>>>>>>> origin/main
   );
 }
 function isSyllabus(v: unknown): v is Syllabus {
@@ -79,13 +146,69 @@ function isSyllabus(v: unknown): v is Syllabus {
     ['draft', 'approved', 'retired'].includes(String(v.status)) &&
     (v.approved_at === null || typeof v.approved_at === 'string') &&
     (v.po_set_version === null || typeof v.po_set_version === 'number') &&
+    (v.mapping_revision === undefined ||
+      typeof v.mapping_revision === 'number') &&
     Array.isArray(v.learning_outcomes) &&
     v.learning_outcomes.every(isOutcome) &&
     Array.isArray(v.assessments) &&
     v.assessments.every(isAssessment) &&
+<<<<<<< HEAD
     (v.po_contributions === undefined ||
       (Array.isArray(v.po_contributions) &&
         v.po_contributions.every(isCoursePOContribution)))
+=======
+    (v.assessment_lo_mappings === undefined ||
+      (Array.isArray(v.assessment_lo_mappings) &&
+        v.assessment_lo_mappings.every(isAssessmentLOMapping))) &&
+    (v.lo_po_mappings === undefined ||
+      (Array.isArray(v.lo_po_mappings) &&
+        v.lo_po_mappings.every(isLOPOMapping)))
+  );
+}
+function isLearningOutcomeMappingStatus(
+  v: unknown,
+): v is LearningOutcomeMappingStatus {
+  return (
+    record(v) &&
+    typeof v.learning_outcome_id === 'string' &&
+    typeof v.code === 'string' &&
+    (v.status === 'MAPPED' || v.status === 'UNMAPPED') &&
+    typeof v.total_assessment_weight === 'string' &&
+    typeof v.mapped_po_count === 'number'
+  );
+}
+function isProgramOutcomeMappingStatus(
+  v: unknown,
+): v is ProgramOutcomeMappingStatus {
+  return (
+    record(v) &&
+    typeof v.program_outcome_id === 'string' &&
+    typeof v.code === 'string' &&
+    (v.status === 'ASSESSED' || v.status === 'NOT_ASSESSED') &&
+    typeof v.total_lo_weight === 'number'
+  );
+}
+function isSyllabusMappingValidation(
+  v: unknown,
+): v is SyllabusMappingValidation {
+  return (
+    record(v) &&
+    typeof v.syllabus_id === 'string' &&
+    typeof v.mapping_revision === 'number' &&
+    typeof v.is_valid_for_approval === 'boolean' &&
+    Array.isArray(v.lo_statuses) &&
+    v.lo_statuses.every(isLearningOutcomeMappingStatus) &&
+    Array.isArray(v.po_statuses) &&
+    v.po_statuses.every(isProgramOutcomeMappingStatus) &&
+    Array.isArray(v.unmapped_learning_outcomes) &&
+    v.unmapped_learning_outcomes.every((x) => typeof x === 'string') &&
+    Array.isArray(v.orphaned_learning_outcomes) &&
+    v.orphaned_learning_outcomes.every((x) => typeof x === 'string') &&
+    Array.isArray(v.unreachable_program_outcomes) &&
+    v.unreachable_program_outcomes.every((x) => typeof x === 'string') &&
+    Array.isArray(v.errors) &&
+    v.errors.every((x) => typeof x === 'string')
+>>>>>>> origin/main
   );
 }
 export async function getSyllabi(
@@ -117,6 +240,66 @@ export async function changeSyllabus(
   method = 'POST',
 ) {
   await request(`/api/v1/syllabi/${path}`, { method, body });
+}
+export async function replaceAssessmentLOMappings(
+  syllabusId: string,
+  expectedRevision: number,
+  mappings: Array<{
+    assessment: string;
+    learning_outcome: string;
+    weight: string;
+    is_active?: boolean;
+  }>,
+): Promise<Syllabus> {
+  const data: unknown = await request(
+    `/api/v1/syllabi/${encodeURIComponent(syllabusId)}/assessment-lo-mappings/`,
+    {
+      method: 'POST',
+      body: {
+        expected_revision: expectedRevision,
+        mappings,
+      },
+    },
+  );
+  if (!isSyllabus(data)) throw new ApiError('unexpected', 200);
+  return data;
+}
+export async function replaceLOPOMappings(
+  syllabusId: string,
+  expectedRevision: number,
+  mappings: Array<{
+    learning_outcome: string;
+    program_outcome: string;
+    weight: number;
+    is_active?: boolean;
+  }>,
+): Promise<Syllabus> {
+  const data: unknown = await request(
+    `/api/v1/syllabi/${encodeURIComponent(syllabusId)}/lo-po-mappings/`,
+    {
+      method: 'POST',
+      body: {
+        expected_revision: expectedRevision,
+        mappings,
+      },
+    },
+  );
+  if (!isSyllabus(data)) throw new ApiError('unexpected', 200);
+  return data;
+}
+export async function getSyllabusMappingValidation(
+  syllabusId: string,
+  signal?: AbortSignal,
+): Promise<SyllabusMappingValidation> {
+  const data: unknown = await request(
+    `/api/v1/syllabi/${encodeURIComponent(syllabusId)}/mapping-validation/`,
+    {
+      signal,
+      cache: 'no-store',
+    },
+  );
+  if (!isSyllabusMappingValidation(data)) throw new ApiError('unexpected', 200);
+  return data;
 }
 
 export async function getSyllabusPOContributions(

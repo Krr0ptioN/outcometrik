@@ -12,13 +12,24 @@ from ..decorators import (
     validate_payload,
 )
 from ..serializers import (
+<<<<<<< HEAD
     CoursePOContributionSerializer,
+=======
+    AssessmentLOMappingSerializer,
+    AssessmentLOMatrixReplaceSerializer,
+>>>>>>> origin/main
     LearningOutcomeSerializer,
+    LOPOMappingSerializer,
+    LOPOMatrixReplaceSerializer,
     SyllabusAssessmentSerializer,
     SyllabusCreateSerializer,
     SyllabusSerializer,
 )
-from ..services import SyllabusService, academic_service_provider
+from ..services import (
+    SyllabusMappingVersionConflict,
+    SyllabusService,
+    academic_service_provider,
+)
 from .base import AcademicPagination
 
 
@@ -171,6 +182,7 @@ class SyllabusController(
         self.service.delete_assessment(instance=assessment)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+<<<<<<< HEAD
     @get("{id}/po-contributions", url_name="po-contributions")
     def list_po_contributions(self, request, pk=None):
         """Return course-to-PO contribution weight rows for this syllabus version."""
@@ -221,6 +233,78 @@ class SyllabusController(
             return Response(status=status.HTTP_404_NOT_FOUND)
         self.service.delete_po_contribution(instance=contribution)
         return Response(status=status.HTTP_204_NO_CONTENT)
+=======
+    @get("{id}/assessment-lo-mappings", url_name="assessment-lo-mappings")
+    def list_assessment_lo_mappings(self, request, pk=None):
+        """Return A->LO mapping rows for this syllabus version."""
+        syllabus = self.get_object()
+        queryset = syllabus.assessment_lo_mappings.order_by(
+            "assessment__order", "learning_outcome__order", "created_at"
+        )
+        return Response(AssessmentLOMappingSerializer(queryset, many=True).data)
+
+    @post("{id}/assessment-lo-mappings", url_name="assessment-lo-mappings")
+    @require_permission("syllabus.draft", scope_field="offering")
+    @validate_payload(AssessmentLOMatrixReplaceSerializer)
+    def replace_assessment_lo_mappings(self, request, pk=None, payload=None):
+        """Atomically replace the A->LO mapping matrix with optimistic locking."""
+        syllabus = self.get_object()
+        try:
+            updated = self.service.replace_assessment_lo_matrix(
+                syllabus=syllabus,
+                expected_revision=payload["expected_revision"],
+                mappings=payload["mappings"],
+            )
+        except SyllabusMappingVersionConflict as exc:
+            return Response(
+                {
+                    "code": "version_conflict",
+                    "detail": "The syllabus mapping matrix was modified by another user.",
+                    "current_revision": exc.current_revision,
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+        return Response(self.get_serializer(updated).data)
+
+    @get("{id}/lo-po-mappings", url_name="lo-po-mappings")
+    def list_lo_po_mappings(self, request, pk=None):
+        """Return LO->PO mapping rows for this syllabus version."""
+        syllabus = self.get_object()
+        queryset = syllabus.lo_po_mappings.order_by(
+            "learning_outcome__order", "program_outcome__ordering", "created_at"
+        )
+        return Response(LOPOMappingSerializer(queryset, many=True).data)
+
+    @post("{id}/lo-po-mappings", url_name="lo-po-mappings")
+    @require_permission("syllabus.draft", scope_field="offering")
+    @validate_payload(LOPOMatrixReplaceSerializer)
+    def replace_lo_po_mappings(self, request, pk=None, payload=None):
+        """Atomically replace the LO->PO mapping matrix with optimistic locking."""
+        syllabus = self.get_object()
+        try:
+            updated = self.service.replace_lo_po_matrix(
+                syllabus=syllabus,
+                expected_revision=payload["expected_revision"],
+                mappings=payload["mappings"],
+            )
+        except SyllabusMappingVersionConflict as exc:
+            return Response(
+                {
+                    "code": "version_conflict",
+                    "detail": "The syllabus mapping matrix was modified by another user.",
+                    "current_revision": exc.current_revision,
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+        return Response(self.get_serializer(updated).data)
+
+    @get("{id}/mapping-validation", url_name="mapping-validation")
+    def get_mapping_validation(self, request, pk=None):
+        """Return diagnostic report of MAPPED/UNMAPPED LOs, ASSESSED/NOT_ASSESSED POs, and approval readiness."""
+        syllabus = self.get_object()
+        report = self.service.validate_mappings(syllabus=syllabus)
+        return Response(report)
+>>>>>>> origin/main
 
     def finalize_response(self, request, response, *args, **kwargs):
         response = super().finalize_response(request, response, *args, **kwargs)
