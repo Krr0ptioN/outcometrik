@@ -4,11 +4,11 @@ from django.core.exceptions import ValidationError
 
 from ..models import ProgramOutcomeSet
 
-OUTCOME_TEXT_FIELDS = ("code", "label", "description", "source_url")
-
 
 class ProgramOutcomeSetValidator:
     """Domain validator for ProgramOutcomeSet lifecycle and ProgramOutcome integrity."""
+
+    TEXT_FIELDS = ("code", "label", "description", "source_url")
 
     @staticmethod
     def validate_activation(outcome_set, effective_date):
@@ -24,7 +24,7 @@ class ProgramOutcomeSetValidator:
         if not outcomes:
             raise ValidationError({"outcomes": "A set needs at least one outcome."})
         for outcome in outcomes:
-            for field in OUTCOME_TEXT_FIELDS:
+            for field in ProgramOutcomeSetValidator.TEXT_FIELDS:
                 if not str(getattr(outcome, field)).strip():
                     raise ValidationError(
                         {"outcomes": f"{outcome.code or '?'}: {field} is required."}

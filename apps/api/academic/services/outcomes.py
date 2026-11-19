@@ -8,18 +8,15 @@ from .base import AcademicService
 from .outcome_validation import ProgramOutcomeSetValidator
 
 
-def _scoped_programs(actor):
-    return scoping.scope_programs(actor, Program.objects.all())
-
-
 class ProgramOutcomeSetService(AcademicService):
     model = ProgramOutcomeSet
     immutable_fields = ("program", "version")
 
+    def _scoped_programs(self):
+        return scoping.scope_programs(self.actor, Program.objects.all())
+
     def visible_queryset(self, queryset):
-        return queryset.filter(program__in=_scoped_programs(self.actor)).prefetch_related(
-            "outcomes"
-        )
+        return queryset.filter(program__in=self._scoped_programs()).prefetch_related("outcomes")
 
     def create_access(self, data):
         return "program.manage", data["program"].pk
@@ -58,8 +55,11 @@ class ProgramOutcomeService(AcademicService):
     model = ProgramOutcome
     immutable_fields = ("outcome_set",)
 
+    def _scoped_programs(self):
+        return scoping.scope_programs(self.actor, Program.objects.all())
+
     def visible_queryset(self, queryset):
-        return queryset.filter(outcome_set__program__in=_scoped_programs(self.actor))
+        return queryset.filter(outcome_set__program__in=self._scoped_programs())
 
     def create_access(self, data):
         outcome_set = (

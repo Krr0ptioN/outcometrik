@@ -16,13 +16,6 @@ from .base import AcademicService
 from .revisions import RevisionTracker
 from .syllabus_validation import SyllabusValidator
 
-MANAGED_FIELDS = ("code", "description", "order")
-ASSESSMENT_FIELDS = ("code", "kind", "order", "is_required", "is_active", "max_points")
-
-
-def _lock_offering_row(offering_id):
-    return CourseOffering.objects.select_for_update().get(pk=offering_id)
-
 
 class SyllabusService(AcademicService):
     """Versioned syllabus lifecycle: draft, approve, revise.
@@ -36,6 +29,8 @@ class SyllabusService(AcademicService):
 
     model = Syllabus
     immutable_fields = ("offering", "version", "status")
+    MANAGED_FIELDS = ("code", "description", "order")
+    ASSESSMENT_FIELDS = ("code", "kind", "order", "is_required", "is_active", "max_points")
 
     def visible_queryset(self, queryset):
         return scoping.scope_syllabi(self.actor, queryset)
@@ -49,6 +44,10 @@ class SyllabusService(AcademicService):
     # -- helpers ---------------------------------------------------------
 
     @staticmethod
+    def _lock_offering_row(offering_id):
+        return CourseOffering.objects.select_for_update().get(pk=offering_id)
+
+    @staticmethod
     def _editable(syllabus):
         return SyllabusValidator.validate_editable(syllabus)
 
@@ -56,7 +55,7 @@ class SyllabusService(AcademicService):
 
     @transaction.atomic
     def create(self, *, offering, po_set_version=None):
-        offering = _lock_offering_row(offering.pk)
+        offering = self._lock_offering_row(offering.pk)
         require(self.actor, "syllabus.draft", offering.pk)
         active_set = (
             ProgramOutcomeSet.objects.filter(
@@ -226,7 +225,7 @@ class SyllabusService(AcademicService):
         instance.syllabus = Syllabus.objects.select_for_update().get(pk=instance.syllabus_id)
         require(self.actor, "syllabus.draft", instance.syllabus.offering_id)
         self._editable(instance.syllabus)
-        for field in MANAGED_FIELDS:
+        for field in self.MANAGED_FIELDS:
             if field in data:
                 setattr(instance, field, data[field])
         try:
@@ -243,7 +242,7 @@ class SyllabusService(AcademicService):
         instance.syllabus = Syllabus.objects.select_for_update().get(pk=instance.syllabus_id)
         require(self.actor, "syllabus.draft", instance.syllabus.offering_id)
         self._editable(instance.syllabus)
-        for field in ASSESSMENT_FIELDS:
+        for field in self.ASSESSMENT_FIELDS:
             if field in data:
                 setattr(instance, field, data[field])
         SyllabusValidator.validate_assessment_points(instance.max_points)
@@ -290,23 +289,26 @@ class SyllabusService(AcademicService):
         syllabus.status = Syllabus.Status.RETIRED
         return syllabus
 
-
-def official_syllabus_for(offering):
-    """Select compatible official inputs; calculation callers must use this boundary."""
-    active = (
-        ProgramOutcomeSet.objects.filter(
-            program_id=offering.program_id,
-            status=ProgramOutcomeSet.Status.ACTIVE,
-            effective_date__lte=timezone.localdate(),
+    @staticmethod
+    def official_syllabus_for(offering):
+        """Select compatible official inputs; calculation callers must use this boundary."""
+        active = (
+            ProgramOutcomeSet.objects.filter(
+                program_id=offering.program_id,
+                status=ProgramOutcomeSet.Status.ACTIVE,
+                effective_date__lte=timezone.localdate(),
+            )
+            .order_by("-effective_date")
+            .first()
         )
-        .order_by("-effective_date")
-        .first()
-    )
-    if not active:
-        raise ValidationError("No active PO-set exists for this program.")
-    syllabus = offering.syllabi.filter(
-        status=Syllabus.Status.APPROVED, po_set_version=active.version
-    ).first()
-    if not syllabus:
-        raise ValidationError("No approved syllabus matches the active PO-set version.")
-    return syllabus
+        if not active:
+            raise ValidationError("No active PO-set exists for this program.")
+        syllabus = offering.syllabi.filter(
+            status=Syllabus.Status.APPROVED, po_set_version=active.version
+        ).first()
+        if not syllabus:
+            raise ValidationError("No approved syllabus matches the active PO-set version.")
+        return syllabus
+
+
+official_syllabus_for = SyllabusService.official_syllabus_for
