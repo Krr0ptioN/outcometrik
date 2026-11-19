@@ -58,6 +58,7 @@ WIREUP = WireupSettings(
         "config.config_service",
         "academic.interceptors",
         "access.policy",
+        "academic.services.structure",
     ],
     auto_inject_views=False,
 )

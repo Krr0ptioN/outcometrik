@@ -1,9 +1,54 @@
+from rest_framework import mixins, viewsets
+from rest_framework.permissions import IsAuthenticated
+
+from ..guards import require_permission
 from ..serializers import DepartmentSerializer
-from ..services import DepartmentService
-from .base import AcademicController
+from ..services import DepartmentService, academic_service_provider
+from .base import AcademicPagination
 
 
-class DepartmentController(AcademicController):
+class DepartmentController(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    viewsets.GenericViewSet,
+):
+    """Controller for departments with explicit constructor injection and guard protection."""
+
     serializer_class = DepartmentSerializer
-    service_class = DepartmentService
-    filter_fields = ("institution", "code")
+    permission_classes = [IsAuthenticated]
+    pagination_class = AcademicPagination
+
+    def __init__(self, service: DepartmentService | None = None, **kwargs):
+        super().__init__(**kwargs)
+        self.service = service or academic_service_provider.provide(DepartmentService)
+
+    def get_queryset(self):
+        return self.service.get_queryset(actor=self.request.user)
+
+    @require_permission("access.manage", scope_field="institution")
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @require_permission("access.manage", scope_field="institution")
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+
+    @require_permission("access.manage", scope_field="institution")
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        serializer.instance = self.service.create(**serializer.validated_data)
+
+    def perform_update(self, serializer):
+        serializer.instance = self.service.update(
+            instance=serializer.instance,
+            **serializer.validated_data,
+        )
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        response = super().finalize_response(request, response, *args, **kwargs)
+        response["Cache-Control"] = "no-store"
+        return response
