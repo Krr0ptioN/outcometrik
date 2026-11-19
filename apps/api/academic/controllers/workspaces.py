@@ -2,29 +2,27 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from ..decorators import controller
+from ..decorators import controller, get
 from ..services import WorkspaceService, academic_service_provider
 
 
-class AcademicWorkspaceController(APIView):
+@controller("workspaces/instructor")
+class InstructorWorkspaceController(APIView):
     permission_classes = [IsAuthenticated]
-    service_provider = academic_service_provider
-    service_class = WorkspaceService
 
-    def get_service(self):
-        return self.service_provider.provide(self.service_class, actor=self.request.user)
+    def __init__(self, service: WorkspaceService | None = None, **kwargs):
+        super().__init__(**kwargs)
+        self.service = service or academic_service_provider.provide(WorkspaceService)
 
     def finalize_response(self, request, response, *args, **kwargs):
         response = super().finalize_response(request, response, *args, **kwargs)
         response["Cache-Control"] = "no-store"
         return response
 
-
-@controller("workspaces/instructor")
-class InstructorWorkspaceController(AcademicWorkspaceController):
+    @get()
     def get(self, request):
-        service = self.get_service()
-        offerings = service.instructor_offerings()
+        actor = getattr(request, "user", None)
+        offerings = self.service.instructor_offerings(actor=actor)
         return Response(
             {
                 "offerings": [
@@ -44,7 +42,7 @@ class InstructorWorkspaceController(AcademicWorkspaceController):
                                 or enrollment.student.username,
                                 "status": enrollment.status,
                             }
-                            for enrollment in service.instructor_roster(offering)
+                            for enrollment in self.service.instructor_roster(offering, actor=actor)
                         ],
                     }
                     for offering in offerings
@@ -54,9 +52,22 @@ class InstructorWorkspaceController(AcademicWorkspaceController):
 
 
 @controller("workspaces/student")
-class StudentWorkspaceController(AcademicWorkspaceController):
+class StudentWorkspaceController(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def __init__(self, service: WorkspaceService | None = None, **kwargs):
+        super().__init__(**kwargs)
+        self.service = service or academic_service_provider.provide(WorkspaceService)
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        response = super().finalize_response(request, response, *args, **kwargs)
+        response["Cache-Control"] = "no-store"
+        return response
+
+    @get()
     def get(self, request):
-        enrollments = self.get_service().student_enrollments()
+        actor = getattr(request, "user", None)
+        enrollments = self.service.student_enrollments(actor=actor)
         return Response(
             {
                 "courses": [
@@ -81,12 +92,24 @@ class StudentWorkspaceController(AcademicWorkspaceController):
 
 
 @controller("workspaces/coordinator")
-class CoordinatorWorkspaceController(AcademicWorkspaceController):
+class CoordinatorWorkspaceController(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def __init__(self, service: WorkspaceService | None = None, **kwargs):
+        super().__init__(**kwargs)
+        self.service = service or academic_service_provider.provide(WorkspaceService)
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        response = super().finalize_response(request, response, *args, **kwargs)
+        response["Cache-Control"] = "no-store"
+        return response
+
+    @get()
     def get(self, request):
-        service = self.get_service()
-        programs = service.coordinator_programs()
-        offerings = service.coordinator_offerings(programs)
-        memberships = service.coordinator_memberships(programs)
+        actor = getattr(request, "user", None)
+        programs = self.service.coordinator_programs(actor=actor)
+        offerings = self.service.coordinator_offerings(programs, actor=actor)
+        memberships = self.service.coordinator_memberships(programs, actor=actor)
         return Response(
             {
                 "programs": [
@@ -108,6 +131,6 @@ class CoordinatorWorkspaceController(AcademicWorkspaceController):
                     }
                     for offering in offerings
                 ],
-                "students": [service.membership_user_data(row) for row in memberships],
+                "students": [self.service.membership_user_data(row) for row in memberships],
             }
         )
