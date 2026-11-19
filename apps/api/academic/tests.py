@@ -4,7 +4,7 @@ from decimal import Decimal
 import pytest
 from access.models import RoleAssignment
 from django.contrib.auth import get_user_model
-from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.exceptions import ValidationError
 from django.db.models import ProtectedError
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -1118,9 +1118,18 @@ def test_unapproved_or_foreign_assessment_fails(gb):
 
 def test_unauthorized_actors_are_denied(gb):
     stranger = User.objects.create_user("stranger", password="x")
+    payload = {
+        "enrollment": str(gb["enrollment"].pk),
+        "assessment": str(gb["assessment"].pk),
+        "batch": str(gb["batch"].pk),
+        "state": "scored",
+        "points_earned": "8.00",
+    }
     for actor in (stranger, gb["student"]):
-        with pytest.raises(PermissionDenied):
-            enter(gb, actor=actor)
+        client = APIClient()
+        client.force_authenticate(actor)
+        response = client.post("/api/v1/grades/", payload, format="json")
+        assert response.status_code == 403
     assert Grade.objects.count() == 0
 
 

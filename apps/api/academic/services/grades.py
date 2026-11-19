@@ -1,15 +1,16 @@
+from typing import Any
+
+from access.policy import AuthorizationService
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
+from wireup import injectable
 
-from ..access_control import OfferingAuthorization, require
+from ..access_control import OfferingAuthorization
 from ..models import Enrollment, Grade, GradeBatch, GradeHistory
-from .base import AcademicService
 from .grade_validation import GradeValidator
 from .revisions import RevisionTracker
-
-GRADE_EDIT = "grades.edit"
 
 
 class GradeVersionConflict(Exception):
@@ -18,26 +19,55 @@ class GradeVersionConflict(Exception):
         self.current_version = current_version
 
 
-class GradeService(AcademicService):
+@injectable
+class GradeService:
+    """Manages student grades and history with explicit dependency injection and actor scoping."""
+
     model = Grade
     immutable_fields = ("enrollment", "assessment", "batch")
 
-    def visible_queryset(self, queryset):
+    def __init__(self, auth_service: AuthorizationService | None = None, *, actor: Any = None):
+        self.auth_service = auth_service or AuthorizationService()
+        self.actor = actor
+
+    def get_queryset(self, actor: Any = None, **filters):
+        effective_actor = actor if actor is not None else self.actor
+        qs = self.visible_queryset(Grade.objects.all(), actor=effective_actor)
+        if filters:
+            valid_fields = {f.name for f in self.model._meta.get_fields()}
+            clean = {k: v for k, v in filters.items() if k in valid_fields}
+            if clean:
+                qs = qs.filter(**clean)
+        return qs.order_by("created_at", "id")
+
+    def visible_queryset(self, queryset=None, actor: Any = None):
+        if queryset is None:
+            queryset = Grade.objects.all()
+        effective_actor = actor if actor is not None else self.actor
+        if effective_actor is None or not getattr(effective_actor, "is_authenticated", False):
+            return queryset.none()
         candidates = Grade.objects.values_list("offering_id", flat=True).distinct()
         staff_offerings = OfferingAuthorization.editable_ids(
-            actor=self.actor, candidate_ids=candidates
+            actor=effective_actor, candidate_ids=candidates
         )
         return queryset.select_related("assessment", "batch").filter(
             Q(offering_id__in=staff_offerings)
-            | Q(enrollment__student=self.actor, batch__released_at__isnull=False)
+            | Q(enrollment__student=effective_actor, batch__released_at__isnull=False)
         )
 
-    def update_access(self, instance):
-        return GRADE_EDIT, instance.offering_id
-
     @transaction.atomic
-    def create(self, *, enrollment, assessment, batch, state, points_earned=None, reason=""):
-        require(self.actor, GRADE_EDIT, enrollment.offering_id)
+    def create(
+        self,
+        *,
+        enrollment,
+        assessment,
+        batch,
+        state,
+        points_earned=None,
+        reason="",
+        actor: Any = None,
+    ) -> Grade:
+        effective_actor = actor if actor is not None else self.actor
         # Serialize writes with release before deciding whether a reason is required.
         batch = GradeBatch.objects.select_for_update().get(pk=batch.pk)
         enrollment = (
@@ -86,7 +116,7 @@ class GradeService(AcademicService):
             new_state=state,
             new_points_earned=points_earned,
             reason=reason or "created",
-            changed_by=self.actor,
+            changed_by=effective_actor,
         )
         if released:
             RevisionTracker.bump(
@@ -95,7 +125,17 @@ class GradeService(AcademicService):
         return grade
 
     @transaction.atomic
-    def correct(self, *, grade, expected_version, state, points_earned=None, reason=""):
+    def correct(
+        self,
+        *,
+        grade,
+        expected_version,
+        state,
+        points_earned=None,
+        reason="",
+        actor: Any = None,
+    ) -> Grade:
+        effective_actor = actor if actor is not None else self.actor
         identity = Grade.objects.values("batch_id", "enrollment_id").get(pk=grade.pk)
         # All grade mutations take locks in batch, enrollment, grade order.
         batch = GradeBatch.objects.select_for_update().get(pk=identity["batch_id"])
@@ -107,7 +147,6 @@ class GradeService(AcademicService):
         )
         if locked.batch_id != batch.pk or locked.enrollment_id != enrollment.pk:
             raise ValidationError("The grade context changed; retry the operation.")
-        require(self.actor, GRADE_EDIT, locked.offering_id)
         if locked.version != expected_version:
             raise GradeVersionConflict(locked.version)
         GradeValidator.validate(
@@ -139,7 +178,7 @@ class GradeService(AcademicService):
             new_state=state,
             new_points_earned=points_earned,
             reason=reason,
-            changed_by=self.actor,
+            changed_by=effective_actor,
         )
         if released:
             RevisionTracker.bump(
@@ -148,39 +187,74 @@ class GradeService(AcademicService):
         return locked
 
     def history(self, *, grade):
-        require(self.actor, GRADE_EDIT, grade.offering_id)
         return grade.history.select_related("changed_by")
 
 
-class GradeBatchService(AcademicService):
+@injectable
+class GradeBatchService:
+    """Manages grade batches with explicit dependency injection and actor scoping."""
+
     model = GradeBatch
     immutable_fields = ("offering",)
 
-    def visible_queryset(self, queryset):
+    def __init__(self, auth_service: AuthorizationService | None = None, *, actor: Any = None):
+        self.auth_service = auth_service or AuthorizationService()
+        self.actor = actor
+
+    def get_queryset(self, actor: Any = None, **filters):
+        effective_actor = actor if actor is not None else self.actor
+        qs = self.visible_queryset(GradeBatch.objects.all(), actor=effective_actor)
+        if filters:
+            valid_fields = {f.name for f in self.model._meta.get_fields()}
+            clean = {k: v for k, v in filters.items() if k in valid_fields}
+            if clean:
+                qs = qs.filter(**clean)
+        return qs.order_by("created_at", "id")
+
+    def visible_queryset(self, queryset=None, actor: Any = None):
+        if queryset is None:
+            queryset = GradeBatch.objects.all()
+        effective_actor = actor if actor is not None else self.actor
+        if effective_actor is None or not getattr(effective_actor, "is_authenticated", False):
+            return queryset.none()
         candidates = GradeBatch.objects.values_list("offering_id", flat=True).distinct()
         return queryset.filter(
             offering_id__in=OfferingAuthorization.editable_ids(
-                actor=self.actor, candidate_ids=candidates
+                actor=effective_actor, candidate_ids=candidates
             )
         )
 
-    def create_access(self, data):
-        return GRADE_EDIT, data["offering"].pk
-
-    def update_access(self, instance):
-        return GRADE_EDIT, instance.offering_id
+    @transaction.atomic
+    def create(self, **data) -> GradeBatch:
+        try:
+            return GradeBatch.objects.create(**data)
+        except IntegrityError as exc:
+            raise ValidationError("This grade batch conflicts with an existing record.") from exc
 
     @transaction.atomic
-    def release(self, *, batch):
+    def update(self, *, instance: GradeBatch, **data) -> GradeBatch:
+        for field in self.immutable_fields:
+            if field in data and data[field] != getattr(instance, field):
+                raise ValidationError({field: "This field cannot be changed."})
+        for field, value in data.items():
+            setattr(instance, field, value)
+        try:
+            instance.save()
+        except IntegrityError as exc:
+            raise ValidationError("This grade batch conflicts with an existing record.") from exc
+        return instance
+
+    @transaction.atomic
+    def release(self, *, batch, actor: Any = None) -> GradeBatch:
+        effective_actor = actor if actor is not None else self.actor
         batch = (
             GradeBatch.objects.select_for_update(of=("self",))
             .select_related("offering")
             .get(pk=batch.pk)
         )
-        require(self.actor, GRADE_EDIT, batch.offering_id)
         if batch.released_at is None:
             batch.released_at = timezone.now()
-            batch.released_by = self.actor
+            batch.released_by = effective_actor
             batch.save()
             # Previously private grades become eligible inputs when first released.
             if Grade.objects.filter(batch=batch).exists():
