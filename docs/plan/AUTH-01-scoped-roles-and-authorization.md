@@ -29,12 +29,12 @@ Roles bundle capabilities. Administrators may grant individual capabilities dire
 
 ## Acceptance criteria
 
-- [ ] Cross-student and cross-offering object-reference tests fail safely.
-- [ ] A coordinator cannot access another program's draft or grades.
-- [ ] An instructor cannot mutate an unassigned offering.
+- [x] Cross-student and cross-offering object-reference tests fail safely.
+- [x] A coordinator cannot access another program's draft or grades.
+- [x] An instructor cannot mutate an unassigned offering.
 - [x] A student cannot access unreleased grades, faculty previews, or another student's evidence.
-- [ ] Role/direct-capability assignment and revocation, and sensitive exports, are audited.
-- [ ] A direct grant authorizes only its named action and scope, and revoking it removes that access unless another applicable grant remains.
+- [x] Role/direct-capability assignment and revocation, and sensitive exports, are audited.
+- [x] A direct grant authorizes only its named action and scope, and revoking it removes that access unless another applicable grant remains.
 
 ## Implementation tasks
 
@@ -46,7 +46,7 @@ Roles bundle capabilities. Administrators may grant individual capabilities dire
 
 ## Implemented backend contract
 
-See [API authorization documentation](../../apps/api/README.md#scoped-authorization-auth-01)
+See [API authorization documentation](../../apps/api/README.md#scoped-authorization-auth-01--auth-02)
 for the assignment/revocation endpoints, role matrix, bootstrap procedure, and
 selector/service integration contract. The `access` application implements the
 centralized policy, database-backed scope ancestry, scoped roles, exact-scope

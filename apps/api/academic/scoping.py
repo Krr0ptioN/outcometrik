@@ -33,10 +33,27 @@ def scope_programs(user, qs):
     ).distinct()
 
 
+OFFERING_READ_CAPABILITIES = (
+    "offering.manage",
+    "grades.view",
+    "grades.edit",
+    "grades.release",
+    "syllabus.draft",
+)
+
+ENROLLMENT_STAFF_CAPABILITIES = (
+    "grades.view",
+    "grades.edit",
+    "grades.release",
+    "offering.manage",
+)
+
+
 def scope_offerings(user, qs):
-    return qs.filter(
-        Q(pk__in=_offering_ids(user)) | Q(pk__in=_student_offering_ids(user))
-    ).distinct()
+    staff_scopes = set()
+    for capability in OFFERING_READ_CAPABILITIES:
+        staff_scopes.update(_offering_ids(user, capability))
+    return qs.filter(Q(pk__in=staff_scopes) | Q(pk__in=_student_offering_ids(user))).distinct()
 
 
 def scope_syllabi(user, qs):
@@ -59,9 +76,12 @@ def scope_syllabi(user, qs):
 
 
 def scope_enrollments(user, qs):
-    # Students may see only their own roster row. Staff visibility comes from grades.view;
-    # student grants are deliberately ownership and release checked by policy selectors.
-    staff_scopes = _scope_ids(user, "grades.view", Scope.Kind.OFFERING)
+    # Students may see only their own roster row. Staff visibility comes from offering-level
+    # grade/management capabilities; student grants are deliberately ownership and release
+    # checked by policy selectors.
+    staff_scopes = set()
+    for capability in ENROLLMENT_STAFF_CAPABILITIES:
+        staff_scopes.update(_offering_ids(user, capability))
     student_scopes = _student_offering_ids(user)
     return qs.filter(
         Q(offering_id__in=staff_scopes) | Q(student=user, offering_id__in=student_scopes)

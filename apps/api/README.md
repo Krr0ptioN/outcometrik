@@ -48,7 +48,7 @@ and gradebook data, not a complete set of every downstream dashboard workflow.
 
 The only health endpoint is `/api/health/status`. It returns only `{ "status": "ok" }` or `{ "status": "unavailable" }`; dependency details are intentionally not exposed. For isolated local tests without PostgreSQL, set `DJANGO_DB_ENGINE=django.db.backends.sqlite3`.
 
-## Scoped authorization (AUTH-01)
+## Scoped authorization (AUTH-01 & AUTH-02)
 
 The `access` Django application in `libs/modules/access` follows `deep-research-report(2).md`: session
 identity, one server-side capability policy, scoped role assignments, exact-scope
@@ -304,7 +304,9 @@ admin, coordinator, instructor, then student.
 - `GET /api/v1/workspaces/coordinator/` returns only programs where the actor has
   `program.manage`, plus program memberships and offering enrollment counts.
 - `GET /api/v1/workspaces/instructor/` returns instructor-assigned offerings and their authorized
-  rosters. An exact `grades.view` grant can add its named offering.
+  rosters. An exact offering-scoped direct grant (`grades.view`, `grades.edit`, `grades.release`,
+  `offering.manage`, or `syllabus.draft`) also authorizes the named offering in the instructor
+  workspace and offering/enrollment querysets without requiring an `instructor` role assignment.
 - `GET /api/v1/workspaces/student/` returns only the signed-in student's own enrollments.
 
 These responses use `Cache-Control: no-store`. Gradebook and published PO records are not yet part
