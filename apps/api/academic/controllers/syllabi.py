@@ -1,30 +1,60 @@
-from rest_framework import status
-from rest_framework.decorators import action
+from rest_framework import mixins, status, viewsets
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from ..decorators import controller, validate_payload
+from ..decorators import (
+    controller,
+    delete,
+    get,
+    patch,
+    post,
+    require_permission,
+    validate_payload,
+)
 from ..serializers import (
     LearningOutcomeSerializer,
     SyllabusAssessmentSerializer,
     SyllabusCreateSerializer,
     SyllabusSerializer,
 )
-from ..services import SyllabusService
-from .base import AcademicController
+from ..services import SyllabusService, academic_service_provider
+from .base import AcademicPagination
 
 
 @controller("syllabi", basename="syllabus")
-class SyllabusController(AcademicController):
-    """HTTP surface for versioned syllabi. Lifecycle rules live in the service."""
+class SyllabusController(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+):
+    """HTTP surface for versioned syllabi with constructor injection and guard protection."""
 
     serializer_class = SyllabusSerializer
-    service_class = SyllabusService
-    filter_fields = ("offering", "status")
-    ordering = ("offering", "version")
+    permission_classes = [IsAuthenticated]
+    pagination_class = AcademicPagination
 
+    def __init__(self, service: SyllabusService | None = None, **kwargs):
+        super().__init__(**kwargs)
+        self.service = service or academic_service_provider.provide(SyllabusService)
+
+    def get_queryset(self):
+        filters = dict(self.request.query_params.items())
+        return self.service.get_queryset(actor=self.request.user, **filters)
+
+    @get()
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @get("{id}")
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+    @post()
+    @require_permission("syllabus.draft", scope_field="offering")
     @validate_payload(SyllabusCreateSerializer)
     def create(self, request, *args, payload=None, **kwargs):
-        syllabus = self.get_service().create(**payload)
+        syllabus = self.service.create(**payload)
         return Response(self.get_serializer(syllabus).data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
@@ -33,60 +63,51 @@ class SyllabusController(AcademicController):
     def partial_update(self, request, *args, **kwargs):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
-    @action(detail=True, methods=["post"])
+    @post("{id}/approve")
+    @require_permission("syllabus.approve", scope_field="offering.program")
     def approve(self, request, pk=None):
         syllabus = self.get_object()
-        approved = self.get_service().approve(syllabus=syllabus)
+        approved = self.service.approve(syllabus=syllabus, actor=request.user)
         return Response(self.get_serializer(approved).data)
 
-    @action(detail=True, methods=["post"])
+    @post("{id}/revise")
+    @require_permission("syllabus.draft", scope_field="offering")
     def revise(self, request, pk=None):
         syllabus = self.get_object()
-        revision = self.get_service().revise(syllabus=syllabus)
+        revision = self.service.revise(syllabus=syllabus)
         return Response(self.get_serializer(revision).data, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=["post"], url_path="bind-active-po-set")
+    @post("{id}/bind-active-po-set")
+    @require_permission("syllabus.draft", scope_field="offering")
     def bind_active_po_set(self, request, pk=None):
-        syllabus = self.get_service().bind_active_po_set(syllabus=self.get_object())
+        syllabus = self.service.bind_active_po_set(syllabus=self.get_object())
         return Response(self.get_serializer(syllabus).data)
 
-    @action(detail=True, methods=["post"], url_path="retire")
+    @post("{id}/retire")
+    @require_permission("syllabus.draft", scope_field="offering")
     def retire(self, request, pk=None):
         syllabus = self.get_object()
-        retired = self.get_service().remove_unused_draft(syllabus=syllabus)
+        retired = self.service.remove_unused_draft(syllabus=syllabus)
         return Response(self.get_serializer(retired).data)
 
-    @action(
-        detail=True,
-        methods=["get"],
-        url_path="learning-outcomes",
-        url_name="learning-outcomes",
-    )
+    @get("{id}/learning-outcomes", url_name="learning-outcomes")
     def list_learning_outcomes(self, request, pk=None):
         """Return draft LO rows for this syllabus version."""
         syllabus = self.get_object()
         queryset = syllabus.learning_outcomes.order_by("order", "created_at")
         return Response(LearningOutcomeSerializer(queryset, many=True).data)
 
-    @action(
-        detail=True,
-        methods=["post"],
-        url_path="learning-outcomes",
-        url_name="learning-outcomes",
-    )
+    @post("{id}/learning-outcomes", url_name="learning-outcomes")
+    @require_permission("syllabus.draft", scope_field="offering")
     @validate_payload(LearningOutcomeSerializer)
     def create_learning_outcome(self, request, pk=None, payload=None):
         """Add draft LO row for this syllabus version."""
         syllabus = self.get_object()
-        outcome = self.get_service().add_learning_outcome(syllabus=syllabus, **payload)
+        outcome = self.service.add_learning_outcome(syllabus=syllabus, **payload)
         return Response(LearningOutcomeSerializer(outcome).data, status=status.HTTP_201_CREATED)
 
-    @action(
-        detail=True,
-        methods=["patch"],
-        url_path=r"learning-outcomes/(?P<child_pk>[^/.]+)",
-        url_name="learning-outcome-detail",
-    )
+    @patch(r"{id}/learning-outcomes/(?P<child_pk>[^/.]+)", url_name="learning-outcome-detail")
+    @require_permission("syllabus.draft", scope_field="offering")
     @validate_payload(LearningOutcomeSerializer, partial=True)
     def update_learning_outcome(self, request, pk=None, child_pk=None, payload=None):
         """Edit one draft LO, scoped through its owning syllabus version."""
@@ -94,47 +115,40 @@ class SyllabusController(AcademicController):
         outcome = syllabus.learning_outcomes.filter(pk=child_pk).first()
         if outcome is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        updated = self.get_service().update_learning_outcome(instance=outcome, **payload)
+        updated = self.service.update_learning_outcome(instance=outcome, **payload)
         return Response(LearningOutcomeSerializer(updated).data)
 
-    @action(
-        detail=True,
-        methods=["delete"],
-        url_path=r"learning-outcomes/(?P<child_pk>[^/.]+)",
-        url_name="learning-outcome-detail",
-    )
+    @delete(r"{id}/learning-outcomes/(?P<child_pk>[^/.]+)", url_name="learning-outcome-detail")
+    @require_permission("syllabus.draft", scope_field="offering")
     def delete_learning_outcome(self, request, pk=None, child_pk=None):
         """Remove one draft LO, scoped through its owning syllabus version."""
         syllabus = self.get_object()
         outcome = syllabus.learning_outcomes.filter(pk=child_pk).first()
         if outcome is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        self.get_service().delete_learning_outcome(instance=outcome)
+        self.service.delete_learning_outcome(instance=outcome)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, methods=["get"], url_path="assessments", url_name="assessments")
+    @get("{id}/assessments", url_name="assessments")
     def list_assessments(self, request, pk=None):
         """Return draft assessment rows for this syllabus version."""
         syllabus = self.get_object()
         queryset = syllabus.assessments.order_by("order", "created_at")
         return Response(SyllabusAssessmentSerializer(queryset, many=True).data)
 
-    @action(detail=True, methods=["post"], url_path="assessments", url_name="assessments")
+    @post("{id}/assessments", url_name="assessments")
+    @require_permission("syllabus.draft", scope_field="offering")
     @validate_payload(SyllabusAssessmentSerializer)
     def create_assessment(self, request, pk=None, payload=None):
         """Add draft assessment row for this syllabus version."""
         syllabus = self.get_object()
-        assessment = self.get_service().add_assessment(syllabus=syllabus, **payload)
+        assessment = self.service.add_assessment(syllabus=syllabus, **payload)
         return Response(
             SyllabusAssessmentSerializer(assessment).data, status=status.HTTP_201_CREATED
         )
 
-    @action(
-        detail=True,
-        methods=["patch"],
-        url_path=r"assessments/(?P<child_pk>[^/.]+)",
-        url_name="assessment-detail",
-    )
+    @patch(r"{id}/assessments/(?P<child_pk>[^/.]+)", url_name="assessment-detail")
+    @require_permission("syllabus.draft", scope_field="offering")
     @validate_payload(SyllabusAssessmentSerializer, partial=True)
     def update_assessment(self, request, pk=None, child_pk=None, payload=None):
         """Edit one draft assessment, scoped through its owning syllabus version."""
@@ -142,20 +156,21 @@ class SyllabusController(AcademicController):
         assessment = syllabus.assessments.filter(pk=child_pk).first()
         if assessment is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        updated = self.get_service().update_assessment(instance=assessment, **payload)
+        updated = self.service.update_assessment(instance=assessment, **payload)
         return Response(SyllabusAssessmentSerializer(updated).data)
 
-    @action(
-        detail=True,
-        methods=["delete"],
-        url_path=r"assessments/(?P<child_pk>[^/.]+)",
-        url_name="assessment-detail",
-    )
+    @delete(r"{id}/assessments/(?P<child_pk>[^/.]+)", url_name="assessment-detail")
+    @require_permission("syllabus.draft", scope_field="offering")
     def delete_assessment(self, request, pk=None, child_pk=None):
         """Remove one draft assessment, scoped through its owning syllabus version."""
         syllabus = self.get_object()
         assessment = syllabus.assessments.filter(pk=child_pk).first()
         if assessment is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        self.get_service().delete_assessment(instance=assessment)
+        self.service.delete_assessment(instance=assessment)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        response = super().finalize_response(request, response, *args, **kwargs)
+        response["Cache-Control"] = "no-store"
+        return response

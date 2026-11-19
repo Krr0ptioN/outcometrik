@@ -1,9 +1,12 @@
+from typing import Any
+
+from access.policy import AuthorizationService
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.utils import timezone
+from wireup import injectable
 
 from .. import scoping
-from ..access_control import require
 from ..models import (
     CourseOffering,
     LearningOutcome,
@@ -12,19 +15,19 @@ from ..models import (
     Syllabus,
     SyllabusAssessment,
 )
-from .base import AcademicService
 from .revisions import RevisionTracker
 from .syllabus_validation import SyllabusValidator
 
 
-class SyllabusService(AcademicService):
+@injectable
+class SyllabusService:
     """Versioned syllabus lifecycle: draft, approve, revise.
 
     Draft configuration is editable; approval locks a version forever, and a
     revision clones the prior version into a new draft. Single-draft and
     single-official-version invariants are enforced with database constraints;
-    authorization is delegated to the scoped access policy (``syllabus.draft``
-    at the offering scope, ``syllabus.approve`` at the program scope).
+    authorization is delegated to controller-level guard policies ('syllabus.draft'
+    at the offering scope, 'syllabus.approve' at the program scope).
     """
 
     model = Syllabus
@@ -32,14 +35,27 @@ class SyllabusService(AcademicService):
     MANAGED_FIELDS = ("code", "description", "order")
     ASSESSMENT_FIELDS = ("code", "kind", "order", "is_required", "is_active", "max_points")
 
-    def visible_queryset(self, queryset):
-        return scoping.scope_syllabi(self.actor, queryset)
+    def __init__(self, auth_service: AuthorizationService | None = None, *, actor: Any = None):
+        self.auth_service = auth_service or AuthorizationService()
+        self.actor = actor
 
-    def create_access(self, data):
-        return "syllabus.draft", data["offering"].pk
+    def get_queryset(self, actor: Any = None, **filters):
+        effective_actor = actor if actor is not None else self.actor
+        qs = self.visible_queryset(Syllabus.objects.all(), actor=effective_actor)
+        if filters:
+            valid_fields = {f.name for f in self.model._meta.get_fields()}
+            clean = {k: v for k, v in filters.items() if k in valid_fields}
+            if clean:
+                qs = qs.filter(**clean)
+        return qs.order_by("offering", "version")
 
-    def update_access(self, instance):
-        return "syllabus.draft", instance.offering_id
+    def visible_queryset(self, queryset=None, actor: Any = None):
+        if queryset is None:
+            queryset = Syllabus.objects.all()
+        effective_actor = actor if actor is not None else self.actor
+        return scoping.scope_syllabi(effective_actor, queryset).prefetch_related(
+            "learning_outcomes", "assessments"
+        )
 
     # -- helpers ---------------------------------------------------------
 
@@ -54,9 +70,8 @@ class SyllabusService(AcademicService):
     # -- lifecycle -------------------------------------------------------
 
     @transaction.atomic
-    def create(self, *, offering, po_set_version=None):
+    def create(self, *, offering, po_set_version=None, **extra) -> Syllabus:
         offering = self._lock_offering_row(offering.pk)
-        require(self.actor, "syllabus.draft", offering.pk)
         active_set = (
             ProgramOutcomeSet.objects.filter(
                 program_id=offering.program_id,
@@ -86,7 +101,23 @@ class SyllabusService(AcademicService):
         return syllabus
 
     @transaction.atomic
-    def approve(self, *, syllabus):
+    def update(self, *, instance: Syllabus, **data) -> Syllabus:
+        for field in self.immutable_fields:
+            if field in data and data[field] != getattr(instance, field):
+                raise ValidationError({field: "This field cannot be changed."})
+        for field, value in data.items():
+            setattr(instance, field, value)
+        try:
+            instance.save()
+        except IntegrityError as exc:
+            raise ValidationError(
+                "A conflicting syllabus version exists for this offering."
+            ) from exc
+        return instance
+
+    @transaction.atomic
+    def approve(self, *, syllabus, actor: Any = None) -> Syllabus:
+        effective_actor = actor or self.actor
         Program.objects.select_for_update().get(pk=syllabus.offering.program_id)
         # Lock every version row of this offering so no concurrent approve/create slips in.
         offering_versions = Syllabus.objects.select_for_update().filter(
@@ -94,9 +125,6 @@ class SyllabusService(AcademicService):
         )
         syllabus = offering_versions.select_related("offering").get(pk=syllabus.pk)
         offering = syllabus.offering
-        # Approval authority is program-scoped: coordinators approve their program's
-        # offerings. Instructors hold only offering-scoped roles and cannot approve.
-        require(self.actor, "syllabus.approve", offering.program_id)
         active_set = (
             ProgramOutcomeSet.objects.filter(
                 program_id=offering.program_id,
@@ -113,7 +141,7 @@ class SyllabusService(AcademicService):
             status=Syllabus.Status.RETIRED
         )
         syllabus.status = Syllabus.Status.APPROVED
-        syllabus.approved_by = self.actor
+        syllabus.approved_by = effective_actor
         syllabus.approved_at = timezone.now()
         try:
             with transaction.atomic():
@@ -127,12 +155,11 @@ class SyllabusService(AcademicService):
         return syllabus
 
     @transaction.atomic
-    def revise(self, *, syllabus):
+    def revise(self, *, syllabus) -> Syllabus:
         syllabus = (
             Syllabus.objects.select_for_update().select_related("offering").get(pk=syllabus.pk)
         )
         offering = syllabus.offering
-        require(self.actor, "syllabus.draft", offering.pk)
         SyllabusValidator.validate_revision(syllabus, offering)
         version = offering.syllabi.count() + 1
         revision = Syllabus(
@@ -172,11 +199,10 @@ class SyllabusService(AcademicService):
         return revision
 
     @transaction.atomic
-    def bind_active_po_set(self, *, syllabus):
+    def bind_active_po_set(self, *, syllabus) -> Syllabus:
         syllabus = (
             Syllabus.objects.select_for_update().select_related("offering").get(pk=syllabus.pk)
         )
-        require(self.actor, "syllabus.draft", syllabus.offering_id)
         active = (
             ProgramOutcomeSet.objects.filter(
                 program_id=syllabus.offering.program_id,
@@ -194,9 +220,8 @@ class SyllabusService(AcademicService):
     # -- draft-time mutation of children ---------------------------------
 
     @transaction.atomic
-    def add_learning_outcome(self, *, syllabus, **data):
+    def add_learning_outcome(self, *, syllabus, **data) -> LearningOutcome:
         syllabus = Syllabus.objects.select_for_update().get(pk=syllabus.pk)
-        require(self.actor, "syllabus.draft", syllabus.offering_id)
         self._editable(syllabus)
         try:
             with transaction.atomic():
@@ -207,9 +232,8 @@ class SyllabusService(AcademicService):
             ) from exc
 
     @transaction.atomic
-    def add_assessment(self, *, syllabus, **data):
+    def add_assessment(self, *, syllabus, **data) -> SyllabusAssessment:
         syllabus = Syllabus.objects.select_for_update().get(pk=syllabus.pk)
-        require(self.actor, "syllabus.draft", syllabus.offering_id)
         self._editable(syllabus)
         SyllabusValidator.validate_assessment_points(data.get("max_points"))
         try:
@@ -221,9 +245,8 @@ class SyllabusService(AcademicService):
             ) from exc
 
     @transaction.atomic
-    def update_learning_outcome(self, *, instance, **data):
+    def update_learning_outcome(self, *, instance, **data) -> LearningOutcome:
         instance.syllabus = Syllabus.objects.select_for_update().get(pk=instance.syllabus_id)
-        require(self.actor, "syllabus.draft", instance.syllabus.offering_id)
         self._editable(instance.syllabus)
         for field in self.MANAGED_FIELDS:
             if field in data:
@@ -238,9 +261,8 @@ class SyllabusService(AcademicService):
         return instance
 
     @transaction.atomic
-    def update_assessment(self, *, instance, **data):
+    def update_assessment(self, *, instance, **data) -> SyllabusAssessment:
         instance.syllabus = Syllabus.objects.select_for_update().get(pk=instance.syllabus_id)
-        require(self.actor, "syllabus.draft", instance.syllabus.offering_id)
         self._editable(instance.syllabus)
         for field in self.ASSESSMENT_FIELDS:
             if field in data:
@@ -256,23 +278,21 @@ class SyllabusService(AcademicService):
         return instance
 
     @transaction.atomic
-    def delete_learning_outcome(self, *, instance):
+    def delete_learning_outcome(self, *, instance) -> None:
         syllabus = Syllabus.objects.select_for_update().get(pk=instance.syllabus_id)
-        require(self.actor, "syllabus.draft", syllabus.offering_id)
         self._editable(syllabus)
         instance.delete()
 
     @transaction.atomic
-    def delete_assessment(self, *, instance):
+    def delete_assessment(self, *, instance) -> None:
         syllabus = Syllabus.objects.select_for_update().get(pk=instance.syllabus_id)
-        require(self.actor, "syllabus.draft", syllabus.offering_id)
         self._editable(syllabus)
         instance.delete()
 
     # -- deletion ----------------------------------------------------------
 
     @transaction.atomic
-    def remove_unused_draft(self, *, syllabus):
+    def remove_unused_draft(self, *, syllabus) -> Syllabus:
         """Retire an empty draft version; referenced versions stay untouched.
 
         Referenced means holding LO/assessment rows or having been approved.
@@ -283,7 +303,6 @@ class SyllabusService(AcademicService):
         syllabus = (
             Syllabus.objects.select_for_update().select_related("offering").get(pk=syllabus.pk)
         )
-        require(self.actor, "syllabus.draft", syllabus.offering_id)
         SyllabusValidator.validate_draft_removal(syllabus)
         Syllabus.objects.filter(pk=syllabus.pk).update(status=Syllabus.Status.RETIRED)
         syllabus.status = Syllabus.Status.RETIRED

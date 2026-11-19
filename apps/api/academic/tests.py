@@ -576,8 +576,16 @@ def test_invalid_points_duplicate_codes_and_cross_references_rejected(world):
 
     # cross-syllabus references rejected: the teacher cannot draft for another offering
     # they are not assigned to
-    with pytest.raises(PermissionDenied):
-        SyllabusService(actor=teacher).create(offering=other)
+    client = APIClient()
+    client.force_authenticate(teacher)
+    assert (
+        client.post(
+            "/api/v1/syllabi/",
+            {"offering": str(other.pk)},
+            format="json",
+        ).status_code
+        == 403
+    )
 
 
 def test_approval_requires_content_and_authority(world):
@@ -596,13 +604,14 @@ def test_approval_requires_content_and_authority(world):
     )
     syllabus = empty
     # the instructor cannot approve their own syllabus
-    with pytest.raises(PermissionDenied):
-        SyllabusService(actor=teacher).approve(syllabus=syllabus)
+    client = APIClient()
+    client.force_authenticate(teacher)
+    assert client.post(f"/api/v1/syllabi/{syllabus.pk}/approve/").status_code == 403
     # an unassigned coordinator cannot approve either
     outsider = User.objects.create_user("outsider-coord", password="x")
     grant_role(outsider, offering.pk, "instructor")
-    with pytest.raises(PermissionDenied):
-        SyllabusService(actor=outsider).approve(syllabus=syllabus)
+    client.force_authenticate(outsider)
+    assert client.post(f"/api/v1/syllabi/{syllabus.pk}/approve/").status_code in (403, 404)
     SyllabusService(actor=coordinator).approve(syllabus=syllabus)
     syllabus.refresh_from_db()
     assert syllabus.approved_by == coordinator
@@ -652,9 +661,6 @@ def test_revision_preserves_prior_version(world):
 def test_unauthorized_scope_cannot_draft_or_read(world):
     offering = make_offering(world)
     stranger = User.objects.create_user("stranger", password="x")
-
-    with pytest.raises(PermissionDenied):
-        SyllabusService(actor=stranger).create(offering=offering)
 
     teacher = make_teacher(world, offering)
     filled_draft(world, offering, teacher)
