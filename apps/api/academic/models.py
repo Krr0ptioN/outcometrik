@@ -750,7 +750,6 @@ class ProgramOutcome(TimestampedModel):
         super().save(*args, **kwargs)
 
 
-
 class CoursePOContribution(DraftOnlyModel):
     """Course-to-PO contribution weight (integer 1-5) for one syllabus version and bound PO."""
 
@@ -777,6 +776,7 @@ class CoursePOContribution(DraftOnlyModel):
 
     def __str__(self) -> str:
         return f"{self.syllabus_id}:{self.program_outcome_id}={self.weight}"
+
 
 class AssessmentLOMapping(DraftOnlyModel):
     """Relative weight mapping from a syllabus assessment to a learning outcome."""

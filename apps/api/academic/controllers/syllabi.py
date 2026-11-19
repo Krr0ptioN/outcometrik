@@ -12,12 +12,9 @@ from ..decorators import (
     validate_payload,
 )
 from ..serializers import (
-
-    CoursePOContributionSerializer,
-
     AssessmentLOMappingSerializer,
     AssessmentLOMatrixReplaceSerializer,
-
+    CoursePOContributionSerializer,
     LearningOutcomeSerializer,
     LOPOMappingSerializer,
     LOPOMatrixReplaceSerializer,
@@ -182,7 +179,6 @@ class SyllabusController(
         self.service.delete_assessment(instance=assessment)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-
     @get("{id}/po-contributions", url_name="po-contributions")
     def list_po_contributions(self, request, pk=None):
         """Return course-to-PO contribution weight rows for this syllabus version."""
@@ -304,7 +300,6 @@ class SyllabusController(
         syllabus = self.get_object()
         report = self.service.validate_mappings(syllabus=syllabus)
         return Response(report)
-
 
     def finalize_response(self, request, response, *args, **kwargs):
         response = super().finalize_response(request, response, *args, **kwargs)

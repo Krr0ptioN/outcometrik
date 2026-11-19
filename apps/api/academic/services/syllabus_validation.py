@@ -5,10 +5,7 @@ from typing import Any
 
 from django.core.exceptions import ValidationError
 
-
 from .. import policy
-from ..models import Syllabus
-
 from ..models import LearningOutcome, ProgramOutcome, Syllabus, SyllabusAssessment
 
 
@@ -18,7 +15,6 @@ class SyllabusMappingVersionConflict(Exception):
     def __init__(self, current_revision: int):
         super().__init__("The syllabus mapping matrix was modified by another user.")
         self.current_revision = current_revision
-
 
 
 class SyllabusValidator:
@@ -78,12 +74,9 @@ class SyllabusValidator:
         if (
             syllabus.learning_outcomes.exists()
             or syllabus.assessments.exists()
-
             or syllabus.po_contributions.exists()
-
             or syllabus.assessment_lo_mappings.exists()
             or syllabus.lo_po_mappings.exists()
-
         ):
             raise ValidationError(
                 "This syllabus version holds configuration; revise instead of removing it."
@@ -96,7 +89,6 @@ class SyllabusValidator:
             raise ValidationError({"max_points": "Maximum points must be greater than zero."})
 
     @staticmethod
-
     def validate_po_contribution(syllabus, program_outcome, weight):
         """Ensure course-to-PO contribution weight is integer 1..5 and bound to program's PO set."""
         SyllabusValidator.validate_editable(syllabus)

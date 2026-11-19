@@ -185,7 +185,6 @@ class SyllabusService:
             offering=offering,
             version=version,
             status=Syllabus.Status.DRAFT,
-
             po_set_version=target_po_set_version,
         )
         try:

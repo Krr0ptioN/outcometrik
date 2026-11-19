@@ -24,6 +24,7 @@ export interface CoursePOContribution {
   weight: number;
   governance_role?: string;
   governance_level?: string;
+}
 
 export interface AssessmentLOMapping {
   id?: string;

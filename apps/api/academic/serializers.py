@@ -231,7 +231,6 @@ class AssessmentSerializer(AcademicSerializer):
         read_only_fields = fields
 
 
-
 class StrictWeightIntegerField(serializers.Field):
     """Integer field that rejects booleans, floats, decimals, and fractional strings."""
 
@@ -295,6 +294,7 @@ class CoursePOContributionSerializer(AcademicSerializer):
 
     def get_governance_level(self, obj) -> str:
         return policy.COURSE_PO_WEIGHT_DEFAULT_LEVEL
+
 
 class AssessmentLOMappingSerializer(AcademicSerializer):
     class Meta:
@@ -361,7 +361,6 @@ class LOPOMatrixReplaceSerializer(serializers.Serializer):
     mappings = LOPOMappingEntrySerializer(many=True)
 
 
-
 class SyllabusSerializer(AcademicSerializer):
     """A syllabus version with its draft-editable children."""
 
@@ -372,7 +371,6 @@ class SyllabusSerializer(AcademicSerializer):
 
     assessment_lo_mappings = AssessmentLOMappingSerializer(many=True, read_only=True)
     lo_po_mappings = LOPOMappingSerializer(many=True, read_only=True)
-
 
     class Meta:
         model = Syllabus
@@ -387,12 +385,9 @@ class SyllabusSerializer(AcademicSerializer):
             "mapping_revision",
             "learning_outcomes",
             "assessments",
-
             "po_contributions",
-
             "assessment_lo_mappings",
             "lo_po_mappings",
-
             "created_at",
             "updated_at",
         ]

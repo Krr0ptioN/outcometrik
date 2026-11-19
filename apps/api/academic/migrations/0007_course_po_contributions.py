@@ -8,7 +8,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("academic", "0005_syllabi"),
+        ("academic", "0006_syllabus_mappings"),
     ]
 
     operations = [
