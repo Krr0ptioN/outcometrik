@@ -24,16 +24,15 @@ As a coordinator, I can assign a course's relevance for each mapped PO, so cumul
 
 ## Acceptance criteria
 
-- [ ] Authorized coordinators can set and review integer weights 1–5.
-- [ ] Decimal, zero, negative, and greater-than-five values are rejected.
-- [ ] The cumulative example `(85×5 + 90×3)/8 = 86.9` is reproducible.
-- [ ] Contribution changes invalidate current calculations without mutating publications.
-- [ ] Unmapped POs are not assigned misleading contribution scores.
+- [x] Authorized coordinators can set and review integer weights 1–5.
+- [x] Decimal, zero, negative, and greater-than-five values are rejected.
+- [x] The cumulative example `(85×5 + 90×3)/8 = 86.9` is reproducible.
+- [x] Contribution changes invalidate current calculations without mutating publications.
+- [x] Unmapped POs are not assigned misleading contribution scores.
 ## Implementation tasks
 
-- [ ] Confirm API/data contract and authorization scope against the owning domain module.
-- [ ] Implement the smallest vertical slice that satisfies the acceptance criteria.
-- [ ] Add focused unit/integration coverage for success, invalid input, and denied scope.
-- [ ] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
-- [ ] Update API/UI documentation and verify downstream stories remain compatible.
-
+- [x] Confirm API/data contract and authorization scope against the owning domain module.
+- [x] Implement the smallest vertical slice that satisfies the acceptance criteria.
+- [x] Add focused unit/integration coverage for success, invalid input, and denied scope.
+- [x] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
+- [x] Update API/UI documentation and verify downstream stories remain compatible.

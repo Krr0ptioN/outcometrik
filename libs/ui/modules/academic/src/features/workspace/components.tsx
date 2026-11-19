@@ -414,6 +414,7 @@ export function CoordinatorAcademicOverview() {
                           </Badge>
                           <SyllabusWorkspace
                             offering={offering.id}
+                            programId={program.id}
                             canDraft
                             canApprove
                           />

@@ -12,6 +12,7 @@ from ..decorators import (
     validate_payload,
 )
 from ..serializers import (
+    CoursePOContributionSerializer,
     LearningOutcomeSerializer,
     SyllabusAssessmentSerializer,
     SyllabusCreateSerializer,
@@ -168,6 +169,57 @@ class SyllabusController(
         if assessment is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
         self.service.delete_assessment(instance=assessment)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @get("{id}/po-contributions", url_name="po-contributions")
+    def list_po_contributions(self, request, pk=None):
+        """Return course-to-PO contribution weight rows for this syllabus version."""
+        syllabus = self.get_object()
+        queryset = self.service.list_po_contributions(syllabus=syllabus)
+        return Response(CoursePOContributionSerializer(queryset, many=True).data)
+
+    @post("{id}/po-contributions", url_name="po-contributions")
+    @require_permission("syllabus.approve", scope_field="offering.program")
+    @validate_payload(CoursePOContributionSerializer)
+    def create_po_contribution(self, request, pk=None, payload=None):
+        """Assign or update a course-to-PO contribution weight (integer 1-5) on a draft syllabus."""
+        syllabus = self.get_object()
+        contribution = self.service.set_po_contribution(
+            syllabus=syllabus,
+            program_outcome=payload["program_outcome"],
+            weight=payload["weight"],
+        )
+        return Response(
+            CoursePOContributionSerializer(contribution).data, status=status.HTTP_201_CREATED
+        )
+
+    @patch(r"{id}/po-contributions/(?P<child_pk>[^/.]+)", url_name="po-contribution-detail")
+    @require_permission("syllabus.approve", scope_field="offering.program")
+    @validate_payload(CoursePOContributionSerializer, partial=True)
+    def update_po_contribution(self, request, pk=None, child_pk=None, payload=None):
+        """Update one course-to-PO contribution weight on a draft syllabus."""
+        syllabus = self.get_object()
+        contribution = (
+            syllabus.po_contributions.select_related("program_outcome").filter(pk=child_pk).first()
+        )
+        if contribution is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        updated = self.service.set_po_contribution(
+            syllabus=syllabus,
+            program_outcome=payload.get("program_outcome", contribution.program_outcome),
+            weight=payload.get("weight", contribution.weight),
+        )
+        return Response(CoursePOContributionSerializer(updated).data)
+
+    @delete(r"{id}/po-contributions/(?P<child_pk>[^/.]+)", url_name="po-contribution-detail")
+    @require_permission("syllabus.approve", scope_field="offering.program")
+    def delete_po_contribution(self, request, pk=None, child_pk=None):
+        """Remove one course-to-PO contribution weight from a draft syllabus."""
+        syllabus = self.get_object()
+        contribution = syllabus.po_contributions.filter(pk=child_pk).first()
+        if contribution is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        self.service.delete_po_contribution(instance=contribution)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def finalize_response(self, request, response, *args, **kwargs):

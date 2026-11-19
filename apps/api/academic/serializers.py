@@ -1,10 +1,12 @@
 from rest_framework import serializers
 
+from . import policy
 from .models import (
     AcademicTerm,
     Assessment,
     Course,
     CourseOffering,
+    CoursePOContribution,
     Department,
     Enrollment,
     EnrollmentStatusEvent,
@@ -227,11 +229,77 @@ class AssessmentSerializer(AcademicSerializer):
         read_only_fields = fields
 
 
+class StrictWeightIntegerField(serializers.Field):
+    """Integer field that rejects booleans, floats, decimals, and fractional strings."""
+
+    def to_representation(self, value):
+        return int(value)
+
+    def to_internal_value(self, data):
+        if isinstance(data, bool):
+            raise serializers.ValidationError("A valid integer between 1 and 5 is required.")
+        if isinstance(data, int):
+            val = data
+        elif isinstance(data, str):
+            stripped = data.strip()
+            if not stripped or not (
+                stripped.isdigit() or (stripped.startswith("-") and stripped[1:].isdigit())
+            ):
+                raise serializers.ValidationError("A valid integer between 1 and 5 is required.")
+            val = int(stripped)
+        else:
+            raise serializers.ValidationError("A valid integer between 1 and 5 is required.")
+
+        if not policy.is_valid_course_po_weight(val):
+            raise serializers.ValidationError(
+                f"Course-to-PO contribution weight must be an integer between "
+                f"{policy.MIN_COURSE_PO_WEIGHT} and {policy.MAX_COURSE_PO_WEIGHT}."
+            )
+        return val
+
+
+class CoursePOContributionSerializer(AcademicSerializer):
+    program_outcome_code = serializers.CharField(source="program_outcome.code", read_only=True)
+    weight = StrictWeightIntegerField()
+    governance_role = serializers.SerializerMethodField()
+    governance_level = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CoursePOContribution
+        fields = [
+            "id",
+            "syllabus",
+            "program_outcome",
+            "program_outcome_code",
+            "weight",
+            "governance_role",
+            "governance_level",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "syllabus",
+            "program_outcome_code",
+            "governance_role",
+            "governance_level",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_governance_role(self, obj) -> str:
+        return policy.COURSE_PO_WEIGHT_GOVERNANCE_ROLE
+
+    def get_governance_level(self, obj) -> str:
+        return policy.COURSE_PO_WEIGHT_DEFAULT_LEVEL
+
+
 class SyllabusSerializer(AcademicSerializer):
     """A syllabus version with its draft-editable children."""
 
     learning_outcomes = LearningOutcomeSerializer(many=True, read_only=True)
     assessments = SyllabusAssessmentSerializer(many=True, read_only=True)
+    po_contributions = CoursePOContributionSerializer(many=True, read_only=True)
 
     class Meta:
         model = Syllabus
@@ -245,6 +313,7 @@ class SyllabusSerializer(AcademicSerializer):
             "po_set_version",
             "learning_outcomes",
             "assessments",
+            "po_contributions",
             "created_at",
             "updated_at",
         ]

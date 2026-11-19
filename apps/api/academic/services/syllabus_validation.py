@@ -2,6 +2,7 @@
 
 from django.core.exceptions import ValidationError
 
+from .. import policy
 from ..models import Syllabus
 
 
@@ -55,7 +56,11 @@ class SyllabusValidator:
     def validate_draft_removal(syllabus):
         """Ensure only an empty draft holding no configuration can be retired."""
         SyllabusValidator.validate_editable(syllabus)
-        if syllabus.learning_outcomes.exists() or syllabus.assessments.exists():
+        if (
+            syllabus.learning_outcomes.exists()
+            or syllabus.assessments.exists()
+            or syllabus.po_contributions.exists()
+        ):
             raise ValidationError(
                 "This syllabus version holds configuration; revise instead of removing it."
             )
@@ -65,3 +70,36 @@ class SyllabusValidator:
         """Ensure assessment max_points is strictly positive."""
         if max_points is not None and max_points <= 0:
             raise ValidationError({"max_points": "Maximum points must be greater than zero."})
+
+    @staticmethod
+    def validate_po_contribution(syllabus, program_outcome, weight):
+        """Ensure course-to-PO contribution weight is integer 1..5 and bound to program's PO set."""
+        SyllabusValidator.validate_editable(syllabus)
+        if not policy.is_valid_course_po_weight(weight):
+            raise ValidationError(
+                {
+                    "weight": (
+                        f"Course-to-PO contribution weight must be an integer between "
+                        f"{policy.MIN_COURSE_PO_WEIGHT} and {policy.MAX_COURSE_PO_WEIGHT}."
+                    )
+                }
+            )
+        if program_outcome is None:
+            raise ValidationError({"program_outcome": "A valid program outcome is required."})
+        outcome_set = program_outcome.outcome_set
+        if outcome_set.program_id != syllabus.offering.program_id:
+            raise ValidationError(
+                {
+                    "program_outcome": (
+                        "Program outcome must belong to the offering's program outcome set."
+                    )
+                }
+            )
+        if syllabus.po_set_version is None or outcome_set.version != syllabus.po_set_version:
+            raise ValidationError(
+                {
+                    "program_outcome": (
+                        "Program outcome version does not match the syllabus bound PO-set version."
+                    )
+                }
+            )

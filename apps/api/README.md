@@ -204,6 +204,7 @@ paginated (`page`, `page_size`, default 50, max 200) and filterable by query par
 | `/syllabi/{id}/bind-active-po-set/` | POST | bind a draft to the current active PO-set version |
 | `/syllabi/{id}/learning-outcomes/` | GET, POST, PATCH `{childId}` | draft LO rows |
 | `/syllabi/{id}/assessments/` | GET, POST, PATCH `{childId}` | draft assessment rows |
+| `/syllabi/{id}/po-contributions/` | GET, POST, PATCH/DELETE `{childId}` | coordinator-governed 1–5 course-to-PO contribution weights |
 | `/syllabi/{id}/approve/` | POST | coordinator approval |
 | `/syllabi/{id}/revise/` | POST | clone approved into new draft |
 | `/syllabi/{id}/retire/` | POST | retire an empty draft |

@@ -747,3 +747,31 @@ class ProgramOutcome(TimestampedModel):
         if self.outcome_set.status == ProgramOutcomeSet.Status.ACTIVE:
             raise ValidationError("Outcomes of an active set are immutable.")
         super().save(*args, **kwargs)
+
+
+class CoursePOContribution(DraftOnlyModel):
+    """Course-to-PO contribution weight (integer 1-5) for one syllabus version and bound PO."""
+
+    syllabus = models.ForeignKey(
+        Syllabus, on_delete=models.PROTECT, related_name="po_contributions"
+    )
+    program_outcome = models.ForeignKey(
+        ProgramOutcome, on_delete=models.PROTECT, related_name="course_contributions"
+    )
+    weight = models.PositiveSmallIntegerField()
+
+    class Meta:
+        ordering = ["program_outcome__ordering", "created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["syllabus", "program_outcome"],
+                name="uniq_syllabus_po_contribution",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(weight__gte=1, weight__lte=5),
+                name="course_po_contribution_weight_1_to_5",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.syllabus_id}:{self.program_outcome_id}={self.weight}"

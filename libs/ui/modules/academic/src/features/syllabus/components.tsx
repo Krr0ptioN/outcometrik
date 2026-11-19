@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
 import { errorMessage } from '@outcometrik/access';
 import {
+  Badge,
   Button,
   Field,
   FieldGroup,
@@ -17,8 +18,11 @@ import {
   getProgramOutcomes,
   type ProgramOutcomeSet,
   changeSyllabus,
+  deleteSyllabusPOContribution,
   getSyllabi,
+  saveSyllabusPOContribution,
   type Assessment,
+  type CoursePOContribution,
   type Outcome,
   type Syllabus,
 } from './api';
@@ -187,12 +191,189 @@ function AssessmentForm({
     </form>
   );
 }
+
+function CoursePOContributionSection({
+  syllabus,
+  programId,
+  canApprove,
+  onChanged,
+}: {
+  syllabus: Syllabus;
+  programId?: string;
+  canApprove: boolean;
+  onChanged: () => void;
+}) {
+  const poSetsQuery = useQuery({
+    queryKey: ['academic', 'po-sets', programId],
+    queryFn: ({ signal }) => getProgramOutcomeSets(programId ?? '', signal),
+    enabled: Boolean(programId),
+  });
+  const boundSet = poSetsQuery.data?.find(
+    (item) => item.version === syllabus.po_set_version,
+  );
+  const outcomesQuery = useQuery({
+    queryKey: ['academic', 'po-set-outcomes', boundSet?.id],
+    queryFn: ({ signal }) => getProgramOutcomes(boundSet?.id ?? '', signal),
+    enabled: Boolean(boundSet?.id),
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: ({
+      program_outcome,
+      weight,
+      contributionId,
+    }: {
+      program_outcome: string;
+      weight: number;
+      contributionId?: string;
+    }) =>
+      saveSyllabusPOContribution(
+        syllabus.id,
+        { program_outcome, weight },
+        contributionId,
+      ),
+    onSuccess: () => onChanged(),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (contributionId: string) =>
+      deleteSyllabusPOContribution(syllabus.id, contributionId),
+    onSuccess: () => onChanged(),
+  });
+
+  const contributions: CoursePOContribution[] = syllabus.po_contributions ?? [];
+  const isEditable = canApprove && syllabus.status === 'draft';
+  const pending = saveMutation.isPending || deleteMutation.isPending;
+
+  return (
+    <section
+      className="space-y-3"
+      aria-label="Course-to-PO Contribution Weights (1–5)"
+    >
+      <div className="space-y-1">
+        <h4 className="font-medium">Course-to-PO Contribution Weights (1–5)</h4>
+        <p className="text-xs text-muted-foreground">
+          Governance policy: Program Coordinator at offering syllabus version
+          level. Unmapped POs produce <code>NOT_ASSESSED</code> (never 0).
+        </p>
+      </div>
+      {syllabus.status === 'approved' && (
+        <p className="text-xs text-muted-foreground">
+          This syllabus version is approved and its contribution weights are
+          locked. Create a new syllabus revision to change weights (which marks
+          prior calculations stale without mutating earlier publications).
+        </p>
+      )}
+      {saveMutation.isError && (
+        <p role="alert">{errorMessage(saveMutation.error)}</p>
+      )}
+      {deleteMutation.isError && (
+        <p role="alert">{errorMessage(deleteMutation.error)}</p>
+      )}
+      {outcomesQuery.isPending && boundSet && (
+        <p role="status">Loading bound program outcomes…</p>
+      )}
+      {outcomesQuery.isError && (
+        <p role="alert">{errorMessage(outcomesQuery.error)}</p>
+      )}
+      {outcomesQuery.data ? (
+        <ul className="space-y-2">
+          {outcomesQuery.data.map((po) => {
+            const existing = contributions.find(
+              (c) =>
+                c.program_outcome === po.id ||
+                c.program_outcome_code === po.code,
+            );
+            return (
+              <li
+                key={po.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded border p-2 text-sm"
+              >
+                <div>
+                  <span className="font-medium">{po.code}</span>: {po.label}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {existing ? (
+                    <Badge variant="outline">Weight {existing.weight}/5</Badge>
+                  ) : (
+                    <Badge variant="secondary">Not mapped (NOT_ASSESSED)</Badge>
+                  )}
+                  {isEditable && (
+                    <form
+                      className="flex items-center gap-2"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        const data = new FormData(event.currentTarget);
+                        const rawWeight = Number(data.get('weight'));
+                        saveMutation.mutate({
+                          program_outcome: po.id,
+                          weight: rawWeight,
+                          contributionId: existing?.id,
+                        });
+                      }}
+                    >
+                      <label className="sr-only" htmlFor={`po-weight-${po.id}`}>
+                        {po.code} contribution weight
+                      </label>
+                      <NativeSelect
+                        id={`po-weight-${po.id}`}
+                        name="weight"
+                        defaultValue={String(existing?.weight ?? 3)}
+                        aria-label={`${po.code} contribution weight`}
+                      >
+                        {[1, 2, 3, 4, 5].map((w) => (
+                          <option key={w} value={w}>
+                            {w}
+                          </option>
+                        ))}
+                      </NativeSelect>
+                      <Button type="submit" size="sm" disabled={pending}>
+                        {existing ? 'Update weight' : 'Assign weight'}
+                      </Button>
+                      {existing && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={pending}
+                          onClick={() => deleteMutation.mutate(existing.id)}
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </form>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      ) : contributions.length ? (
+        <ul className="space-y-1 text-sm">
+          {contributions.map((item) => (
+            <li key={item.id} className="flex items-center gap-2">
+              <span className="font-medium">{item.program_outcome_code}</span>
+              <Badge variant="outline">Weight {item.weight}/5</Badge>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          No course-to-PO contribution weights mapped (NOT_ASSESSED).
+        </p>
+      )}
+    </section>
+  );
+}
+
 export function SyllabusWorkspace({
   offering,
+  programId,
   canDraft,
   canApprove,
 }: {
   offering: string;
+  programId?: string;
   canDraft: boolean;
   canApprove: boolean;
 }) {
@@ -300,7 +481,8 @@ export function SyllabusWorkspace({
           {canDraft &&
             version.status === 'draft' &&
             version.learning_outcomes.length === 0 &&
-            version.assessments.length === 0 && (
+            version.assessments.length === 0 &&
+            (version.po_contributions?.length ?? 0) === 0 && (
               <Button
                 variant="outline"
                 disabled={mutation.isPending}
@@ -371,6 +553,14 @@ export function SyllabusWorkspace({
               />
             )}
           </section>
+          <CoursePOContributionSection
+            syllabus={version}
+            programId={programId}
+            canApprove={canApprove}
+            onChanged={() =>
+              void queryClient.invalidateQueries({ queryKey: key })
+            }
+          />
         </>
       )}
     </section>
