@@ -62,6 +62,7 @@ WIREUP = WireupSettings(
         "academic.services.programs",
         "academic.services.offerings",
         "academic.services.enrollments",
+        "academic.services.outcomes",
     ],
     auto_inject_views=False,
 )

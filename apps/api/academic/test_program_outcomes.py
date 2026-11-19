@@ -3,7 +3,7 @@ import datetime as dt
 import pytest
 from access.models import RoleAssignment
 from django.contrib.auth import get_user_model
-from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.exceptions import ValidationError
 from django.db.models import ProtectedError
 from django.urls import reverse
 from rest_framework.test import APIClient
@@ -207,22 +207,40 @@ def test_new_active_set_must_start_after_current(world):
 
 def test_denied_scope_for_user_without_capability(world):
     outsider = world["outsider"]
-    with pytest.raises(PermissionDenied):
-        ProgramOutcomeSetService(actor=outsider).create(
-            program=world["program"], source_reference="x"
-        )
+    client = APIClient()
+    client.force_authenticate(outsider)
+
+    # Outcome set create denied
+    r_create = client.post(
+        reverse("program-outcome-set-list"),
+        {"program": str(world["program"].pk), "source_reference": "x"},
+        format="json",
+    )
+    assert r_create.status_code == 403
+
     draft = make_draft(world)
-    with pytest.raises(PermissionDenied):
-        ProgramOutcomeSetService(actor=outsider).activate(instance=draft, effective_date=EFFECTIVE)
-    with pytest.raises(PermissionDenied):
-        ProgramOutcomeService(actor=outsider).create(
-            outcome_set=draft,
-            code="PO99",
-            label="x",
-            description="x",
-            source_url="x",
-            ordering=99,
-        )
+    # Outcome set activate denied (returns 404 because outsider cannot view the outcome set)
+    r_act = client.post(
+        reverse("program-outcome-set-activate", args=[draft.pk]),
+        {"effective_date": str(EFFECTIVE)},
+        format="json",
+    )
+    assert r_act.status_code in (403, 404)
+
+    # Outcome create denied
+    r_out = client.post(
+        reverse("program-outcome-list"),
+        {
+            "outcome_set": str(draft.pk),
+            "code": "PO99",
+            "label": "x",
+            "description": "x",
+            "source_url": "x",
+            "ordering": 99,
+        },
+        format="json",
+    )
+    assert r_out.status_code == 403
     assert not ProgramOutcomeSetService(actor=outsider).get_queryset().exists()
 
 
