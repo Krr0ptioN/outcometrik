@@ -11,6 +11,7 @@ dependencies = [
   "djangorestframework>=3.16,<4",
   "gunicorn>=23,<24",
   "psycopg[binary]>=3.2,<4",
+  "wireup>=2.13,<3",
 ]
 
 [dependency-groups]
@@ -23,7 +24,7 @@ dev = [
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings"
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
-testpaths = ["health", "academic", "../../libs/modules/access/access", "../../libs/modules/calc/calc"]
+testpaths = ["config", "health", "academic", "../../libs/modules/access/access", "../../libs/modules/calc/calc"]
 addopts = "--junitxml=reports/junit-api.xml -o junit_family=xunit2"
 
 
