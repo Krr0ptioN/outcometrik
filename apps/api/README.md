@@ -163,9 +163,9 @@ Institution administrators can use:
   target scope. Passwords are hashed and checked against Django's password policy.
   Account, institution membership, initial role and audit events commit together.
   Only the allowed input fields are accepted; staff/superuser flags are never set.
-Academic programs and offerings are created through the academic API so every access scope is
-linked to a real academic record. The access API does not create standalone program/offering
-scopes.
+  Academic programs and offerings are created through the academic API so every access scope is
+  linked to a real academic record. The access API does not create standalone program/offering
+  scopes.
 
 Institution membership persists independently of active assignments. Removing a
 person's last role removes their permissions but keeps their account visible to
@@ -184,29 +184,32 @@ be provisioned against an existing institution scope. Reads filter by access rol
 and writes enforce the required capability against the record's stored parent scope. Lists are
 paginated (`page`, `page_size`, default 50, max 200) and filterable by query parameter.
 
-| Route | Methods | Filters |
-|---|---|---|
-| `/institutions/` | GET, POST, GET/PATCH `{id}` | `code` |
-| `/departments/` | same | `institution`, `code` |
-| `/programs/` | same | `department`, `status`, `code` |
-| `/terms/` | same | `institution`, `year`, `season` |
-| `/courses/` | same | `home_department`, `code`, `active` |
-| `/program-courses/` | same | `program`, `course`, `status` |
-| `/program-memberships/` | same | `program`, `user`, `status` |
-| `/offerings/` | same | `program`, `course`, `term`, `section`, `status` |
-| `/offerings/{id}/enrollments/` | GET, POST | roster of one offering |
-| `/instructor-assignments/` | same | `offering`, `user`, `assignment_role` |
-| `/enrollments/` | GET, POST, GET `{id}` | `offering`, `student`, `status`, `eligible_for_outcomes` |
-| `/po-sets/` | GET, POST, GET `{id}` | `program`, `active`; create with `program`, `version`, `effective_date`, `source_reference` |
-| `/po-sets/{id}/outcomes/` | GET, POST, PATCH `{childId}` | draft PO definitions |
-| `/po-sets/{id}/activate/` | POST | coordinator activation |
-| `/syllabi/` | GET, POST, GET `{id}` | `offering`, `status` |
-| `/syllabi/{id}/bind-active-po-set/` | POST | bind a draft to the current active PO-set version |
-| `/syllabi/{id}/learning-outcomes/` | GET, POST, PATCH `{childId}` | draft LO rows |
-| `/syllabi/{id}/assessments/` | GET, POST, PATCH `{childId}` | draft assessment rows |
-| `/syllabi/{id}/approve/` | POST | coordinator approval |
-| `/syllabi/{id}/revise/` | POST | clone approved into new draft |
-| `/syllabi/{id}/retire/` | POST | retire an empty draft |
+| Route                                   | Methods                      | Filters                                                                                     |
+| --------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------- |
+| `/institutions/`                        | GET, POST, GET/PATCH `{id}`  | `code`                                                                                      |
+| `/departments/`                         | same                         | `institution`, `code`                                                                       |
+| `/programs/`                            | same                         | `department`, `status`, `code`                                                              |
+| `/terms/`                               | same                         | `institution`, `year`, `season`                                                             |
+| `/courses/`                             | same                         | `home_department`, `code`, `active`                                                         |
+| `/program-courses/`                     | same                         | `program`, `course`, `status`                                                               |
+| `/program-memberships/`                 | same                         | `program`, `user`, `status`                                                                 |
+| `/offerings/`                           | same                         | `program`, `course`, `term`, `section`, `status`                                            |
+| `/offerings/{id}/enrollments/`          | GET, POST                    | roster of one offering                                                                      |
+| `/instructor-assignments/`              | same                         | `offering`, `user`, `assignment_role`                                                       |
+| `/enrollments/`                         | GET, POST, GET `{id}`        | `offering`, `student`, `status`, `eligible_for_outcomes`                                    |
+| `/po-sets/`                             | GET, POST, GET `{id}`        | `program`, `active`; create with `program`, `version`, `effective_date`, `source_reference` |
+| `/po-sets/{id}/outcomes/`               | GET, POST, PATCH `{childId}` | draft PO definitions                                                                        |
+| `/po-sets/{id}/activate/`               | POST                         | coordinator activation                                                                      |
+| `/syllabi/`                             | GET, POST, GET `{id}`        | `offering`, `status`                                                                        |
+| `/syllabi/{id}/bind-active-po-set/`     | POST                         | bind a draft to the current active PO-set version                                           |
+| `/syllabi/{id}/learning-outcomes/`      | GET, POST, PATCH `{childId}` | draft LO rows                                                                               |
+| `/syllabi/{id}/assessments/`            | GET, POST, PATCH `{childId}` | draft assessment rows                                                                       |
+| `/syllabi/{id}/assessment-lo-mappings/` | GET, POST                    | atomic A→LO mapping matrix replacement (`expected_revision`, `mappings`)                    |
+| `/syllabi/{id}/lo-po-mappings/`         | GET, POST                    | atomic LO→PO mapping matrix replacement (`expected_revision`, `mappings`)                   |
+| `/syllabi/{id}/mapping-validation/`     | GET                          | pre-approval reachability and `MAPPED`/`UNMAPPED` & `ASSESSED`/`NOT_ASSESSED` diagnostics   |
+| `/syllabi/{id}/approve/`                | POST                         | coordinator approval                                                                        |
+| `/syllabi/{id}/revise/`                 | POST                         | clone approved into new draft                                                               |
+| `/syllabi/{id}/retire/`                 | POST                         | retire an empty draft                                                                       |
 
 Rules:
 
@@ -242,6 +245,12 @@ Syllabi (CUR-01):
 - Empty drafts can be retired via `POST /syllabi/{id}/retire/`; versions holding configuration
   or approval are kept forever. There is no DELETE.
 - `po_set_version` binds to a registered program PO-set version; approval requires the active version.
+- Assessment→LO and LO→PO mapping matrices (CUR-02) are replaced atomically via
+  `POST /syllabi/{id}/assessment-lo-mappings/` and `POST /syllabi/{id}/lo-po-mappings/` with
+  optimistic revision checking (`expected_revision` vs `syllabus.mapping_revision`; stale edits
+  return `409 Conflict`). A→LO weights are nonnegative relative values; active LO→PO weights are
+  integers `1`–`5` (`0` is retained as inactive). `GET /syllabi/{id}/mapping-validation/` reports
+  `MAPPED`/`UNMAPPED` LOs, `ASSESSED`/`NOT_ASSESSED` POs, orphaned LOs, and unreachable POs.
 
 Downstream stories should read rosters through `academic.selectors.eligible_roster(offering)`.
 
@@ -252,11 +261,11 @@ client must send the session cookie and CSRF token for writes. Offering,
 assessment, enrollment, batch, and grade IDs are UUIDs. List endpoints support
 `page` and `page_size` as described above.
 
-| Route | Operations | Filters |
-|---|---|---|
-| `/assessments/` | GET list and `{id}` | `offering` |
-| `/grade-batches/` | GET, POST; GET `{id}`; POST `{id}/release/` | `offering` |
-| `/grades/` | GET, POST; GET/PATCH `{id}`; GET `{id}/history/` | `offering`, `enrollment`, `assessment`, `batch`, `state` |
+| Route             | Operations                                       | Filters                                                  |
+| ----------------- | ------------------------------------------------ | -------------------------------------------------------- |
+| `/assessments/`   | GET list and `{id}`                              | `offering`                                               |
+| `/grade-batches/` | GET, POST; GET `{id}`; POST `{id}/release/`      | `offering`                                               |
+| `/grades/`        | GET, POST; GET/PATCH `{id}`; GET `{id}/history/` | `offering`, `enrollment`, `assessment`, `batch`, `state` |
 
 Assessment reads return approved assessments for offerings where the actor has
 `grades.edit`; assessment authoring is not provided here. Create a batch with

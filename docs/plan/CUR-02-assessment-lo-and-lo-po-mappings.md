@@ -25,16 +25,16 @@ As an instructor or coordinator, I can configure and validate the two mapping ma
 
 ## Acceptance criteria
 
-- [ ] The PRD 60/40 and 40/100 A→LO weights and 2:1 LO→PO ratio can be entered and validated.
-- [ ] Non-100 weight sums are accepted; negative/out-of-range weights are rejected.
-- [ ] Cross-syllabus and cross-PO-set mappings cannot be saved.
-- [ ] Concurrent edits cannot silently overwrite one another.
-- [ ] Validation reports unmapped/orphaned outcomes before approval.
+- [x] The PRD 60/40 and 40/100 A→LO weights and 2:1 LO→PO ratio can be entered and validated.
+- [x] Non-100 weight sums are accepted; negative/out-of-range weights are rejected.
+- [x] Cross-syllabus and cross-PO-set mappings cannot be saved.
+- [x] Concurrent edits cannot silently overwrite one another.
+- [x] Validation reports unmapped/orphaned outcomes before approval.
+
 ## Implementation tasks
 
-- [ ] Confirm API/data contract and authorization scope against the owning domain module.
-- [ ] Implement the smallest vertical slice that satisfies the acceptance criteria.
-- [ ] Add focused unit/integration coverage for success, invalid input, and denied scope.
-- [ ] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
-- [ ] Update API/UI documentation and verify downstream stories remain compatible.
-
+- [x] Confirm API/data contract and authorization scope against the owning domain module.
+- [x] Implement the smallest vertical slice that satisfies the acceptance criteria.
+- [x] Add focused unit/integration coverage for success, invalid input, and denied scope.
+- [x] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
+- [x] Update API/UI documentation and verify downstream stories remain compatible.

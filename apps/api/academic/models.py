@@ -380,6 +380,7 @@ class Syllabus(TimestampedModel):
     )
     approved_at = models.DateTimeField(null=True, blank=True, editable=False)
     po_set_version = models.PositiveIntegerField(null=True, blank=True, editable=False)
+    mapping_revision = models.PositiveIntegerField(default=1, editable=False)
 
     class Meta:
         constraints = [
@@ -747,3 +748,69 @@ class ProgramOutcome(TimestampedModel):
         if self.outcome_set.status == ProgramOutcomeSet.Status.ACTIVE:
             raise ValidationError("Outcomes of an active set are immutable.")
         super().save(*args, **kwargs)
+
+
+class AssessmentLOMapping(DraftOnlyModel):
+    """Relative weight mapping from a syllabus assessment to a learning outcome."""
+
+    syllabus = models.ForeignKey(
+        Syllabus, on_delete=models.PROTECT, related_name="assessment_lo_mappings"
+    )
+    assessment = models.ForeignKey(
+        SyllabusAssessment, on_delete=models.PROTECT, related_name="lo_mappings"
+    )
+    learning_outcome = models.ForeignKey(
+        LearningOutcome, on_delete=models.PROTECT, related_name="assessment_mappings"
+    )
+    weight = models.DecimalField(max_digits=7, decimal_places=2)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["assessment__order", "learning_outcome__order", "created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["syllabus", "assessment", "learning_outcome"],
+                name="uniq_syllabus_assessment_lo_mapping",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(weight__gte=0),
+                name="assessment_lo_weight_nonnegative",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.syllabus_id}:{self.assessment_id}->{self.learning_outcome_id}={self.weight}"
+
+
+class LOPOMapping(DraftOnlyModel):
+    """Integer 1..5 weight mapping from a syllabus learning outcome to a bound program outcome."""
+
+    syllabus = models.ForeignKey(Syllabus, on_delete=models.PROTECT, related_name="lo_po_mappings")
+    learning_outcome = models.ForeignKey(
+        LearningOutcome, on_delete=models.PROTECT, related_name="po_mappings"
+    )
+    program_outcome = models.ForeignKey(
+        ProgramOutcome, on_delete=models.PROTECT, related_name="lo_mappings"
+    )
+    weight = models.PositiveSmallIntegerField()
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["learning_outcome__order", "program_outcome__ordering", "created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["syllabus", "learning_outcome", "program_outcome"],
+                name="uniq_syllabus_lo_po_mapping",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(weight__gte=0, weight__lte=5)
+                & (
+                    models.Q(is_active=False)
+                    | models.Q(is_active=True, weight__gte=1, weight__lte=5)
+                ),
+                name="lo_po_weight_valid_range",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.syllabus_id}:{self.learning_outcome_id}->{self.program_outcome_id}={self.weight}"
