@@ -1,9 +1,8 @@
-from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework.response import Response
 
 from ..serializers import EnrollmentSerializer, EnrollmentStatusUpdateSerializer
 from ..services import EnrollmentService
-from .base import AcademicController
+from .base import AcademicController, validate_payload
 
 
 class EnrollmentController(AcademicController):
@@ -12,21 +11,11 @@ class EnrollmentController(AcademicController):
     filter_fields = ("offering", "student", "status", "eligible_for_outcomes")
     ordering = ("created_at", "id")
 
-    def perform_create(self, serializer):
-        try:
-            serializer.instance = self.get_service().create(**serializer.validated_data)
-        except DjangoValidationError as exc:
-            AcademicController.raise_validation_error(exc)
-
-    def partial_update(self, request, *args, **kwargs):
+    @validate_payload(EnrollmentStatusUpdateSerializer)
+    def partial_update(self, request, *args, payload=None, **kwargs):
         enrollment = self.get_object()
-        serializer = EnrollmentStatusUpdateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        try:
-            updated = self.get_service().update_status(
-                enrollment=enrollment,
-                **serializer.validated_data,
-            )
-        except DjangoValidationError as exc:
-            AcademicController.raise_validation_error(exc)
+        updated = self.get_service().update_status(
+            enrollment=enrollment,
+            **payload,
+        )
         return Response(self.get_serializer(updated).data)

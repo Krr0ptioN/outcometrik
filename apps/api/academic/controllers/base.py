@@ -4,6 +4,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 
+from ..decorators import body, validate_dto, validate_payload
 from ..services import academic_service_provider
 
 
@@ -28,6 +29,12 @@ class AcademicController(
     ordering = ("created_at", "id")
     service_class = None
     service_provider = academic_service_provider
+    action_serializers: dict[str, type] = {}
+
+    def get_serializer_class(self):
+        if self.action and self.action in self.action_serializers:
+            return self.action_serializers[self.action]
+        return super().get_serializer_class()
 
     def get_service(self, service_class=None):
         return self.service_provider.provide(
@@ -53,22 +60,36 @@ class AcademicController(
             raise ValidationError(details) from exc
         raise exc
 
+    def handle_exception(self, exc):
+        """Global exception interceptor (analogous to NestJS ExceptionFilter).
+
+        Converts Django ValidationError from domain models or services into DRF's
+        ValidationError so callers do not need repetitive try-except blocks.
+        """
+        if isinstance(exc, DjangoValidationError):
+            details = getattr(exc, "message_dict", None) or exc.messages
+            exc = ValidationError(details)
+        return super().handle_exception(exc)
+
     def perform_create(self, serializer):
-        try:
-            serializer.instance = self.get_service().create(**serializer.validated_data)
-        except DjangoValidationError as exc:
-            self.raise_validation_error(exc)
+        serializer.instance = self.get_service().create(**serializer.validated_data)
 
     def perform_update(self, serializer):
-        try:
-            serializer.instance = self.get_service().update(
-                instance=serializer.instance,
-                **serializer.validated_data,
-            )
-        except DjangoValidationError as exc:
-            self.raise_validation_error(exc)
+        serializer.instance = self.get_service().update(
+            instance=serializer.instance,
+            **serializer.validated_data,
+        )
 
     def finalize_response(self, request, response, *args, **kwargs):
         response = super().finalize_response(request, response, *args, **kwargs)
         response["Cache-Control"] = "no-store"
         return response
+
+
+__all__ = [
+    "AcademicController",
+    "AcademicPagination",
+    "body",
+    "validate_dto",
+    "validate_payload",
+]

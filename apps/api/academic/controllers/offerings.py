@@ -1,11 +1,10 @@
-from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from ..serializers import CourseOfferingSerializer, EnrollmentSerializer
 from ..services import CourseOfferingService, EnrollmentService
-from .base import AcademicController
+from .base import AcademicController, validate_payload
 
 
 class CourseOfferingController(AcademicController):
@@ -25,18 +24,13 @@ class CourseOfferingController(AcademicController):
         )
 
     @action(detail=True, methods=["post"], url_path="enrollments", url_name="enrollments")
-    def create_enrollment(self, request, pk=None):
+    @validate_payload(
+        EnrollmentSerializer,
+        merge_data=lambda self, request, pk=None: {"offering": str(self.get_object().pk)},
+    )
+    def create_enrollment(self, request, pk=None, payload=None):
         """Add roster row for this offering."""
-        offering = self.get_object()
         service = self.get_service(EnrollmentService)
-        serializer = EnrollmentSerializer(
-            data={**request.data, "offering": str(offering.pk)},
-            context=self.get_serializer_context(),
-        )
-        serializer.is_valid(raise_exception=True)
-        try:
-            enrollment = service.create(**serializer.validated_data)
-        except DjangoValidationError as exc:
-            self.raise_validation_error(exc)
-        serializer.instance = enrollment
+        enrollment = service.create(**payload)
+        serializer = EnrollmentSerializer(enrollment, context=self.get_serializer_context())
         return Response(serializer.data, status=status.HTTP_201_CREATED)

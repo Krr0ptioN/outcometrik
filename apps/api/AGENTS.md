@@ -49,6 +49,14 @@ The repository root `AGENTS.md` and `docs/CODE_STYLE.md` still apply.
 - Use `AcademicRouter` (from `academic.router`) in URL registrations. It automatically
   merges discrete actions sharing the same `(url, detail)` into a unified route mapping
   without route shadowing or 405 errors.
+- Use the `@validate_payload(SerializerClass)` interceptor decorator (analogous to NestJS
+  `@Body(ValidationPipe)`). It instantiates, context-binds, and validates the serializer before
+  the handler executes, injecting validated data as `payload` into the method kwargs.
+  For partial updates (e.g. PATCH), pass `partial=True`. When merging URL parameters into the
+  validated payload, pass `merge_data=lambda self, request, pk=None: {"parent": str(self.get_object().pk)}`.
+- Do NOT write boilerplate `try: ... except DjangoValidationError: ...` blocks in controllers.
+  `AcademicController.handle_exception` intercepts `DjangoValidationError` globally (analogous to a
+  NestJS `ExceptionFilter`) and transforms it into a standard DRF 400 `ValidationError` response.
 
 ## Django conventions
 

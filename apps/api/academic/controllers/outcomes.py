@@ -1,4 +1,3 @@
-from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -10,7 +9,7 @@ from ..serializers import (
     ProgramOutcomeSetSerializer,
 )
 from ..services import ProgramOutcomeService, ProgramOutcomeSetService
-from .base import AcademicController
+from .base import AcademicController, validate_payload
 
 
 class ProgramOutcomeSetController(AcademicController):
@@ -35,14 +34,9 @@ class ProgramOutcomeSetController(AcademicController):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     @action(detail=True, methods=["post"])
-    def activate(self, request, pk=None):
-        instance = self.get_object()
-        payload = ProgramOutcomeSetActivateSerializer(data=request.data)
-        payload.is_valid(raise_exception=True)
-        try:
-            instance = self.get_service().activate(instance=instance, **payload.validated_data)
-        except DjangoValidationError as exc:
-            self.raise_validation_error(exc)
+    @validate_payload(ProgramOutcomeSetActivateSerializer)
+    def activate(self, request, pk=None, payload=None):
+        instance = self.get_service().activate(instance=self.get_object(), **payload)
         return Response(self.get_serializer(instance).data)
 
     @action(detail=True, methods=["get"], url_path="outcomes", url_name="outcomes")
@@ -53,16 +47,12 @@ class ProgramOutcomeSetController(AcademicController):
         )
 
     @action(detail=True, methods=["post"], url_path="outcomes", url_name="outcomes")
-    def create_outcome(self, request, pk=None):
-        po_set = self.get_object()
-        data = request.data.copy() if hasattr(request.data, "copy") else dict(request.data)
-        data["outcome_set"] = str(po_set.pk)
-        serializer = ProgramOutcomeSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        try:
-            outcome = ProgramOutcomeService(actor=request.user).create(**serializer.validated_data)
-        except DjangoValidationError as exc:
-            self.raise_validation_error(exc)
+    @validate_payload(
+        ProgramOutcomeSerializer,
+        merge_data=lambda self, request, pk=None: {"outcome_set": str(self.get_object().pk)},
+    )
+    def create_outcome(self, request, pk=None, payload=None):
+        outcome = ProgramOutcomeService(actor=request.user).create(**payload)
         return Response(ProgramOutcomeSerializer(outcome).data, status=status.HTTP_201_CREATED)
 
     @action(
@@ -71,19 +61,13 @@ class ProgramOutcomeSetController(AcademicController):
         url_path=r"outcomes/(?P<child_pk>[^/.]+)",
         url_name="outcome-detail",
     )
-    def update_outcome(self, request, pk=None, child_pk=None):
+    @validate_payload(ProgramOutcomeSerializer, partial=True)
+    def update_outcome(self, request, pk=None, child_pk=None, payload=None):
         po_set = self.get_object()
         outcome = po_set.outcomes.filter(pk=child_pk).first()
         if outcome is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = ProgramOutcomeSerializer(outcome, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        try:
-            outcome = ProgramOutcomeService(actor=request.user).update(
-                instance=outcome, **serializer.validated_data
-            )
-        except DjangoValidationError as exc:
-            self.raise_validation_error(exc)
+        outcome = ProgramOutcomeService(actor=request.user).update(instance=outcome, **payload)
         return Response(ProgramOutcomeSerializer(outcome).data)
 
 

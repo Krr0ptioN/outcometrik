@@ -1,4 +1,3 @@
-from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -15,7 +14,7 @@ from ..services.grades import (
     GradeService,
     GradeVersionConflict,
 )
-from .base import AcademicController
+from .base import AcademicController, validate_payload
 
 
 class GradeController(AcademicController):
@@ -24,21 +23,16 @@ class GradeController(AcademicController):
     filter_fields = ("offering", "enrollment", "assessment", "batch", "state")
     http_method_names = ["get", "post", "patch", "head", "options"]
 
-    def create(self, request, *args, **kwargs):
-        serializer = GradeWriteSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        try:
-            grade = self.get_service().create(**serializer.validated_data)
-        except DjangoValidationError as exc:
-            self.raise_validation_error(exc)
+    @validate_payload(GradeWriteSerializer)
+    def create(self, request, *args, payload=None, **kwargs):
+        grade = self.get_service().create(**payload)
         return Response(GradeSerializer(grade).data, status=status.HTTP_201_CREATED)
 
-    def partial_update(self, request, *args, **kwargs):
+    @validate_payload(GradeUpdateSerializer)
+    def partial_update(self, request, *args, payload=None, **kwargs):
         grade = self.get_object()
-        serializer = GradeUpdateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
         try:
-            updated = self.get_service().correct(grade=grade, **serializer.validated_data)
+            updated = self.get_service().correct(grade=grade, **payload)
         except GradeVersionConflict as exc:
             return Response(
                 {
@@ -48,8 +42,6 @@ class GradeController(AcademicController):
                 },
                 status=status.HTTP_409_CONFLICT,
             )
-        except DjangoValidationError as exc:
-            self.raise_validation_error(exc)
         return Response(GradeSerializer(updated).data)
 
     @action(detail=True, methods=["get"])
@@ -68,8 +60,5 @@ class GradeBatchController(AcademicController):
     @action(detail=True, methods=["post"])
     def release(self, request, *args, **kwargs):
         batch = self.get_object()
-        try:
-            released = self.get_service().release(batch=batch)
-        except DjangoValidationError as exc:
-            self.raise_validation_error(exc)
+        released = self.get_service().release(batch=batch)
         return Response(self.get_serializer(released).data)

@@ -1,4 +1,3 @@
-from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -10,7 +9,7 @@ from ..serializers import (
     SyllabusSerializer,
 )
 from ..services import SyllabusService
-from .base import AcademicController
+from .base import AcademicController, validate_payload
 
 
 class SyllabusController(AcademicController):
@@ -21,13 +20,9 @@ class SyllabusController(AcademicController):
     filter_fields = ("offering", "status")
     ordering = ("offering", "version")
 
-    def create(self, request, *args, **kwargs):
-        serializer = SyllabusCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        try:
-            syllabus = self.get_service().create(**serializer.validated_data)
-        except DjangoValidationError as exc:
-            self.raise_validation_error(exc)
+    @validate_payload(SyllabusCreateSerializer)
+    def create(self, request, *args, payload=None, **kwargs):
+        syllabus = self.get_service().create(**payload)
         return Response(self.get_serializer(syllabus).data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
@@ -39,36 +34,24 @@ class SyllabusController(AcademicController):
     @action(detail=True, methods=["post"])
     def approve(self, request, pk=None):
         syllabus = self.get_object()
-        try:
-            approved = self.get_service().approve(syllabus=syllabus)
-        except DjangoValidationError as exc:
-            self.raise_validation_error(exc)
+        approved = self.get_service().approve(syllabus=syllabus)
         return Response(self.get_serializer(approved).data)
 
     @action(detail=True, methods=["post"])
     def revise(self, request, pk=None):
         syllabus = self.get_object()
-        try:
-            revision = self.get_service().revise(syllabus=syllabus)
-        except DjangoValidationError as exc:
-            self.raise_validation_error(exc)
+        revision = self.get_service().revise(syllabus=syllabus)
         return Response(self.get_serializer(revision).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"], url_path="bind-active-po-set")
     def bind_active_po_set(self, request, pk=None):
-        try:
-            syllabus = self.get_service().bind_active_po_set(syllabus=self.get_object())
-        except DjangoValidationError as exc:
-            self.raise_validation_error(exc)
+        syllabus = self.get_service().bind_active_po_set(syllabus=self.get_object())
         return Response(self.get_serializer(syllabus).data)
 
     @action(detail=True, methods=["post"], url_path="retire")
     def retire(self, request, pk=None):
         syllabus = self.get_object()
-        try:
-            retired = self.get_service().remove_unused_draft(syllabus=syllabus)
-        except DjangoValidationError as exc:
-            self.raise_validation_error(exc)
+        retired = self.get_service().remove_unused_draft(syllabus=syllabus)
         return Response(self.get_serializer(retired).data)
 
     @action(
@@ -89,17 +72,11 @@ class SyllabusController(AcademicController):
         url_path="learning-outcomes",
         url_name="learning-outcomes",
     )
-    def create_learning_outcome(self, request, pk=None):
+    @validate_payload(LearningOutcomeSerializer)
+    def create_learning_outcome(self, request, pk=None, payload=None):
         """Add draft LO row for this syllabus version."""
         syllabus = self.get_object()
-        serializer = LearningOutcomeSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        try:
-            outcome = self.get_service().add_learning_outcome(
-                syllabus=syllabus, **serializer.validated_data
-            )
-        except DjangoValidationError as exc:
-            self.raise_validation_error(exc)
+        outcome = self.get_service().add_learning_outcome(syllabus=syllabus, **payload)
         return Response(LearningOutcomeSerializer(outcome).data, status=status.HTTP_201_CREATED)
 
     @action(
@@ -108,20 +85,14 @@ class SyllabusController(AcademicController):
         url_path=r"learning-outcomes/(?P<child_pk>[^/.]+)",
         url_name="learning-outcome-detail",
     )
-    def update_learning_outcome(self, request, pk=None, child_pk=None):
+    @validate_payload(LearningOutcomeSerializer, partial=True)
+    def update_learning_outcome(self, request, pk=None, child_pk=None, payload=None):
         """Edit one draft LO, scoped through its owning syllabus version."""
         syllabus = self.get_object()
         outcome = syllabus.learning_outcomes.filter(pk=child_pk).first()
         if outcome is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = LearningOutcomeSerializer(outcome, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        try:
-            updated = self.get_service().update_learning_outcome(
-                instance=outcome, **serializer.validated_data
-            )
-        except DjangoValidationError as exc:
-            self.raise_validation_error(exc)
+        updated = self.get_service().update_learning_outcome(instance=outcome, **payload)
         return Response(LearningOutcomeSerializer(updated).data)
 
     @action(
@@ -136,10 +107,7 @@ class SyllabusController(AcademicController):
         outcome = syllabus.learning_outcomes.filter(pk=child_pk).first()
         if outcome is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        try:
-            self.get_service().delete_learning_outcome(instance=outcome)
-        except DjangoValidationError as exc:
-            self.raise_validation_error(exc)
+        self.get_service().delete_learning_outcome(instance=outcome)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=["get"], url_path="assessments", url_name="assessments")
@@ -150,17 +118,11 @@ class SyllabusController(AcademicController):
         return Response(SyllabusAssessmentSerializer(queryset, many=True).data)
 
     @action(detail=True, methods=["post"], url_path="assessments", url_name="assessments")
-    def create_assessment(self, request, pk=None):
+    @validate_payload(SyllabusAssessmentSerializer)
+    def create_assessment(self, request, pk=None, payload=None):
         """Add draft assessment row for this syllabus version."""
         syllabus = self.get_object()
-        serializer = SyllabusAssessmentSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        try:
-            assessment = self.get_service().add_assessment(
-                syllabus=syllabus, **serializer.validated_data
-            )
-        except DjangoValidationError as exc:
-            self.raise_validation_error(exc)
+        assessment = self.get_service().add_assessment(syllabus=syllabus, **payload)
         return Response(
             SyllabusAssessmentSerializer(assessment).data, status=status.HTTP_201_CREATED
         )
@@ -171,20 +133,14 @@ class SyllabusController(AcademicController):
         url_path=r"assessments/(?P<child_pk>[^/.]+)",
         url_name="assessment-detail",
     )
-    def update_assessment(self, request, pk=None, child_pk=None):
+    @validate_payload(SyllabusAssessmentSerializer, partial=True)
+    def update_assessment(self, request, pk=None, child_pk=None, payload=None):
         """Edit one draft assessment, scoped through its owning syllabus version."""
         syllabus = self.get_object()
         assessment = syllabus.assessments.filter(pk=child_pk).first()
         if assessment is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = SyllabusAssessmentSerializer(assessment, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        try:
-            updated = self.get_service().update_assessment(
-                instance=assessment, **serializer.validated_data
-            )
-        except DjangoValidationError as exc:
-            self.raise_validation_error(exc)
+        updated = self.get_service().update_assessment(instance=assessment, **payload)
         return Response(SyllabusAssessmentSerializer(updated).data)
 
     @action(
@@ -199,8 +155,5 @@ class SyllabusController(AcademicController):
         assessment = syllabus.assessments.filter(pk=child_pk).first()
         if assessment is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        try:
-            self.get_service().delete_assessment(instance=assessment)
-        except DjangoValidationError as exc:
-            self.raise_validation_error(exc)
+        self.get_service().delete_assessment(instance=assessment)
         return Response(status=status.HTTP_204_NO_CONTENT)
