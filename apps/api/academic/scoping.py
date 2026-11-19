@@ -166,3 +166,83 @@ def scope_calculation_runs(user, qs):
         Q(program_id__in=program_ids)
         | Q(scope_kind=CalculationRun.ScopeKind.OFFERING, offering_id__in=offering_ids)
     ).distinct()
+
+
+PUBLICATION_PROGRAM_CAPABILITIES = (
+    "outcomes.view",
+    "outcomes.publish",
+    "program.manage",
+)
+
+PUBLICATION_OFFERING_CAPABILITIES = (
+    "grades.view",
+    "grades.edit",
+    "grades.release",
+    "offering.manage",
+    "outcomes.view",
+)
+
+
+def _staff_publication_scope_ids(user) -> tuple[set, set]:
+    program_ids = set()
+    for capability in PUBLICATION_PROGRAM_CAPABILITIES:
+        program_ids.update(_program_ids(user, capability))
+
+    offering_ids = set()
+    for capability in PUBLICATION_OFFERING_CAPABILITIES:
+        offering_ids.update(_offering_ids(user, capability))
+
+    return program_ids, offering_ids
+
+
+def has_staff_publication_access(user, publication) -> bool:
+    if user is None or not getattr(user, "is_authenticated", False):
+        return False
+    program_ids, offering_ids = _staff_publication_scope_ids(user)
+    if publication.program_id in program_ids:
+        return True
+    return publication.offering_id is not None and publication.offering_id in offering_ids
+
+
+def scope_publications(user, qs):
+    """Coordinators/admins/staff see scoped publications; students see only their student-audience publications."""
+    from .models import Publication
+
+    if user is None or not getattr(user, "is_authenticated", False):
+        return qs.none()
+
+    program_ids, offering_ids = _staff_publication_scope_ids(user)
+    student_offering_ids = set(_student_offering_ids(user))
+
+    clauses = Q()
+    has_clause = False
+
+    if program_ids:
+        clauses |= Q(program_id__in=program_ids)
+        has_clause = True
+    if offering_ids:
+        clauses |= Q(offering_id__in=offering_ids)
+        has_clause = True
+    if student_offering_ids:
+        student_program_ids = set(
+            Scope.objects.filter(pk__in=student_offering_ids).values_list("parent_id", flat=True)
+        )
+        student_clause = Q(
+            audience=Publication.Audience.STUDENT,
+            offering_id__in=student_offering_ids,
+            run__scores__student=user,
+        )
+        if student_program_ids:
+            student_clause |= Q(
+                audience=Publication.Audience.STUDENT,
+                offering__isnull=True,
+                program_id__in=student_program_ids,
+                run__scores__student=user,
+            )
+        clauses |= student_clause
+        has_clause = True
+
+    if not has_clause:
+        return qs.none()
+
+    return qs.filter(clauses).distinct()

@@ -17,6 +17,7 @@ CAPABILITIES = (
     "grades.edit",
     "grades.release",
     "outcomes.view",
+    "outcomes.publish",
     "evidence.view",
     "faculty.preview",
     "grades.export",

@@ -9,6 +9,7 @@ from .outcome_validation import ProgramOutcomeSetValidator
 from .outcomes import ProgramOutcomeService, ProgramOutcomeSetService
 from .programs import ProgramCourseService, ProgramMembershipService, ProgramService
 from .provider import WireupServiceProvider, academic_service_provider
+from .publications import PublicationConflict, PublicationService
 from .structure import AcademicTermService, CourseService, DepartmentService, InstitutionService
 from .syllabi import SyllabusService
 from .syllabus_validation import SyllabusMappingVersionConflict, SyllabusValidator
@@ -37,6 +38,8 @@ __all__ = [
     "ProgramOutcomeSetService",
     "ProgramOutcomeSetValidator",
     "ProgramService",
+    "PublicationConflict",
+    "PublicationService",
     "SyllabusMappingVersionConflict",
     "SyllabusService",
     "SyllabusValidator",

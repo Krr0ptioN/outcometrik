@@ -1005,3 +1005,86 @@ class OutcomeScore(TimestampedModel):
 
     def __str__(self) -> str:
         return f"{self.run_id}:{self.level}:{self.student_id}:{self.outcome_code}={self.status}"
+
+
+class Publication(TimestampedModel):
+    """Immutable snapshot publishing a completed CalculationRun to faculty or students."""
+
+    class Audience(models.TextChoices):
+        FACULTY = "faculty", "Faculty"
+        STUDENT = "student", "Student"
+
+    program = models.ForeignKey(Program, on_delete=models.PROTECT, related_name="publications")
+    offering = models.ForeignKey(
+        CourseOffering,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="publications",
+    )
+    term = models.ForeignKey(
+        AcademicTerm,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="publications",
+    )
+    run = models.ForeignKey(CalculationRun, on_delete=models.PROTECT, related_name="publications")
+    series_version = models.PositiveIntegerField()
+    po_set_version = models.PositiveIntegerField()
+    audience = models.CharField(max_length=16, choices=Audience.choices)
+    input_hash = models.CharField(max_length=64)
+    idempotency_key = models.CharField(max_length=128)
+    published_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="published_outcomes",
+    )
+    published_at = models.DateTimeField(auto_now_add=True)
+
+    objects = AppendOnlyQuerySet.as_manager()
+
+    class Meta:
+        ordering = ["-published_at", "-series_version", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["program", "audience", "series_version"],
+                condition=models.Q(offering__isnull=True),
+                name="uniq_pub_program_audience_series_ver",
+            ),
+            models.UniqueConstraint(
+                fields=["program", "offering", "audience", "series_version"],
+                condition=models.Q(offering__isnull=False),
+                name="uniq_pub_offering_audience_series_ver",
+            ),
+            models.UniqueConstraint(
+                fields=["program", "audience", "idempotency_key"],
+                condition=models.Q(offering__isnull=True),
+                name="uniq_pub_program_audience_idem",
+            ),
+            models.UniqueConstraint(
+                fields=["program", "offering", "audience", "idempotency_key"],
+                condition=models.Q(offering__isnull=False),
+                name="uniq_pub_offering_audience_idem",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(series_version__gte=1),
+                name="pub_series_version_positive",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=["program", "offering", "audience", "series_version"],
+                name="pub_series_lookup_idx",
+            ),
+            models.Index(fields=["run"], name="pub_run_idx"),
+        ]
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise ValidationError("Publications are immutable.")
+        return super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        target = self.offering_id if self.offering_id is not None else self.program_id
+        return f"{target}:{self.audience}:v{self.series_version}"

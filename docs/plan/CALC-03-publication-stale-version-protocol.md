@@ -25,16 +25,17 @@ As an authorized coordinator, I can publish a validated calculation snapshot, so
 
 ## Acceptance criteria
 
-- [ ] A complete run can be published only by an authorized role.
-- [ ] Grade/mapping/roster/eligibility changes produce a visible stale state.
-- [ ] Concurrent publication attempts resolve with one immutable series version and safe conflicts.
-- [ ] Existing publication remains available after a failed recalculation.
-- [ ] Student reads cannot expose draft or unreleased evidence.
+- [x] A complete run can be published only by an authorized role (`outcomes.publish` on program scope via `@require_permission("outcomes.publish", scope_field="run.program")`, granted to `administrator` and `program-coordinator` in `access` migration `0008_outcomes_publish_capability`).
+- [x] Grade/mapping/roster/eligibility changes produce a visible stale state (`stale: bool` dynamically derived by comparing `publication.input_hash` and `po_set_version` against current manifest hash without mutating the publication).
+- [x] Concurrent publication attempts resolve with one immutable series version and safe conflicts (`select_for_update()` on `Program`, `CourseOffering`(s), and series `Publication` rows + partial unique constraints for program and offering series + idempotent retry returning `200 OK` and conflicts returning `409 Conflict`).
+- [x] Existing publication remains available after a failed recalculation or rejected stale publication attempt.
+- [x] Student reads cannot expose draft or unreleased evidence (`PublicationService.visible_queryset` and `GET /api/v1/publications/{id}/scores/` expose only `audience="student"` publications and strictly filter scores to `student=request.user`).
+
 ## Implementation tasks
 
-- [ ] Confirm API/data contract and authorization scope against the owning domain module.
-- [ ] Implement the smallest vertical slice that satisfies the acceptance criteria.
-- [ ] Add focused unit/integration coverage for success, invalid input, and denied scope.
-- [ ] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
-- [ ] Update API/UI documentation and verify downstream stories remain compatible.
+- [x] Confirm API/data contract and authorization scope against the owning domain module (`outcomes.publish` capability + `Publication` immutable model).
+- [x] Implement the smallest vertical slice that satisfies the acceptance criteria (`Publication`, `PublicationService`, `PublicationConflict`, `PublicationController`, `PublicationSerializer`, `PublicationCreateSerializer`, `scoping.scope_publications`).
+- [x] Add focused unit/integration coverage for success, invalid input, and denied scope (`apps/api/academic/test_calc03_publications.py`).
+- [x] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface (backend-only protocol slice; UI consumption handled by downstream dashboard/reporting stories).
+- [x] Update API/UI documentation and verify downstream stories remain compatible.
 

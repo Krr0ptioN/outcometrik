@@ -25,6 +25,7 @@ from .models import (
     ProgramMembership,
     ProgramOutcome,
     ProgramOutcomeSet,
+    Publication,
     Syllabus,
     SyllabusAssessment,
 )
@@ -670,3 +671,59 @@ class OfferingCalculationRunCreateSerializer(serializers.Serializer):
 
 class ProgramCalculationRunCreateSerializer(serializers.Serializer):
     program = serializers.PrimaryKeyRelatedField(queryset=Program.objects.all())
+
+
+class PublicationSerializer(AcademicSerializer):
+    stale = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Publication
+        fields = [
+            "id",
+            "program",
+            "offering",
+            "term",
+            "run",
+            "series_version",
+            "po_set_version",
+            "audience",
+            "input_hash",
+            "idempotency_key",
+            "published_by",
+            "published_at",
+            "stale",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+    def get_stale(self, obj: Publication) -> bool:
+        if "stale" in self.context:
+            return bool(self.context["stale"])
+        service = self.context.get("publication_service")
+        if service is not None:
+            return service.is_stale(publication=obj)
+        return False
+
+
+class PublicationCreateSerializer(serializers.Serializer):
+    run = serializers.PrimaryKeyRelatedField(queryset=CalculationRun.objects.all())
+    expected_series_version = serializers.IntegerField(min_value=0)
+    expected_input_hash = serializers.CharField(max_length=64)
+    audience = serializers.ChoiceField(choices=Publication.Audience.choices)
+    idempotency_key = serializers.CharField(max_length=128)
+    term = serializers.PrimaryKeyRelatedField(
+        queryset=AcademicTerm.objects.all(), required=False, allow_null=True, default=None
+    )
+
+    def validate_expected_input_hash(self, value: str) -> str:
+        cleaned = value.strip().lower()
+        if not cleaned:
+            raise serializers.ValidationError("This field may not be blank.")
+        return cleaned
+
+    def validate_idempotency_key(self, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise serializers.ValidationError("This field may not be blank.")
+        return cleaned

@@ -11,6 +11,7 @@ from .outcomes import ProgramOutcomeController, ProgramOutcomeSetController
 from .program_courses import ProgramCourseController
 from .program_memberships import ProgramMembershipController
 from .programs import ProgramController
+from .publications import PublicationController
 from .syllabi import SyllabusController
 from .terms import AcademicTermController
 from .workspaces import (
@@ -38,6 +39,7 @@ __all__ = [
     "ProgramMembershipController",
     "ProgramOutcomeController",
     "ProgramOutcomeSetController",
+    "PublicationController",
     "StudentWorkspaceController",
     "SyllabusController",
 ]
