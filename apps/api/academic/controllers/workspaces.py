@@ -2,6 +2,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from ..decorators import controller
 from ..services import WorkspaceService, academic_service_provider
 
 
@@ -19,6 +20,7 @@ class AcademicWorkspaceController(APIView):
         return response
 
 
+@controller("workspaces/instructor")
 class InstructorWorkspaceController(AcademicWorkspaceController):
     def get(self, request):
         service = self.get_service()
@@ -51,6 +53,7 @@ class InstructorWorkspaceController(AcademicWorkspaceController):
         )
 
 
+@controller("workspaces/student")
 class StudentWorkspaceController(AcademicWorkspaceController):
     def get(self, request):
         enrollments = self.get_service().student_enrollments()
@@ -77,6 +80,7 @@ class StudentWorkspaceController(AcademicWorkspaceController):
         )
 
 
+@controller("workspaces/coordinator")
 class CoordinatorWorkspaceController(AcademicWorkspaceController):
     def get(self, request):
         service = self.get_service()

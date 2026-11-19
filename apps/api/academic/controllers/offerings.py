@@ -2,11 +2,13 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from ..decorators import controller, validate_payload
 from ..serializers import CourseOfferingSerializer, EnrollmentSerializer
 from ..services import CourseOfferingService, EnrollmentService
-from .base import AcademicController, validate_payload
+from .base import AcademicController
 
 
+@controller("offerings", basename="offering")
 class CourseOfferingController(AcademicController):
     serializer_class = CourseOfferingSerializer
     service_class = CourseOfferingService

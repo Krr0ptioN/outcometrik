@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from ..decorators import controller, validate_payload
 from ..serializers import (
     LearningOutcomeSerializer,
     SyllabusAssessmentSerializer,
@@ -9,9 +10,10 @@ from ..serializers import (
     SyllabusSerializer,
 )
 from ..services import SyllabusService
-from .base import AcademicController, validate_payload
+from .base import AcademicController
 
 
+@controller("syllabi", basename="syllabus")
 class SyllabusController(AcademicController):
     """HTTP surface for versioned syllabi. Lifecycle rules live in the service."""
 

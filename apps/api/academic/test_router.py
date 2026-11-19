@@ -87,3 +87,152 @@ def test_academic_router_merges_multi_method_actions():
     del_req = factory.delete("/samples/42/items/99/")
     del_resp = child_view(del_req, pk="42", child_pk="99")
     assert del_resp.status_code == status.HTTP_204_NO_CONTENT
+
+
+def test_controller_decorator_registers_viewset():
+    from .decorators import controller
+
+    custom_router = AcademicRouter()
+
+    @controller("test-entities", basename="test-entity", router=custom_router)
+    class SampleViewSet(ViewSet):
+        permission_classes = []
+        authentication_classes = []
+
+        def list(self, request):
+            return Response({"items": []})
+
+    assert SampleViewSet._controller_prefix == "test-entities"
+    patterns = [str(u.pattern) for u in custom_router.urls]
+    assert "^test-entities/$" in patterns
+
+    factory = APIRequestFactory()
+    list_view = next(u.callback for u in custom_router.urls if str(u.pattern) == "^test-entities/$")
+    resp = list_view(factory.get("/test-entities/"))
+    assert resp.status_code == status.HTTP_200_OK
+    assert resp.data == {"items": []}
+
+
+def test_controller_decorator_registers_apiview():
+    from rest_framework.views import APIView
+
+    from .decorators import controller
+
+    custom_router = AcademicRouter()
+
+    @controller("test-standalone", basename="test-standalone-view", router=custom_router)
+    class StandaloneAPIView(APIView):
+        permission_classes = []
+        authentication_classes = []
+
+        def get(self, request):
+            return Response({"standalone": True})
+
+    assert StandaloneAPIView._controller_prefix == "test-standalone"
+    patterns = [str(u.pattern) for u in custom_router.urls]
+    assert "test-standalone/" in patterns
+
+    factory = APIRequestFactory()
+    view = next(u.callback for u in custom_router.urls if str(u.pattern) == "test-standalone/")
+    resp = view(factory.get("/test-standalone/"))
+    assert resp.status_code == status.HTTP_200_OK
+    assert resp.data == {"standalone": True}
+
+
+def test_http_verb_decorators():
+    from .decorators import controller, delete, get, patch, post, put
+
+    custom_router = AcademicRouter()
+
+    @controller("verb-samples", basename="verb-sample", router=custom_router)
+    class VerbSampleViewSet(ViewSet):
+        permission_classes = []
+        authentication_classes = []
+
+        @get("custom-get", detail=False)
+        def custom_get(self, request):
+            return Response({"method": "GET"})
+
+        @post("custom-post", detail=False)
+        def custom_post(self, request):
+            return Response({"method": "POST"}, status=status.HTTP_201_CREATED)
+
+        @put("custom-put", detail=False)
+        def custom_put(self, request):
+            return Response({"method": "PUT"})
+
+        @patch("custom-patch", detail=False)
+        def custom_patch(self, request):
+            return Response({"method": "PATCH"})
+
+        @delete("custom-del", detail=False)
+        def custom_del(self, request):
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+    urls = custom_router.urls
+    patterns = {str(u.pattern): u.callback for u in urls}
+    factory = APIRequestFactory()
+
+    assert "^verb-samples/custom-get/$" in patterns
+    get_cb = patterns["^verb-samples/custom-get/$"]
+    assert get_cb(factory.get("/verb-samples/custom-get/")).data == {"method": "GET"}
+
+    assert "^verb-samples/custom-post/$" in patterns
+    post_cb = patterns["^verb-samples/custom-post/$"]
+    assert (
+        post_cb(factory.post("/verb-samples/custom-post/")).status_code == status.HTTP_201_CREATED
+    )
+
+    assert "^verb-samples/custom-put/$" in patterns
+    put_cb = patterns["^verb-samples/custom-put/$"]
+    assert put_cb(factory.put("/verb-samples/custom-put/")).data == {"method": "PUT"}
+
+    assert "^verb-samples/custom-patch/$" in patterns
+    patch_cb = patterns["^verb-samples/custom-patch/$"]
+    assert patch_cb(factory.patch("/verb-samples/custom-patch/")).data == {"method": "PATCH"}
+
+    assert "^verb-samples/custom-del/$" in patterns
+    del_cb = patterns["^verb-samples/custom-del/$"]
+    assert (
+        del_cb(factory.delete("/verb-samples/custom-del/")).status_code
+        == status.HTTP_204_NO_CONTENT
+    )
+
+
+def test_academic_router_contains_all_decorated_controllers():
+    import academic.controllers  # noqa: F401
+    from academic.router import academic_router
+
+    patterns = [str(u.pattern) for u in academic_router.urls]
+
+    # Verify standard resource ViewSets
+    expected_viewsets = [
+        "^institutions/$",
+        "^departments/$",
+        "^terms/$",
+        "^courses/$",
+        "^programs/$",
+        "^program-courses/$",
+        "^program-memberships/$",
+        "^offerings/$",
+        "^instructor-assignments/$",
+        "^enrollments/$",
+        "^po-sets/$",
+        "^program-outcome-sets/$",
+        "^program-outcomes/$",
+        "^syllabi/$",
+        "^grades/$",
+        "^grade-batches/$",
+        "^assessments/$",
+    ]
+    for exp in expected_viewsets:
+        assert exp in patterns, f"Expected {exp} in academic_router.urls"
+
+    # Verify workspace APIViews
+    expected_apiviews = [
+        "workspaces/instructor/",
+        "workspaces/student/",
+        "workspaces/coordinator/",
+    ]
+    for exp in expected_apiviews:
+        assert exp in patterns, f"Expected {exp} in academic_router.urls"

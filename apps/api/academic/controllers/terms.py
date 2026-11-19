@@ -1,12 +1,13 @@
 from rest_framework import mixins, viewsets
 from rest_framework.permissions import IsAuthenticated
 
-from ..guards import require_permission
+from ..decorators import controller, require_permission
 from ..serializers import AcademicTermSerializer
 from ..services import AcademicTermService, academic_service_provider
 from .base import AcademicPagination
 
 
+@controller("terms", basename="term")
 class AcademicTermController(
     mixins.CreateModelMixin,
     mixins.ListModelMixin,

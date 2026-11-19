@@ -1,53 +1,5 @@
-from django.urls import path
+import academic.controllers  # noqa: F401 - ensure controllers are imported and registered via @controller
 
-from .controllers import (
-    AcademicTermController,
-    AssessmentController,
-    CoordinatorWorkspaceController,
-    CourseController,
-    CourseOfferingController,
-    DepartmentController,
-    EnrollmentController,
-    GradeBatchController,
-    GradeController,
-    InstitutionController,
-    InstructorAssignmentController,
-    InstructorWorkspaceController,
-    ProgramController,
-    ProgramCourseController,
-    ProgramMembershipController,
-    ProgramOutcomeController,
-    ProgramOutcomeSetController,
-    StudentWorkspaceController,
-    SyllabusController,
-)
-from .router import AcademicRouter
+from .router import academic_router
 
-router = AcademicRouter()
-router.register("institutions", InstitutionController, basename="institution")
-router.register("departments", DepartmentController, basename="department")
-router.register("programs", ProgramController, basename="program")
-router.register("terms", AcademicTermController, basename="term")
-router.register("courses", CourseController, basename="course")
-router.register("program-courses", ProgramCourseController, basename="program-course")
-router.register("program-memberships", ProgramMembershipController, basename="program-membership")
-router.register("offerings", CourseOfferingController, basename="offering")
-router.register(
-    "instructor-assignments", InstructorAssignmentController, basename="instructor-assignment"
-)
-router.register("enrollments", EnrollmentController, basename="enrollment")
-router.register("po-sets", ProgramOutcomeSetController, basename="po-set")
-router.register("program-outcome-sets", ProgramOutcomeSetController, basename="program-outcome-set")
-router.register("program-outcomes", ProgramOutcomeController, basename="program-outcome")
-router.register("syllabi", SyllabusController, basename="syllabus")
-router.register("grade-batches", GradeBatchController, basename="grade-batch")
-router.register("grades", GradeController, basename="grade")
-router.register("assessments", AssessmentController, basename="assessment")
-
-
-urlpatterns = [
-    path("workspaces/instructor/", InstructorWorkspaceController.as_view()),
-    path("workspaces/student/", StudentWorkspaceController.as_view()),
-    path("workspaces/coordinator/", CoordinatorWorkspaceController.as_view()),
-    *router.urls,
-]
+urlpatterns = academic_router.urls

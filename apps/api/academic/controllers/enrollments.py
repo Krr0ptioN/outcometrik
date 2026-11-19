@@ -1,10 +1,12 @@
 from rest_framework.response import Response
 
+from ..decorators import controller, validate_payload
 from ..serializers import EnrollmentSerializer, EnrollmentStatusUpdateSerializer
 from ..services import EnrollmentService
-from .base import AcademicController, validate_payload
+from .base import AcademicController
 
 
+@controller("enrollments", basename="enrollment")
 class EnrollmentController(AcademicController):
     serializer_class = EnrollmentSerializer
     service_class = EnrollmentService

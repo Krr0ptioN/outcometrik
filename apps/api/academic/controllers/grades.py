@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from ..decorators import controller, validate_payload
 from ..serializers import (
     GradeBatchSerializer,
     GradeHistorySerializer,
@@ -14,9 +15,10 @@ from ..services.grades import (
     GradeService,
     GradeVersionConflict,
 )
-from .base import AcademicController, validate_payload
+from .base import AcademicController
 
 
+@controller("grades", basename="grade")
 class GradeController(AcademicController):
     serializer_class = GradeSerializer
     service_class = GradeService
@@ -51,6 +53,7 @@ class GradeController(AcademicController):
         return Response(GradeHistorySerializer(rows, many=True).data)
 
 
+@controller("grade-batches", basename="grade-batch")
 class GradeBatchController(AcademicController):
     serializer_class = GradeBatchSerializer
     service_class = GradeBatchService

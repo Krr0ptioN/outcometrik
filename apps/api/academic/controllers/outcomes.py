@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from ..decorators import controller, validate_payload
 from ..models import ProgramOutcomeSet
 from ..serializers import (
     ProgramOutcomeSerializer,
@@ -9,9 +10,11 @@ from ..serializers import (
     ProgramOutcomeSetSerializer,
 )
 from ..services import ProgramOutcomeService, ProgramOutcomeSetService
-from .base import AcademicController, validate_payload
+from .base import AcademicController
 
 
+@controller("po-sets", basename="po-set")
+@controller("program-outcome-sets", basename="program-outcome-set")
 class ProgramOutcomeSetController(AcademicController):
     serializer_class = ProgramOutcomeSetSerializer
     service_class = ProgramOutcomeSetService
@@ -71,6 +74,7 @@ class ProgramOutcomeSetController(AcademicController):
         return Response(ProgramOutcomeSerializer(outcome).data)
 
 
+@controller("program-outcomes", basename="program-outcome")
 class ProgramOutcomeController(AcademicController):
     serializer_class = ProgramOutcomeSerializer
     service_class = ProgramOutcomeService
