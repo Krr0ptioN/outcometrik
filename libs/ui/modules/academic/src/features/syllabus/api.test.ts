@@ -6,14 +6,14 @@ import {
   getProgramOutcomeSets,
   getProgramOutcomes,
   getSyllabi,
-<<<<<<< HEAD
+
   getSyllabusPOContributions,
   saveSyllabusPOContribution,
-=======
+
   getSyllabusMappingValidation,
   replaceAssessmentLOMappings,
   replaceLOPOMappings,
->>>>>>> origin/main
+
 } from './api';
 
 afterEach(() => vi.unstubAllGlobals());
@@ -27,7 +27,7 @@ const syllabus = {
   mapping_revision: 1,
   learning_outcomes: [],
   assessments: [],
-<<<<<<< HEAD
+
   po_contributions: [
     {
       id: 'c1',
@@ -36,10 +36,10 @@ const syllabus = {
       weight: 5,
     },
   ],
-=======
+
   assessment_lo_mappings: [],
   lo_po_mappings: [],
->>>>>>> origin/main
+
 };
 it('loads and validates all syllabus pages for an offering', async () => {
   const fetcher = vi

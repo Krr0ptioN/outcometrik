@@ -750,7 +750,7 @@ class ProgramOutcome(TimestampedModel):
         super().save(*args, **kwargs)
 
 
-<<<<<<< HEAD
+
 class CoursePOContribution(DraftOnlyModel):
     """Course-to-PO contribution weight (integer 1-5) for one syllabus version and bound PO."""
 
@@ -772,7 +772,12 @@ class CoursePOContribution(DraftOnlyModel):
             models.CheckConstraint(
                 condition=models.Q(weight__gte=1, weight__lte=5),
                 name="course_po_contribution_weight_1_to_5",
-=======
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.syllabus_id}:{self.program_outcome_id}={self.weight}"
+
 class AssessmentLOMapping(DraftOnlyModel):
     """Relative weight mapping from a syllabus assessment to a learning outcome."""
 
@@ -798,14 +803,10 @@ class AssessmentLOMapping(DraftOnlyModel):
             models.CheckConstraint(
                 condition=models.Q(weight__gte=0),
                 name="assessment_lo_weight_nonnegative",
->>>>>>> origin/main
             ),
         ]
 
     def __str__(self) -> str:
-<<<<<<< HEAD
-        return f"{self.syllabus_id}:{self.program_outcome_id}={self.weight}"
-=======
         return f"{self.syllabus_id}:{self.assessment_id}->{self.learning_outcome_id}={self.weight}"
 
 
@@ -841,4 +842,3 @@ class LOPOMapping(DraftOnlyModel):
 
     def __str__(self) -> str:
         return f"{self.syllabus_id}:{self.learning_outcome_id}->{self.program_outcome_id}={self.weight}"
->>>>>>> origin/main

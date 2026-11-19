@@ -15,7 +15,7 @@ export interface Assessment {
   is_active: boolean;
   max_points: string;
 }
-<<<<<<< HEAD
+
 export interface CoursePOContribution {
   id: string;
   syllabus?: string;
@@ -24,7 +24,7 @@ export interface CoursePOContribution {
   weight: number;
   governance_role?: string;
   governance_level?: string;
-=======
+
 export interface AssessmentLOMapping {
   id?: string;
   syllabus?: string;
@@ -64,7 +64,7 @@ export interface SyllabusMappingValidation {
   orphaned_learning_outcomes: string[];
   unreachable_program_outcomes: string[];
   errors: string[];
->>>>>>> origin/main
+
 }
 export interface Syllabus {
   id: string;
@@ -76,12 +76,12 @@ export interface Syllabus {
   mapping_revision?: number;
   learning_outcomes: Outcome[];
   assessments: Assessment[];
-<<<<<<< HEAD
+
   po_contributions?: CoursePOContribution[];
-=======
+
   assessment_lo_mappings?: AssessmentLOMapping[];
   lo_po_mappings?: LOPOMapping[];
->>>>>>> origin/main
+
 }
 const record = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -106,7 +106,7 @@ function isAssessment(v: unknown): v is Assessment {
     typeof v.max_points === 'string'
   );
 }
-<<<<<<< HEAD
+
 export function isCoursePOContribution(v: unknown): v is CoursePOContribution {
   return (
     record(v) &&
@@ -117,7 +117,9 @@ export function isCoursePOContribution(v: unknown): v is CoursePOContribution {
     Number.isInteger(v.weight) &&
     v.weight >= 1 &&
     v.weight <= 5
-=======
+  );
+}
+
 function isAssessmentLOMapping(v: unknown): v is AssessmentLOMapping {
   return (
     record(v) &&
@@ -134,7 +136,6 @@ function isLOPOMapping(v: unknown): v is LOPOMapping {
     typeof v.program_outcome === 'string' &&
     typeof v.weight === 'number' &&
     typeof v.is_active === 'boolean'
->>>>>>> origin/main
   );
 }
 function isSyllabus(v: unknown): v is Syllabus {
@@ -152,11 +153,9 @@ function isSyllabus(v: unknown): v is Syllabus {
     v.learning_outcomes.every(isOutcome) &&
     Array.isArray(v.assessments) &&
     v.assessments.every(isAssessment) &&
-<<<<<<< HEAD
     (v.po_contributions === undefined ||
       (Array.isArray(v.po_contributions) &&
-        v.po_contributions.every(isCoursePOContribution)))
-=======
+        v.po_contributions.every(isCoursePOContribution))) &&
     (v.assessment_lo_mappings === undefined ||
       (Array.isArray(v.assessment_lo_mappings) &&
         v.assessment_lo_mappings.every(isAssessmentLOMapping))) &&
@@ -208,7 +207,6 @@ function isSyllabusMappingValidation(
     v.unreachable_program_outcomes.every((x) => typeof x === 'string') &&
     Array.isArray(v.errors) &&
     v.errors.every((x) => typeof x === 'string')
->>>>>>> origin/main
   );
 }
 export async function getSyllabi(

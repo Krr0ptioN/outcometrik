@@ -26,13 +26,13 @@ import {
   changeSyllabus,
   deleteSyllabusPOContribution,
   getSyllabi,
-<<<<<<< HEAD
+
   saveSyllabusPOContribution,
-=======
+
   getSyllabusMappingValidation,
   replaceAssessmentLOMappings,
   replaceLOPOMappings,
->>>>>>> origin/main
+
   type Assessment,
   type CoursePOContribution,
   type Outcome,
@@ -204,7 +204,7 @@ function AssessmentForm({
   );
 }
 
-<<<<<<< HEAD
+
 function CoursePOContributionSection({
   syllabus,
   programId,
@@ -375,7 +375,10 @@ function CoursePOContributionSection({
           No course-to-PO contribution weights mapped (NOT_ASSESSED).
         </p>
       )}
-=======
+    </section>
+  );
+}
+
 function SyllabusMappingStudio({
   version,
   canDraft,
@@ -717,7 +720,7 @@ function SyllabusMappingStudio({
           )}
         </div>
       )}
->>>>>>> origin/main
+
     </section>
   );
 }
@@ -838,7 +841,9 @@ export function SyllabusWorkspace({
             version.status === 'draft' &&
             version.learning_outcomes.length === 0 &&
             version.assessments.length === 0 &&
-            (version.po_contributions?.length ?? 0) === 0 && (
+            (version.po_contributions?.length ?? 0) === 0 &&
+            (version.assessment_lo_mappings?.length ?? 0) === 0 &&
+            (version.lo_po_mappings?.length ?? 0) === 0 && (
               <Button
                 variant="outline"
                 disabled={mutation.isPending}
@@ -909,20 +914,17 @@ export function SyllabusWorkspace({
               />
             )}
           </section>
-<<<<<<< HEAD
+
           <CoursePOContributionSection
             syllabus={version}
             programId={programId}
             canApprove={canApprove}
-            onChanged={() =>
-=======
+            onChanged={() => void queryClient.invalidateQueries({ queryKey: key })}
+          />
           <SyllabusMappingStudio
             version={version}
             canDraft={canDraft}
-            onSaved={() =>
->>>>>>> origin/main
-              void queryClient.invalidateQueries({ queryKey: key })
-            }
+            onSaved={() => void queryClient.invalidateQueries({ queryKey: key })}
           />
         </>
       )}

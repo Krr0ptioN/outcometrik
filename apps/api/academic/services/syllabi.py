@@ -58,14 +58,11 @@ class SyllabusService:
             queryset = Syllabus.objects.all()
         effective_actor = actor if actor is not None else self.actor
         return scoping.scope_syllabi(effective_actor, queryset).prefetch_related(
-<<<<<<< HEAD
-            "learning_outcomes", "assessments", "po_contributions__program_outcome"
-=======
             "learning_outcomes",
             "assessments",
+            "po_contributions__program_outcome",
             "assessment_lo_mappings",
             "lo_po_mappings",
->>>>>>> origin/main
         )
 
     # -- helpers ---------------------------------------------------------
@@ -173,32 +170,23 @@ class SyllabusService:
         offering = syllabus.offering
         SyllabusValidator.validate_revision(syllabus, offering)
         version = offering.syllabi.count() + 1
-<<<<<<< HEAD
+
         active_set = (
-=======
-        target_po_set_version = (
->>>>>>> origin/main
             ProgramOutcomeSet.objects.filter(
                 program_id=offering.program_id,
                 status=ProgramOutcomeSet.Status.ACTIVE,
                 effective_date__lte=timezone.localdate(),
             )
             .order_by("-effective_date")
-<<<<<<< HEAD
-=======
-            .values_list("version", flat=True)
->>>>>>> origin/main
             .first()
         )
+        target_po_set_version = active_set.version if active_set else syllabus.po_set_version
         revision = Syllabus(
             offering=offering,
             version=version,
             status=Syllabus.Status.DRAFT,
-<<<<<<< HEAD
-            po_set_version=active_set.version if active_set else syllabus.po_set_version,
-=======
+
             po_set_version=target_po_set_version,
->>>>>>> origin/main
         )
         try:
             with transaction.atomic():
@@ -224,7 +212,8 @@ class SyllabusService:
                 is_active=a.is_active,
                 max_points=a.max_points,
             )
-<<<<<<< HEAD
+            asmt_by_code[a.code] = cloned_asmt
+
         for contrib in (
             syllabus.po_contributions.select_related("program_outcome")
             .all()
@@ -242,8 +231,6 @@ class SyllabusService:
                     program_outcome=target_po,
                     weight=contrib.weight,
                 )
-=======
-            asmt_by_code[a.code] = cloned_asmt
 
         for m in syllabus.assessment_lo_mappings.select_related(
             "assessment", "learning_outcome"
@@ -280,7 +267,7 @@ class SyllabusService:
                         weight=m.weight,
                         is_active=m.is_active,
                     )
->>>>>>> origin/main
+
         return revision
 
     @transaction.atomic
@@ -482,11 +469,11 @@ class SyllabusService:
     def remove_unused_draft(self, *, syllabus) -> Syllabus:
         """Retire an empty draft version; referenced versions stay untouched.
 
-<<<<<<< HEAD
+
         Referenced means holding LO/assessment/po_contribution rows or having been approved.
-=======
+
         Referenced means holding LO/assessment/mapping rows or having been approved.
->>>>>>> origin/main
+
         Retirement keeps history (rows are hard-delete protected) and does not
         bump revisions because an empty draft never fed a calculation. Grade
         rows arrive with GRD-01 and will extend the referenced check there.
