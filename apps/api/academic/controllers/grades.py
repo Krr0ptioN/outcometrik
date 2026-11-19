@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from ..decorators import controller, get, patch, post, require_permission, validate_payload
 from ..serializers import (
     GradeBatchSerializer,
+    GradeBulkSaveSerializer,
     GradeHistorySerializer,
     GradeSerializer,
     GradeUpdateSerializer,
@@ -54,6 +55,32 @@ class GradeController(
     def create(self, request, *args, payload=None, **kwargs):
         grade = self.service.create(actor=request.user, **payload)
         return Response(GradeSerializer(grade).data, status=status.HTTP_201_CREATED)
+
+    @post("bulk")
+    @require_permission("grades.edit", scope_field="offering")
+    @validate_payload(GradeBulkSaveSerializer)
+    def bulk(self, request, *args, payload=None, **kwargs):
+        try:
+            result = self.service.bulk_save(actor=request.user, **payload)
+        except GradeVersionConflict as exc:
+            body = {
+                "code": "version_conflict",
+                "detail": exc.detail,
+            }
+            if exc.current_version is not None:
+                body["current_version"] = exc.current_version
+            if exc.current_input_revision is not None:
+                body["current_input_revision"] = exc.current_input_revision
+            return Response(body, status=status.HTTP_409_CONFLICT)
+        return Response(
+            {
+                "offering": result["offering"],
+                "input_revision": result["input_revision"],
+                "idempotency_key": result["idempotency_key"],
+                "grades": GradeSerializer(result["grades"], many=True).data,
+            },
+            status=status.HTTP_200_OK,
+        )
 
     @patch("{id}")
     @require_permission("grades.edit", scope_field="offering")

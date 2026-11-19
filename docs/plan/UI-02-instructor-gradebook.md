@@ -23,16 +23,16 @@ As an instructor, I can view an offering roster by assessment and enter grades w
 
 ## Acceptance criteria
 
-- [ ] Instructor can grade an authorized roster and see persisted values after reload.
-- [ ] Zero, missing, and exempt values remain distinguishable.
-- [ ] Invalid cells are rejected without partial unintended updates.
-- [ ] Unauthorized offerings and student records remain inaccessible.
-- [ ] Keyboard operation and accessible error announcements work for the grid.
+- [x] Instructor can grade an authorized roster and see persisted values after reload.
+- [x] Zero, missing, and exempt values remain distinguishable.
+- [x] Invalid cells are rejected without partial unintended updates.
+- [x] Unauthorized offerings and student records remain inaccessible.
+- [x] Keyboard operation and accessible error announcements work for the grid.
 ## Implementation tasks
 
-- [ ] Confirm API/data contract and authorization scope against the owning domain module.
-- [ ] Implement the smallest vertical slice that satisfies the acceptance criteria.
-- [ ] Add focused unit/integration coverage for success, invalid input, and denied scope.
-- [ ] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
-- [ ] Update API/UI documentation and verify downstream stories remain compatible.
+- [x] Confirm API/data contract and authorization scope against the owning domain module.
+- [x] Implement the smallest vertical slice that satisfies the acceptance criteria.
+- [x] Add focused unit/integration coverage for success, invalid input, and denied scope.
+- [x] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
+- [x] Update API/UI documentation and verify downstream stories remain compatible.
 

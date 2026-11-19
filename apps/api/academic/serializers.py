@@ -450,6 +450,31 @@ class GradeUpdateSerializer(serializers.Serializer):
     reason = serializers.CharField(max_length=255, required=False, allow_blank=True, default="")
 
 
+class GradeBulkItemSerializer(serializers.Serializer):
+    enrollment = serializers.PrimaryKeyRelatedField(queryset=Enrollment.objects.all())
+    assessment = serializers.PrimaryKeyRelatedField(queryset=Assessment.objects.all())
+    batch = serializers.PrimaryKeyRelatedField(queryset=GradeBatch.objects.all())
+    state = serializers.ChoiceField(choices=Grade.State.choices)
+    points_earned = serializers.DecimalField(
+        max_digits=7, decimal_places=2, required=False, allow_null=True
+    )
+    reason = serializers.CharField(max_length=255, required=False, allow_blank=True, default="")
+    expected_version = serializers.IntegerField(min_value=1, required=False, allow_null=True)
+
+
+class GradeBulkSaveSerializer(serializers.Serializer):
+    offering = serializers.PrimaryKeyRelatedField(queryset=CourseOffering.objects.all())
+    expected_input_revision = serializers.IntegerField(min_value=0, required=False, allow_null=True)
+    idempotency_key = serializers.CharField(max_length=128)
+    items = GradeBulkItemSerializer(many=True, allow_empty=False)
+
+    def validate_idempotency_key(self, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise serializers.ValidationError("This field may not be blank.")
+        return cleaned
+
+
 class GradeHistorySerializer(serializers.ModelSerializer):
     changed_by = serializers.PrimaryKeyRelatedField(read_only=True)
 

@@ -8,15 +8,23 @@ from django.utils import timezone
 from wireup import injectable
 
 from ..access_control import OfferingAuthorization
-from ..models import Enrollment, Grade, GradeBatch, GradeHistory
+from ..models import CourseOffering, Enrollment, Grade, GradeBatch, GradeHistory
 from .grade_validation import GradeValidator
 from .revisions import RevisionTracker
 
 
 class GradeVersionConflict(Exception):
-    def __init__(self, current_version: int):
-        super().__init__("The grade was changed by someone else.")
+    def __init__(
+        self,
+        current_version: int | None = None,
+        *,
+        current_input_revision: int | None = None,
+        detail: str = "The grade was changed by someone else.",
+    ):
+        super().__init__(detail)
         self.current_version = current_version
+        self.current_input_revision = current_input_revision
+        self.detail = detail
 
 
 @injectable
@@ -185,6 +193,189 @@ class GradeService:
                 program_id=locked.offering.program_id, offering_id=locked.offering_id
             )
         return locked
+
+    @transaction.atomic
+    def bulk_save(
+        self,
+        *,
+        offering: CourseOffering,
+        items: list[dict],
+        idempotency_key: str,
+        expected_input_revision: int | None = None,
+        actor: Any = None,
+    ) -> dict[str, Any]:
+        effective_actor = actor if actor is not None else self.actor
+        locked_offering = (
+            CourseOffering.objects.select_for_update().select_related("program").get(pk=offering.pk)
+        )
+
+        # Collect all referenced batches, enrollments, and existing grades to lock in canonical order.
+        enrollment_ids = {item["enrollment"].pk for item in items}
+        assessment_ids = {item["assessment"].pk for item in items}
+        existing_rows = list(
+            Grade.objects.filter(
+                offering_id=locked_offering.pk,
+                enrollment_id__in=enrollment_ids,
+                assessment_id__in=assessment_ids,
+            ).values("pk", "batch_id", "enrollment_id", "assessment_id")
+        )
+        batch_ids = {item["batch"].pk for item in items} | {
+            row["batch_id"] for row in existing_rows
+        }
+
+        locked_batches = {
+            b.pk: b
+            for b in GradeBatch.objects.select_for_update().filter(pk__in=batch_ids).order_by("pk")
+        }
+        locked_enrollments = {
+            e.pk: e
+            for e in Enrollment.objects.select_for_update(of=("self",))
+            .select_related("offering")
+            .filter(pk__in=enrollment_ids)
+            .order_by("pk")
+        }
+        locked_grades = {
+            (g.enrollment_id, g.assessment_id): g
+            for g in Grade.objects.select_for_update(of=("self",))
+            .select_related("offering", "assessment", "batch")
+            .filter(pk__in=[row["pk"] for row in existing_rows])
+            .order_by("pk")
+        }
+
+        GradeValidator.validate_bulk_items(
+            offering=locked_offering,
+            items=items,
+            locked_batches=locked_batches,
+            locked_enrollments=locked_enrollments,
+            existing_grades=locked_grades,
+        )
+
+        all_match = all(
+            (existing := locked_grades.get((item["enrollment"].pk, item["assessment"].pk)))
+            is not None
+            and existing.state == item["state"]
+            and existing.points_earned == item.get("points_earned")
+            for item in items
+        )
+
+        if not all_match:
+            if (
+                expected_input_revision is not None
+                and locked_offering.input_revision != expected_input_revision
+            ):
+                raise GradeVersionConflict(
+                    current_input_revision=locked_offering.input_revision,
+                    detail="The gradebook was updated by someone else. Refresh the latest grades and retry.",
+                )
+
+            for item in items:
+                pair = (item["enrollment"].pk, item["assessment"].pk)
+                existing = locked_grades.get(pair)
+                expected_version = item.get("expected_version")
+                state = item["state"]
+                points_earned = item.get("points_earned")
+                item_matches = (
+                    existing is not None
+                    and existing.state == state
+                    and existing.points_earned == points_earned
+                )
+                if existing is not None:
+                    if (
+                        expected_version is not None
+                        and existing.version != expected_version
+                        and not item_matches
+                    ):
+                        raise GradeVersionConflict(
+                            existing.version,
+                            current_input_revision=locked_offering.input_revision,
+                            detail="A grade was changed by someone else. Refresh the latest grades and retry.",
+                        )
+                elif expected_version is not None:
+                    raise GradeVersionConflict(
+                        0,
+                        current_input_revision=locked_offering.input_revision,
+                        detail="A grade version expectation did not match the current gradebook state.",
+                    )
+
+        saved_grades: list[Grade] = []
+        any_released_change = False
+
+        for item in items:
+            enrollment = locked_enrollments[item["enrollment"].pk]
+            assessment = item["assessment"]
+            batch = locked_batches[item["batch"].pk]
+            state = item["state"]
+            points_earned = item.get("points_earned")
+            reason = (item.get("reason") or "").strip()
+            existing = locked_grades.get((enrollment.pk, assessment.pk))
+
+            if existing is None:
+                grade = Grade(
+                    offering=locked_offering,
+                    enrollment=enrollment,
+                    assessment=assessment,
+                    batch=batch,
+                    state=state,
+                    points_earned=points_earned,
+                    points_possible=assessment.points_possible,
+                    version=1,
+                )
+                try:
+                    grade.save()
+                except IntegrityError as exc:
+                    raise ValidationError(
+                        "A grade already exists for this student and assessment."
+                    ) from exc
+                GradeHistory.objects.create(
+                    grade=grade,
+                    version=1,
+                    old_state="",
+                    old_points_earned=None,
+                    new_state=state,
+                    new_points_earned=points_earned,
+                    reason=reason or "created",
+                    changed_by=effective_actor,
+                )
+                if batch.released_at is not None:
+                    any_released_change = True
+                saved_grades.append(grade)
+            else:
+                if existing.state == state and existing.points_earned == points_earned:
+                    saved_grades.append(existing)
+                    continue
+
+                effective_batch = locked_batches[existing.batch_id]
+                old_state, old_points = existing.state, existing.points_earned
+                existing.state = state
+                existing.points_earned = points_earned
+                existing.version += 1
+                existing.save()
+                GradeHistory.objects.create(
+                    grade=existing,
+                    version=existing.version,
+                    old_state=old_state,
+                    old_points_earned=old_points,
+                    new_state=state,
+                    new_points_earned=points_earned,
+                    reason=reason,
+                    changed_by=effective_actor,
+                )
+                if effective_batch.released_at is not None:
+                    any_released_change = True
+                saved_grades.append(existing)
+
+        if any_released_change:
+            RevisionTracker.bump(
+                program_id=locked_offering.program_id, offering_id=locked_offering.pk
+            )
+            locked_offering.refresh_from_db(fields=["input_revision"])
+
+        return {
+            "offering": str(locked_offering.pk),
+            "input_revision": locked_offering.input_revision,
+            "idempotency_key": idempotency_key,
+            "grades": saved_grades,
+        }
 
     def history(self, *, grade):
         return grade.history.select_related("changed_by")

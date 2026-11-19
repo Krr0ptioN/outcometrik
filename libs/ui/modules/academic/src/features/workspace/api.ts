@@ -6,7 +6,8 @@ export interface InstructorOffering {
   course: string;
   program: string;
   term: string;
-  roster: { enrollment_id: string; student_id: number; name: string; status: string }[];
+  input_revision?: number;
+  roster: { enrollment_id: string; student_id?: number; name: string; status: string }[];
 }
 export interface StudentCourse {
   enrollment_id: string;
@@ -34,12 +35,13 @@ function isInstructorOffering(value: unknown): value is InstructorOffering {
     typeof value.course === 'string' &&
     typeof value.program === 'string' &&
     typeof value.term === 'string' &&
+    (value.input_revision === undefined || typeof value.input_revision === 'number') &&
     Array.isArray(value.roster) &&
     value.roster.every(
       (row) =>
         isRecord(row) &&
         typeof row.enrollment_id === 'string' &&
-        typeof row.student_id === 'number' &&
+        (row.student_id === undefined || typeof row.student_id === 'number') &&
         typeof row.name === 'string' &&
         typeof row.status === 'string',
     )

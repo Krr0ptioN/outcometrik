@@ -261,11 +261,11 @@ client must send the session cookie and CSRF token for writes. Offering,
 assessment, enrollment, batch, and grade IDs are UUIDs. List endpoints support
 `page` and `page_size` as described above.
 
-| Route             | Operations                                       | Filters                                                  |
-| ----------------- | ------------------------------------------------ | -------------------------------------------------------- |
-| `/assessments/`   | GET list and `{id}`                              | `offering`                                               |
-| `/grade-batches/` | GET, POST; GET `{id}`; POST `{id}/release/`      | `offering`                                               |
-| `/grades/`        | GET, POST; GET/PATCH `{id}`; GET `{id}/history/` | `offering`, `enrollment`, `assessment`, `batch`, `state` |
+| Route             | Operations                                                        | Filters                                                  |
+| ----------------- | ----------------------------------------------------------------- | -------------------------------------------------------- |
+| `/assessments/`   | GET list and `{id}`                                               | `offering`                                               |
+| `/grade-batches/` | GET, POST; GET `{id}`; POST `{id}/release/`                       | `offering`                                               |
+| `/grades/`        | GET, POST; POST `bulk/`; GET/PATCH `{id}`; GET `{id}/history/`    | `offering`, `enrollment`, `assessment`, `batch`, `state` |
 
 Assessment reads return approved assessments for offerings where the actor has
 `grades.edit`; assessment authoring is not provided here. Create a batch with
@@ -287,6 +287,15 @@ points is a no-op and does not append history. History returns versions with the
 old and new state and points, actor, reason, and creation time. Grade creation
 and changes write their history within the same transaction. After a batch has
 been released, entering or correcting a grade requires a nonblank reason.
+
+To save multiple student × assessment grade cells atomically (UI-02), POST
+`/api/v1/grades/bulk/` with `{"offering": "<offering UUID>",
+"expected_input_revision": <int>, "idempotency_key": "<string>", "items": [...]}`.
+Each item specifies `enrollment`, `assessment`, `batch`, `state`, `points_earned`,
+`reason`, and optional `expected_version`. If any item fails validation, HTTP 400
+is returned and no grades are modified. If `expected_input_revision` or any item's
+`expected_version` does not match the current database state (and values differ),
+HTTP 409 (`code: "version_conflict"`) is returned with no partial writes.
 
 Only staff with `grades.edit` for an offering can access its gradebook, batches,
 assessment choices and history, and enter, correct or release grades. Students

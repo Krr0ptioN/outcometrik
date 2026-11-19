@@ -1,6 +1,11 @@
 'use client';
 
-import { useState, type FormEvent, type ReactNode } from 'react';
+import {
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError } from '@outcometrik/api';
 import { errorMessage, SessionMenu, useSession } from '@outcometrik/access';
@@ -37,7 +42,10 @@ import {
   getGrades,
   getReleasedStudentGrades,
   releaseGradeBatch,
+  saveGradesBulk,
+  type ApprovedAssessment,
   type GradeBatch,
+  type GradeBulkItemWrite,
   type GradeCorrection,
   type GradeRecord,
   type GradeState,
@@ -53,7 +61,7 @@ const gradeStates: { value: GradeState; label: string }[] = [
   { value: 'incomplete', label: 'Incomplete' },
 ];
 
-function stateLabel(state: GradeState) {
+export function stateLabel(state: GradeState) {
   return gradeStates.find((item) => item.value === state)?.label ?? state;
 }
 
@@ -81,59 +89,237 @@ function AccessMessage({
   );
 }
 
-type GradeDraft = {
+export type GradeDraft = {
   state: GradeState;
   points: string;
   reason: string;
 };
 
-function GradeEntryRow({
+export type CellValidationResult = {
+  valid: boolean;
+  error: string | null;
+};
+
+export function validateGradeDraft({
+  draft,
+  scoreLimit,
+  reasonRequired,
+}: {
+  draft: GradeDraft;
+  scoreLimit: string;
+  reasonRequired: boolean;
+}): CellValidationResult {
+  const limit = Number(scoreLimit);
+  if (draft.state === 'scored') {
+    const raw = draft.points.trim();
+    if (!raw) {
+      return {
+        valid: false,
+        error: `Points earned are required when scored (0 to ${scoreLimit}).`,
+      };
+    }
+    const num = Number(raw);
+    if (!Number.isFinite(num) || Number.isNaN(num)) {
+      return {
+        valid: false,
+        error: 'Points earned must be a valid decimal number.',
+      };
+    }
+    if (num < 0 || num > limit) {
+      return {
+        valid: false,
+        error: `Points earned must be between 0 and ${scoreLimit}.`,
+      };
+    }
+  } else if (draft.points.trim() !== '') {
+    return {
+      valid: false,
+      error: 'Points earned must be empty unless the grade state is Scored.',
+    };
+  }
+
+  if (reasonRequired && !draft.reason.trim()) {
+    return {
+      valid: false,
+      error: 'A reason is required for grades in a released batch.',
+    };
+  }
+
+  return { valid: true, error: null };
+}
+
+export function isDraftDirty(
+  draft: GradeDraft | undefined,
+  grade: GradeRecord | undefined,
+): boolean {
+  if (!draft) return false;
+  if (!grade) {
+    return (
+      draft.state !== 'scored' ||
+      draft.points.trim() !== '' ||
+      draft.reason.trim() !== ''
+    );
+  }
+  const existingPoints = grade.points_earned ?? '';
+  if (draft.state !== grade.state) return true;
+  if (draft.state === 'scored') {
+    if (draft.points.trim() === '') return true;
+    return Number(draft.points) !== Number(existingPoints);
+  }
+  return false;
+}
+
+export function sortRosterDeterministically<
+  T extends { enrollment_id: string; name: string; status: string },
+>(roster: readonly T[]): T[] {
+  return [...roster].sort((a, b) => {
+    const byName = a.name.localeCompare(b.name, 'en', {
+      sensitivity: 'base',
+    });
+    if (byName !== 0) return byName;
+    return a.enrollment_id.localeCompare(b.enrollment_id);
+  });
+}
+
+export function paginateRoster<T>(
+  rows: readonly T[],
+  page: number,
+  pageSize: number,
+): {
+  items: T[];
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+} {
+  const safeSize = Math.max(1, pageSize);
+  const totalItems = rows.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / safeSize));
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+  const start = (currentPage - 1) * safeSize;
+  return {
+    items: rows.slice(start, start + safeSize),
+    currentPage,
+    totalPages,
+    totalItems,
+  };
+}
+
+export function computeNextGridCell(
+  rowIndex: number,
+  colIndex: number,
+  rowCount: number,
+  colCount: number,
+  key: string,
+): { rowIndex: number; colIndex: number } | null {
+  if (rowCount <= 0 || colCount <= 0) return null;
+  if (key === 'ArrowDown') {
+    return {
+      rowIndex: Math.min(rowCount - 1, rowIndex + 1),
+      colIndex,
+    };
+  }
+  if (key === 'ArrowUp') {
+    return {
+      rowIndex: Math.max(0, rowIndex - 1),
+      colIndex,
+    };
+  }
+  if (key === 'ArrowRight') {
+    return {
+      rowIndex,
+      colIndex: Math.min(colCount - 1, colIndex + 1),
+    };
+  }
+  if (key === 'ArrowLeft') {
+    return {
+      rowIndex,
+      colIndex: Math.max(0, colIndex - 1),
+    };
+  }
+  return null;
+}
+
+function makeIdempotencyKey(offeringId: string) {
+  const randomPart =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  return `gradebook-${offeringId}-${randomPart}`;
+}
+
+function GradeMatrixCell({
   enrollmentId,
   studentName,
   enrollmentStatus,
-  assessmentId,
-  pointsPossible,
+  assessment,
+  rowIndex,
+  colIndex,
+  rowCount,
+  colCount,
   batch,
   grade,
-  onSave,
+  draftOverlay,
+  cellError,
+  onDraftChange,
+  onDiscardDraft,
+  onSaveCell,
+  writesPending,
 }: {
   enrollmentId: string;
   studentName: string;
   enrollmentStatus: string;
-  assessmentId: string;
-  pointsPossible: string;
+  assessment: ApprovedAssessment;
+  rowIndex: number;
+  colIndex: number;
+  rowCount: number;
+  colCount: number;
   batch: GradeBatch | undefined;
   grade: GradeRecord | undefined;
-  onSave: (
-    grade: GradeRecord | undefined,
-    draft: GradeDraft,
-    enrollmentId: string,
-    assessmentId: string,
-    batchId: string,
-    studentName: string,
-  ) => Promise<unknown>;
+  draftOverlay: GradeDraft | undefined;
+  cellError: string | null;
+  onDraftChange: (cellKey: string, nextDraft: GradeDraft) => void;
+  onDiscardDraft: (cellKey: string) => void;
+  onSaveCell: (params: {
+    cellKey: string;
+    grade: GradeRecord | undefined;
+    draft: GradeDraft;
+    enrollmentId: string;
+    assessment: ApprovedAssessment;
+    batch: GradeBatch | undefined;
+    studentName: string;
+  }) => Promise<unknown>;
+  writesPending: boolean;
 }) {
-  const [state, setState] = useState<GradeState>(grade?.state ?? 'scored');
-  const [points, setPoints] = useState(grade?.points_earned ?? '');
-  const [reason, setReason] = useState('');
+  const cellKey = `${enrollmentId}:${assessment.id}`;
+  const defaultDraft: GradeDraft = {
+    state: grade?.state ?? 'scored',
+    points: grade?.points_earned ?? '',
+    reason: '',
+  };
+  const draft = draftOverlay ?? defaultDraft;
+  const { state, points, reason } = draft;
   const [showHistory, setShowHistory] = useState(false);
+
   const history = useQuery({
     queryKey: ['academic', 'grade-history', grade?.id],
     queryFn: ({ signal }) => getGradeHistory(grade!.id, signal),
     enabled: Boolean(grade && showHistory),
   });
+
   const save = useMutation({
     mutationFn: () =>
-      onSave(
+      onSaveCell({
+        cellKey,
         grade,
-        { state, points, reason },
+        draft,
         enrollmentId,
-        assessmentId,
-        grade?.batch ?? batch?.id ?? '',
+        assessment,
+        batch,
         studentName,
-      ),
+      }),
   });
-  const scoreLimit = grade?.points_possible ?? pointsPossible;
+
+  const scoreLimit = grade?.points_possible ?? assessment.points_possible;
   const batchIsReleased = Boolean(batch?.released_at);
   const correctionIsReleased = grade?.batch === batch?.id && batchIsReleased;
   const reasonRequired = Boolean(
@@ -141,58 +327,117 @@ function GradeEntryRow({
   );
   const canSave =
     enrollmentStatus === 'enrolled' && (Boolean(grade) || Boolean(batch));
+  const dirty = isDraftDirty(draftOverlay, grade);
+
+  function updateDraft(patch: Partial<GradeDraft>) {
+    save.reset();
+    onDraftChange(cellKey, { ...draft, ...patch });
+  }
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     save.mutate();
   }
 
+  function handleCellKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (event.key === 'Escape' && draftOverlay) {
+      event.preventDefault();
+      save.reset();
+      onDiscardDraft(cellKey);
+      return;
+    }
+    if (event.altKey || event.ctrlKey) {
+      const next = computeNextGridCell(
+        rowIndex,
+        colIndex,
+        rowCount,
+        colCount,
+        event.key,
+      );
+      if (next && typeof document !== 'undefined') {
+        event.preventDefault();
+        const target = document.querySelector<HTMLElement>(
+          `[data-grid-focus="${next.rowIndex}-${next.colIndex}"]`,
+        );
+        target?.focus();
+      }
+    }
+  }
+
+  const inputIdSuffix = `${enrollmentId}-${assessment.id}`;
+  const isInvalid = Boolean(cellError);
+
   return (
-    <TableRow>
-      <TableCell className="min-w-44 font-medium">{studentName}</TableCell>
-      <TableCell>
-        <Badge
-          variant={enrollmentStatus === 'enrolled' ? 'outline' : 'secondary'}
-        >
-          {enrollmentStatus}
-        </Badge>
-      </TableCell>
-      <TableCell>
-        {grade ? (
-          <div className="min-w-64 space-y-2">
-            <p className="text-sm">
-              {stateLabel(grade.state)}
-              {grade.state === 'scored' && (
-                <span className="ml-2 font-medium">
-                  {grade.points_earned} / {grade.points_possible}
-                </span>
+    <TableCell
+      data-grid-cell={`${rowIndex}-${colIndex}`}
+      className={`min-w-72 align-top ${
+        isInvalid ? 'bg-destructive/5 ring-1 ring-destructive/40' : ''
+      }`}
+    >
+      <div className="space-y-3">
+        <div className="space-y-1.5 rounded-md border bg-muted/20 p-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-1.5">
+            {grade ? (
+              <span className="text-sm font-medium">
+                {stateLabel(grade.state)}
+                {grade.state === 'scored' && (
+                  <span className="ml-1.5">
+                    {grade.points_earned} / {grade.points_possible}
+                  </span>
+                )}
+              </span>
+            ) : (
+              <span className="text-sm text-muted-foreground">Not entered</span>
+            )}
+            <div className="flex flex-wrap items-center gap-1">
+              {grade?.state === 'scored' &&
+                Number(grade.points_earned) === 0 && (
+                  <Badge variant="secondary">Recorded zero</Badge>
+                )}
+              {grade?.state === 'missing' && (
+                <Badge variant="secondary">Missing</Badge>
               )}
-            </p>
+              {grade?.state === 'exempt' && (
+                <Badge variant="outline">Exempt</Badge>
+              )}
+              {(grade?.state === 'withdrawn' ||
+                enrollmentStatus === 'withdrawn') && (
+                <Badge variant="secondary">Withdrawn</Badge>
+              )}
+              {grade?.state === 'incomplete' && (
+                <Badge variant="secondary">Incomplete</Badge>
+              )}
+              {batch && (
+                <Badge variant={batchIsReleased ? 'default' : 'outline'}>
+                  {batchIsReleased ? 'Released' : 'Unreleased (draft)'}
+                </Badge>
+              )}
+              {dirty && <Badge variant="secondary">Unsaved draft</Badge>}
+              {isInvalid && <Badge variant="destructive">Invalid</Badge>}
+            </div>
+          </div>
+          {grade && (
             <p className="text-xs text-muted-foreground">
               {grade.batch_name} · version {grade.version}
             </p>
-            {grade.state === 'scored' && Number(grade.points_earned) === 0 && (
-              <Badge variant="secondary">Recorded zero</Badge>
-            )}
-          </div>
-        ) : (
-          <span className="text-sm text-muted-foreground">Not entered</span>
-        )}
-      </TableCell>
-      <TableCell>
-        <form onSubmit={submit} className="min-w-64 space-y-3">
+          )}
+        </div>
+
+        <form onSubmit={submit} className="space-y-2.5" noValidate>
           <Field>
-            <FieldLabel htmlFor={`state-${enrollmentId}`}>
-              Grade state for {studentName}
+            <FieldLabel htmlFor={`state-${inputIdSuffix}`}>
+              Grade state for {studentName} ({assessment.title})
             </FieldLabel>
             <NativeSelect
-              id={`state-${enrollmentId}`}
+              id={`state-${inputIdSuffix}`}
+              data-grid-focus={`${rowIndex}-${colIndex}`}
               value={state}
-              onChange={(event) => {
-                save.reset();
-                setState(event.target.value as GradeState);
-              }}
-              disabled={!canSave || save.isPending}
+              onKeyDown={handleCellKeyDown}
+              onChange={(event) =>
+                updateDraft({ state: event.target.value as GradeState })
+              }
+              disabled={!canSave || save.isPending || writesPending}
+              aria-invalid={isInvalid}
             >
               {gradeStates.map((item) => (
                 <NativeSelectOption key={item.value} value={item.value}>
@@ -201,13 +446,14 @@ function GradeEntryRow({
               ))}
             </NativeSelect>
           </Field>
+
           {state === 'scored' && (
             <Field>
-              <FieldLabel htmlFor={`points-${enrollmentId}`}>
+              <FieldLabel htmlFor={`points-${inputIdSuffix}`}>
                 Points earned for {studentName} (out of {scoreLimit})
               </FieldLabel>
               <Input
-                id={`points-${enrollmentId}`}
+                id={`points-${inputIdSuffix}`}
                 type="number"
                 inputMode="decimal"
                 min="0"
@@ -215,43 +461,46 @@ function GradeEntryRow({
                 step="0.01"
                 required
                 value={points}
-                onChange={(event) => {
-                  save.reset();
-                  setPoints(event.target.value);
-                }}
-                disabled={!canSave || save.isPending}
-                aria-describedby={`points-help-${enrollmentId}`}
+                onKeyDown={handleCellKeyDown}
+                onChange={(event) =>
+                  updateDraft({ points: event.target.value })
+                }
+                disabled={!canSave || save.isPending || writesPending}
+                aria-invalid={isInvalid}
+                aria-describedby={`points-help-${inputIdSuffix}`}
               />
               <p
-                id={`points-help-${enrollmentId}`}
+                id={`points-help-${inputIdSuffix}`}
                 className="text-xs text-muted-foreground"
               >
-                Enter 0 for a recorded zero. Use a grade state for work that was
-                not scored.
+                Enter 0 for a recorded zero (0 / {scoreLimit}). Missing is never
+                converted to zero.
               </p>
             </Field>
           )}
+
           {reasonRequired && (
             <Field>
-              <FieldLabel htmlFor={`reason-${enrollmentId}`}>
+              <FieldLabel htmlFor={`reason-${inputIdSuffix}`}>
                 {grade
-                  ? 'Correction reason'
-                  : 'Reason for entering a released grade'}
+                  ? `Correction reason for ${studentName}`
+                  : `Reason for entering a released grade for ${studentName}`}
               </FieldLabel>
               <Input
-                id={`reason-${enrollmentId}`}
+                id={`reason-${inputIdSuffix}`}
                 value={reason}
-                onChange={(event) => {
-                  save.reset();
-                  setReason(event.target.value);
-                }}
+                onKeyDown={handleCellKeyDown}
+                onChange={(event) =>
+                  updateDraft({ reason: event.target.value })
+                }
                 maxLength={255}
                 required
-                disabled={!canSave || save.isPending}
-                aria-describedby={`reason-help-${enrollmentId}`}
+                disabled={!canSave || save.isPending || writesPending}
+                aria-invalid={isInvalid}
+                aria-describedby={`reason-help-${inputIdSuffix}`}
               />
               <p
-                id={`reason-help-${enrollmentId}`}
+                id={`reason-help-${inputIdSuffix}`}
                 className="text-xs text-muted-foreground"
               >
                 A reason is recorded in the grade history because this batch has
@@ -259,11 +508,22 @@ function GradeEntryRow({
               </p>
             </Field>
           )}
+
+          {cellError && (
+            <p
+              id={`error-${inputIdSuffix}`}
+              role="alert"
+              className="text-xs font-medium text-destructive"
+            >
+              {cellError}
+            </p>
+          )}
+
           <div className="flex flex-wrap gap-2">
             <Button
               type="submit"
               size="sm"
-              disabled={!canSave || save.isPending}
+              disabled={!canSave || save.isPending || writesPending}
             >
               {save.isPending
                 ? 'Saving…'
@@ -271,6 +531,20 @@ function GradeEntryRow({
                   ? 'Save correction'
                   : 'Save grade'}
             </Button>
+            {dirty && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  save.reset();
+                  onDiscardDraft(cellKey);
+                }}
+                disabled={save.isPending || writesPending}
+              >
+                Reset
+              </Button>
+            )}
             {grade && (
               <Button
                 type="button"
@@ -283,18 +557,21 @@ function GradeEntryRow({
               </Button>
             )}
           </div>
+
           {enrollmentStatus !== 'enrolled' && (
             <p className="text-xs text-muted-foreground">
               Only actively enrolled students can receive a grade.
             </p>
           )}
-          {save.isError && (
-            <p role="alert" className="text-sm text-destructive">
+
+          {save.isError && !cellError && (
+            <p role="alert" className="text-xs text-destructive">
               {save.error instanceof ApiError && save.error.kind === 'conflict'
-                ? 'This grade changed while you were editing it. The latest version is loading; review it before saving again.'
+                ? 'This grade changed while you were editing it. Refresh latest grades and review before saving again.'
                 : errorMessage(save.error)}
             </p>
           )}
+
           {showHistory && (
             <div className="border-l pl-3 text-xs">
               {history.isPending && (
@@ -317,8 +594,8 @@ function GradeEntryRow({
             </div>
           )}
         </form>
-      </TableCell>
-    </TableRow>
+      </div>
+    </TableCell>
   );
 }
 
@@ -354,101 +631,298 @@ export function InstructorGradebook({
     },
     enabled: allowed && Boolean(offeringId),
   });
-  const [assessmentChoice, setAssessmentChoice] = useState('');
+  const [assessmentChoice, setAssessmentChoice] = useState('__all__');
   const [batchChoice, setBatchChoice] = useState('');
   const [batchName, setBatchName] = useState('');
   const [studentSearch, setStudentSearch] = useState('');
   const [gradeFilter, setGradeFilter] = useState<
     'all' | 'graded' | 'needs-grade'
   >('all');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [drafts, setDrafts] = useState<Record<string, GradeDraft>>({});
+  const [cellErrors, setCellErrors] = useState<Record<string, string>>({});
   const [gradeSaveMessage, setGradeSaveMessage] = useState('');
+  const [conflictAlertMessage, setConflictAlertMessage] = useState('');
   const [confirmRelease, setConfirmRelease] = useState(false);
+
   const active = board.data;
   const assessments = active?.assessments ?? [];
   const batches = active?.batches ?? [];
-  const chosenAssessment =
-    assessments.find((item) => item.id === assessmentChoice)?.id ??
-    assessments[0]?.id ??
-    '';
+
+  const visibleAssessments =
+    assessmentChoice === '__all__' ||
+    !assessments.some((item) => item.id === assessmentChoice)
+      ? assessments
+      : assessments.filter((item) => item.id === assessmentChoice);
+
   const chosenBatch =
     batches.find((item) => item.id === batchChoice) ?? batches[0];
-  const assessment = assessments.find((item) => item.id === chosenAssessment);
   const selectedBatch =
     batches.find((item) => item.id === batchChoice) ?? chosenBatch;
   const selectedOfferingData = offerings.find((item) => item.id === offeringId);
-  const roster = selectedOfferingData?.roster ?? [];
-  const assessmentGrades = new Map(
-    (active?.grades ?? [])
-      .filter((grade) => grade.assessment === chosenAssessment)
-      .map((grade) => [grade.enrollment, grade]),
+  const sortedRoster = sortRosterDeterministically(
+    selectedOfferingData?.roster ?? [],
   );
-  const gradedCount = roster.filter((student) =>
-    assessmentGrades.has(student.enrollment_id),
+
+  const gradesByCell = new Map(
+    (active?.grades ?? []).map((grade) => [
+      `${grade.enrollment}:${grade.assessment}`,
+      grade,
+    ]),
+  );
+
+  const isStudentFullyGraded = (enrollmentId: string) =>
+    visibleAssessments.length > 0 &&
+    visibleAssessments.every((asmt) =>
+      gradesByCell.has(`${enrollmentId}:${asmt.id}`),
+    );
+
+  const isStudentAnyGraded = (enrollmentId: string) =>
+    visibleAssessments.some((asmt) =>
+      gradesByCell.has(`${enrollmentId}:${asmt.id}`),
+    );
+
+  const gradedCount = sortedRoster.filter((student) =>
+    isStudentAnyGraded(student.enrollment_id),
   ).length;
-  const needsGradeCount = roster.filter(
+  const needsGradeCount = sortedRoster.filter(
     (student) =>
       student.status === 'enrolled' &&
-      !assessmentGrades.has(student.enrollment_id),
+      !isStudentFullyGraded(student.enrollment_id),
   ).length;
-  const visibleRoster = roster.filter((student) => {
+
+  const filteredRoster = sortedRoster.filter((student) => {
     const matchesSearch = student.name
       .toLocaleLowerCase()
       .includes(studentSearch.trim().toLocaleLowerCase());
-    const isGraded = assessmentGrades.has(student.enrollment_id);
-    return (
-      matchesSearch &&
-      (gradeFilter === 'all' ||
-        (gradeFilter === 'graded'
-          ? isGraded
-          : student.status === 'enrolled' && !isGraded))
-    );
+    if (!matchesSearch) return false;
+    if (gradeFilter === 'graded') {
+      return isStudentAnyGraded(student.enrollment_id);
+    }
+    if (gradeFilter === 'needs-grade') {
+      return (
+        student.status === 'enrolled' &&
+        !isStudentFullyGraded(student.enrollment_id)
+      );
+    }
+    return true;
   });
+
+  const pagination = paginateRoster(filteredRoster, page, pageSize);
+  const visibleRoster = pagination.items;
+
   const boardKey = ['academic', 'gradebook', offeringId] as const;
+  const workspaceKey = ['academic', 'instructor'] as const;
+
+  const dirtyCellKeys = Object.keys(drafts).filter((key) =>
+    isDraftDirty(drafts[key], gradesByCell.get(key)),
+  );
+
+  function setCellDraft(cellKey: string, nextDraft: GradeDraft) {
+    setDrafts((prev) => ({ ...prev, [cellKey]: nextDraft }));
+    setCellErrors((prev) => {
+      if (!(cellKey in prev)) return prev;
+      const copy = { ...prev };
+      delete copy[cellKey];
+      return copy;
+    });
+  }
+
+  function discardCellDraft(cellKey: string) {
+    setDrafts((prev) => {
+      if (!(cellKey in prev)) return prev;
+      const copy = { ...prev };
+      delete copy[cellKey];
+      return copy;
+    });
+    setCellErrors((prev) => {
+      if (!(cellKey in prev)) return prev;
+      const copy = { ...prev };
+      delete copy[cellKey];
+      return copy;
+    });
+  }
+
+  async function refreshLatestGrades() {
+    setConflictAlertMessage('');
+    setGradeSaveMessage('Refreshed latest grades from server.');
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: boardKey }),
+      queryClient.invalidateQueries({ queryKey: workspaceKey }),
+    ]);
+  }
 
   const saveGrade = useMutation({
     mutationFn: async (input: {
+      cellKey: string;
       grade: GradeRecord | undefined;
       draft: GradeDraft;
       enrollmentId: string;
-      assessmentId: string;
-      batchId: string;
+      assessment: ApprovedAssessment;
+      batch: GradeBatch | undefined;
       studentName: string;
     }) => {
-      const points = input.draft.state === 'scored' ? input.draft.points : null;
+      const scoreLimit =
+        input.grade?.points_possible ?? input.assessment.points_possible;
+      const batchIsReleased = Boolean(input.batch?.released_at);
+      const correctionIsReleased =
+        input.grade?.batch === input.batch?.id && batchIsReleased;
+      const reasonRequired = Boolean(
+        input.grade ? correctionIsReleased : batchIsReleased,
+      );
+      const check = validateGradeDraft({
+        draft: input.draft,
+        scoreLimit,
+        reasonRequired,
+      });
+      if (!check.valid) {
+        setCellErrors((prev) => ({
+          ...prev,
+          [input.cellKey]: check.error ?? 'Invalid grade value.',
+        }));
+        throw new Error(check.error ?? 'Invalid grade value.');
+      }
+
+      const points =
+        input.draft.state === 'scored' ? input.draft.points.trim() : null;
       if (input.grade) {
         const body: GradeCorrection = {
           expected_version: input.grade.version,
           state: input.draft.state,
           points_earned: points,
-          reason: input.draft.reason,
+          reason: input.draft.reason.trim(),
         };
         return correctGrade(input.grade.id, body);
       }
       const body: GradeWrite = {
         enrollment: input.enrollmentId,
-        assessment: input.assessmentId,
-        batch: input.batchId,
+        assessment: input.assessment.id,
+        batch: input.batch?.id ?? '',
         state: input.draft.state,
         points_earned: points,
-        reason: input.draft.reason,
+        reason: input.draft.reason.trim(),
       };
       return createGrade(body);
     },
-    onMutate: () => setGradeSaveMessage(''),
+    onMutate: () => {
+      setGradeSaveMessage('');
+      setConflictAlertMessage('');
+    },
     onSuccess: async (_, input) => {
+      discardCellDraft(input.cellKey);
       const action = input.grade ? 'Grade correction saved' : 'Grade saved';
-      setGradeSaveMessage(`${action} for ${input.studentName}.`);
-      await queryClient.invalidateQueries({ queryKey: boardKey });
+      setGradeSaveMessage(
+        `${action} for ${input.studentName} (${input.assessment.title}).`,
+      );
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: boardKey }),
+        queryClient.invalidateQueries({ queryKey: workspaceKey }),
+      ]);
     },
     onError: (error, input) => {
       if (error instanceof ApiError && error.kind === 'conflict') {
-        setGradeSaveMessage(
-          `${input.studentName}'s grade changed while you were editing it. Review the latest version before saving again.`,
-        );
+        const msg = `${input.studentName}'s grade for ${input.assessment.title} changed while you were editing it (HTTP 409 Conflict). Refresh latest grades and review before saving again.`;
+        setConflictAlertMessage(msg);
+        setGradeSaveMessage(msg);
         void queryClient.invalidateQueries({ queryKey: boardKey });
       }
     },
   });
+
+  const bulkSaveMutation = useMutation({
+    mutationFn: async () => {
+      if (!dirtyCellKeys.length || !selectedBatch) {
+        return null;
+      }
+      const nextErrors: Record<string, string> = {};
+      const items: GradeBulkItemWrite[] = [];
+
+      for (const cellKey of dirtyCellKeys) {
+        const [enrollmentId, assessmentId] = cellKey.split(':');
+        const asmt = assessments.find((a) => a.id === assessmentId);
+        const student = sortedRoster.find(
+          (s) => s.enrollment_id === enrollmentId,
+        );
+        if (!asmt || !student || student.status !== 'enrolled') continue;
+
+        const existing = gradesByCell.get(cellKey);
+        const draft = drafts[cellKey];
+        if (!draft) continue;
+
+        const targetBatch = existing
+          ? batches.find((b) => b.id === existing.batch)
+          : selectedBatch;
+        const scoreLimit = existing?.points_possible ?? asmt.points_possible;
+        const batchIsReleased = Boolean(targetBatch?.released_at);
+        const correctionIsReleased =
+          existing?.batch === targetBatch?.id && batchIsReleased;
+        const reasonRequired = Boolean(
+          existing ? correctionIsReleased : batchIsReleased,
+        );
+
+        const check = validateGradeDraft({
+          draft,
+          scoreLimit,
+          reasonRequired,
+        });
+        if (!check.valid) {
+          nextErrors[cellKey] =
+            `${student.name} (${asmt.title}): ${check.error ?? 'Invalid grade.'}`;
+          continue;
+        }
+
+        items.push({
+          enrollment: enrollmentId,
+          assessment: assessmentId,
+          batch: existing?.batch ?? selectedBatch.id,
+          state: draft.state,
+          points_earned: draft.state === 'scored' ? draft.points.trim() : null,
+          reason: draft.reason.trim(),
+          ...(existing ? { expected_version: existing.version } : {}),
+        });
+      }
+
+      if (Object.keys(nextErrors).length > 0) {
+        setCellErrors((prev) => ({ ...prev, ...nextErrors }));
+        throw new Error(
+          'Fix validation errors in highlighted cells before bulk saving.',
+        );
+      }
+
+      return saveGradesBulk({
+        offering: offeringId,
+        expected_input_revision: selectedOfferingData?.input_revision,
+        idempotency_key: makeIdempotencyKey(offeringId),
+        items,
+      });
+    },
+    onMutate: () => {
+      setGradeSaveMessage('');
+      setConflictAlertMessage('');
+    },
+    onSuccess: async (result) => {
+      if (!result) return;
+      setDrafts({});
+      setCellErrors({});
+      setGradeSaveMessage(
+        `Saved ${result.grades.length} grade change${result.grades.length === 1 ? '' : 's'} (revision v${result.input_revision}).`,
+      );
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: boardKey }),
+        queryClient.invalidateQueries({ queryKey: workspaceKey }),
+      ]);
+    },
+    onError: (error) => {
+      if (error instanceof ApiError && error.kind === 'conflict') {
+        const msg =
+          'Gradebook revision conflict (HTTP 409): one or more grades were modified concurrently. Refresh latest grades and retry your changes.';
+        setConflictAlertMessage(msg);
+        setGradeSaveMessage(msg);
+      }
+    },
+  });
+
   const addBatch = useMutation({
     mutationFn: (name: string) => createGradeBatch(offeringId, name),
     onSuccess: async (created) => {
@@ -457,15 +931,23 @@ export function InstructorGradebook({
       await queryClient.invalidateQueries({ queryKey: boardKey });
     },
   });
+
   const release = useMutation({
     mutationFn: (batchId: string) => releaseGradeBatch(batchId),
     onSuccess: async () => {
       setConfirmRelease(false);
-      await queryClient.invalidateQueries({ queryKey: boardKey });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: boardKey }),
+        queryClient.invalidateQueries({ queryKey: workspaceKey }),
+      ]);
     },
   });
+
   const writesPending =
-    saveGrade.isPending || addBatch.isPending || release.isPending;
+    saveGrade.isPending ||
+    bulkSaveMutation.isPending ||
+    addBatch.isPending ||
+    release.isPending;
 
   if (session.isPending || (allowed && workspace.isPending)) {
     return (
@@ -503,7 +985,9 @@ export function InstructorGradebook({
     addBatch.mutate(batchName.trim());
   }
 
+  const errorList = Object.entries(cellErrors);
   const Container = embedded ? 'section' : 'main';
+
   return (
     <Container
       aria-label={embedded ? 'Gradebook operations' : undefined}
@@ -528,10 +1012,11 @@ export function InstructorGradebook({
         <>
           <Card>
             <CardHeader>
-              <CardTitle>Offering and assessment</CardTitle>
+              <CardTitle>Offering and assessment columns</CardTitle>
               <CardDescription>
-                Grades are saved against the selected approved assessment. Zero
-                is a valid score; use a grade state for missing or exempt work.
+                View all approved assessments side-by-side in the roster matrix
+                or focus on a single assessment column. Zero is a real measured
+                score; missing and exempt states remain distinct.
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
@@ -542,7 +1027,11 @@ export function InstructorGradebook({
                   value={offeringId}
                   onChange={(event) => {
                     setGradeSaveMessage('');
+                    setConflictAlertMessage('');
                     setConfirmRelease(false);
+                    setDrafts({});
+                    setCellErrors({});
+                    setPage(1);
                     setSelectedOffering(event.target.value);
                   }}
                   disabled={writesPending}
@@ -556,11 +1045,11 @@ export function InstructorGradebook({
               </Field>
               <Field>
                 <FieldLabel htmlFor="gradebook-assessment">
-                  Approved assessment
+                  Approved assessment columns
                 </FieldLabel>
                 <NativeSelect
                   id="gradebook-assessment"
-                  value={chosenAssessment}
+                  value={assessmentChoice}
                   onChange={(event) => {
                     setGradeSaveMessage('');
                     setAssessmentChoice(event.target.value);
@@ -570,11 +1059,16 @@ export function InstructorGradebook({
                   }
                 >
                   {assessments.length ? (
-                    assessments.map((item) => (
-                      <NativeSelectOption key={item.id} value={item.id}>
-                        {item.title} · {item.points_possible} points
+                    <>
+                      <NativeSelectOption value="__all__">
+                        All approved assessments ({assessments.length})
                       </NativeSelectOption>
-                    ))
+                      {assessments.map((item) => (
+                        <NativeSelectOption key={item.id} value={item.id}>
+                          {item.title} · {item.points_possible} points
+                        </NativeSelectOption>
+                      ))}
+                    </>
                   ) : (
                     <NativeSelectOption value="">
                       No approved assessments
@@ -582,10 +1076,17 @@ export function InstructorGradebook({
                   )}
                 </NativeSelect>
               </Field>
-              {assessment && (
+              {visibleAssessments.length > 0 && (
                 <p className="text-sm text-muted-foreground md:col-span-2">
-                  {selectedOfferingData?.course} · maximum score{' '}
-                  {assessment.points_possible}
+                  {selectedOfferingData?.course} · showing{' '}
+                  {visibleAssessments.length} approved assessment
+                  {visibleAssessments.length === 1 ? '' : 's'} (
+                  {visibleAssessments
+                    .map(
+                      (a) => `${a.title}: maximum score ${a.points_possible}`,
+                    )
+                    .join(' · ')}
+                  )
                 </p>
               )}
             </CardContent>
@@ -633,7 +1134,9 @@ export function InstructorGradebook({
                           batches.map((batch) => (
                             <NativeSelectOption key={batch.id} value={batch.id}>
                               {batch.name}
-                              {batch.released_at ? ' · Released' : ''}
+                              {batch.released_at
+                                ? ' · Released'
+                                : ' · Unreleased (draft)'}
                             </NativeSelectOption>
                           ))
                         ) : (
@@ -643,6 +1146,17 @@ export function InstructorGradebook({
                         )}
                       </NativeSelect>
                     </Field>
+                    {selectedBatch && (
+                      <Badge
+                        variant={
+                          selectedBatch.released_at ? 'default' : 'outline'
+                        }
+                      >
+                        {selectedBatch.released_at
+                          ? 'Released batch'
+                          : 'Unreleased (draft) batch'}
+                      </Badge>
+                    )}
                     {selectedBatch && !selectedBatch.released_at && (
                       <Button
                         variant="outline"
@@ -713,160 +1227,358 @@ export function InstructorGradebook({
                 </CardContent>
               </Card>
 
-              {selectedBatch && chosenAssessment && selectedOfferingData && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>{assessment?.title} roster</CardTitle>
-                    <CardDescription>
-                      {selectedOfferingData.label} · {selectedBatch.name} ·{' '}
-                      {selectedOfferingData.roster.length} students
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="mb-5 grid gap-3 sm:grid-cols-3">
-                      <div className="rounded-md border p-3">
-                        <p className="text-sm text-muted-foreground">Roster</p>
-                        <p className="text-2xl font-semibold">
-                          {roster.length}
-                        </p>
+              {selectedBatch &&
+                visibleAssessments.length > 0 &&
+                selectedOfferingData && (
+                  <Card>
+                    <CardHeader className="flex flex-wrap items-start justify-between gap-4 sm:flex-row">
+                      <div>
+                        <CardTitle>
+                          {visibleAssessments.length === 1
+                            ? `${visibleAssessments[0].title} roster`
+                            : 'Roster × assessment gradebook matrix'}
+                        </CardTitle>
+                        <CardDescription>
+                          {selectedOfferingData.label} · {selectedBatch.name} ·{' '}
+                          {sortedRoster.length} students ·{' '}
+                          {visibleAssessments.length} assessment column
+                          {visibleAssessments.length === 1 ? '' : 's'}
+                          {selectedOfferingData.input_revision !== undefined &&
+                            ` · revision v${selectedOfferingData.input_revision}`}
+                        </CardDescription>
                       </div>
-                      <div className="rounded-md border p-3">
-                        <p className="text-sm text-muted-foreground">
-                          Grades entered
-                        </p>
-                        <p className="text-2xl font-semibold">{gradedCount}</p>
-                      </div>
-                      <div className="rounded-md border p-3">
-                        <p className="text-sm text-muted-foreground">
-                          Needs a grade
-                        </p>
-                        <p className="text-2xl font-semibold">
-                          {needsGradeCount}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mb-4 grid gap-4 sm:grid-cols-2">
-                      <Field>
-                        <FieldLabel htmlFor="gradebook-student-search">
-                          Find a student
-                        </FieldLabel>
-                        <Input
-                          id="gradebook-student-search"
-                          type="search"
-                          value={studentSearch}
-                          onChange={(event) =>
-                            setStudentSearch(event.target.value)
-                          }
-                        />
-                      </Field>
-                      <Field>
-                        <FieldLabel htmlFor="gradebook-grade-filter">
-                          Show students
-                        </FieldLabel>
-                        <NativeSelect
-                          id="gradebook-grade-filter"
-                          value={gradeFilter}
-                          onChange={(event) =>
-                            setGradeFilter(
-                              event.target.value as typeof gradeFilter,
-                            )
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline">
+                          {dirtyCellKeys.length} unsaved cell
+                          {dirtyCellKeys.length === 1 ? '' : 's'}
+                        </Badge>
+                        <Button
+                          type="button"
+                          onClick={() => bulkSaveMutation.mutate()}
+                          disabled={
+                            !dirtyCellKeys.length ||
+                            writesPending ||
+                            !selectedBatch
                           }
                         >
-                          <NativeSelectOption value="all">
-                            All students
-                          </NativeSelectOption>
-                          <NativeSelectOption value="needs-grade">
-                            Needs a grade (enrolled)
-                          </NativeSelectOption>
-                          <NativeSelectOption value="graded">
-                            Grade entered
-                          </NativeSelectOption>
-                        </NativeSelect>
-                      </Field>
-                    </div>
-                    {gradeSaveMessage && (
-                      <p
-                        role="status"
-                        className="mb-3 text-sm text-muted-foreground"
-                      >
-                        {gradeSaveMessage}
-                      </p>
-                    )}
-                    {roster.length ? (
-                      visibleRoster.length ? (
-                        <div className="overflow-x-auto">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead scope="col">Student</TableHead>
-                                <TableHead scope="col">Enrollment</TableHead>
-                                <TableHead scope="col">Current grade</TableHead>
-                                <TableHead scope="col">
-                                  Enter or correct grade
-                                </TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {visibleRoster.map((student) => {
-                                const existing = assessmentGrades.get(
-                                  student.enrollment_id,
-                                );
-                                return (
-                                  <GradeEntryRow
-                                    key={`${student.enrollment_id}-${chosenAssessment}-${existing?.version ?? 0}`}
-                                    enrollmentId={student.enrollment_id}
-                                    studentName={student.name}
-                                    enrollmentStatus={student.status}
-                                    assessmentId={chosenAssessment}
-                                    pointsPossible={
-                                      assessment?.points_possible ?? '0'
-                                    }
-                                    batch={
-                                      existing
-                                        ? batches.find(
-                                            (item) =>
-                                              item.id === existing.batch,
-                                          )
-                                        : selectedBatch
-                                    }
-                                    grade={existing}
-                                    onSave={(
-                                      grade,
-                                      draft,
-                                      enrollmentId,
-                                      assessmentId,
-                                      batchId,
-                                      studentName,
-                                    ) =>
-                                      saveGrade.mutateAsync({
-                                        grade,
-                                        draft,
-                                        enrollmentId,
-                                        assessmentId,
-                                        batchId,
-                                        studentName,
-                                      })
-                                    }
-                                  />
-                                );
-                              })}
-                            </TableBody>
-                          </Table>
+                          {bulkSaveMutation.isPending
+                            ? 'Saving changes…'
+                            : `Save all changes (${dirtyCellKeys.length})`}
+                        </Button>
+                        {dirtyCellKeys.length > 0 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              setDrafts({});
+                              setCellErrors({});
+                            }}
+                            disabled={writesPending}
+                          >
+                            Discard drafts
+                          </Button>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="mb-5 grid gap-3 sm:grid-cols-3">
+                        <div className="rounded-md border p-3">
+                          <p className="text-sm text-muted-foreground">
+                            Roster
+                          </p>
+                          <p className="text-2xl font-semibold">
+                            {sortedRoster.length}
+                          </p>
                         </div>
+                        <div className="rounded-md border p-3">
+                          <p className="text-sm text-muted-foreground">
+                            Grades entered
+                          </p>
+                          <p className="text-2xl font-semibold">
+                            {gradedCount}
+                          </p>
+                        </div>
+                        <div className="rounded-md border p-3">
+                          <p className="text-sm text-muted-foreground">
+                            Needs a grade
+                          </p>
+                          <p className="text-2xl font-semibold">
+                            {needsGradeCount}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mb-4 grid gap-4 sm:grid-cols-3">
+                        <Field>
+                          <FieldLabel htmlFor="gradebook-student-search">
+                            Find a student
+                          </FieldLabel>
+                          <Input
+                            id="gradebook-student-search"
+                            type="search"
+                            value={studentSearch}
+                            onChange={(event) => {
+                              setPage(1);
+                              setStudentSearch(event.target.value);
+                            }}
+                          />
+                        </Field>
+                        <Field>
+                          <FieldLabel htmlFor="gradebook-grade-filter">
+                            Show students
+                          </FieldLabel>
+                          <NativeSelect
+                            id="gradebook-grade-filter"
+                            value={gradeFilter}
+                            onChange={(event) => {
+                              setPage(1);
+                              setGradeFilter(
+                                event.target.value as typeof gradeFilter,
+                              );
+                            }}
+                          >
+                            <NativeSelectOption value="all">
+                              All students
+                            </NativeSelectOption>
+                            <NativeSelectOption value="needs-grade">
+                              Needs a grade (enrolled)
+                            </NativeSelectOption>
+                            <NativeSelectOption value="graded">
+                              Grade entered
+                            </NativeSelectOption>
+                          </NativeSelect>
+                        </Field>
+                        <Field>
+                          <FieldLabel htmlFor="gradebook-page-size">
+                            Rows per page
+                          </FieldLabel>
+                          <NativeSelect
+                            id="gradebook-page-size"
+                            value={String(pageSize)}
+                            onChange={(event) => {
+                              setPage(1);
+                              setPageSize(Number(event.target.value));
+                            }}
+                          >
+                            {[5, 10, 25, 50].map((size) => (
+                              <NativeSelectOption
+                                key={size}
+                                value={String(size)}
+                              >
+                                {size} students per page
+                              </NativeSelectOption>
+                            ))}
+                          </NativeSelect>
+                        </Field>
+                      </div>
+
+                      <p className="mb-3 text-xs text-muted-foreground">
+                        Keyboard navigation: Use Tab to move between fields,
+                        Alt+Arrow keys (or Ctrl+Arrow keys) to jump across
+                        student rows and assessment columns, Enter to save a
+                        cell, and Escape to reset an unsaved cell draft.
+                      </p>
+
+                      {conflictAlertMessage && (
+                        <Alert className="mb-4 border-destructive">
+                          <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
+                            <span role="alert" className="font-medium">
+                              {conflictAlertMessage}
+                            </span>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => void refreshLatestGrades()}
+                            >
+                              Refresh latest grades
+                            </Button>
+                          </AlertDescription>
+                        </Alert>
+                      )}
+
+                      {errorList.length > 0 && (
+                        <Alert className="mb-4 border-destructive">
+                          <AlertDescription>
+                            <div role="alert" className="space-y-1">
+                              <p className="font-medium text-destructive">
+                                Grade validation failed ({errorList.length} cell
+                                {errorList.length === 1 ? '' : 's'}). Valid
+                                drafts remain preserved:
+                              </p>
+                              <ul className="list-disc pl-5 text-xs text-destructive">
+                                {errorList.map(([key, msg]) => (
+                                  <li key={key}>{msg}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          </AlertDescription>
+                        </Alert>
+                      )}
+
+                      {bulkSaveMutation.isError &&
+                        !conflictAlertMessage &&
+                        errorList.length === 0 && (
+                          <p
+                            role="alert"
+                            className="mb-3 text-sm text-destructive"
+                          >
+                            {errorMessage(bulkSaveMutation.error)}
+                          </p>
+                        )}
+
+                      {gradeSaveMessage && (
+                        <p
+                          role="status"
+                          aria-live="polite"
+                          className="mb-3 text-sm text-muted-foreground"
+                        >
+                          {gradeSaveMessage}
+                        </p>
+                      )}
+
+                      {sortedRoster.length ? (
+                        filteredRoster.length ? (
+                          <>
+                            <div className="overflow-x-auto">
+                              <Table aria-label="Instructor gradebook matrix">
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead scope="col">Student</TableHead>
+                                    <TableHead scope="col">
+                                      Enrollment
+                                    </TableHead>
+                                    {visibleAssessments.map((asmt) => (
+                                      <TableHead key={asmt.id} scope="col">
+                                        <div className="flex flex-col gap-0.5">
+                                          <span>{asmt.title}</span>
+                                          <span className="text-xs font-normal text-muted-foreground">
+                                            Max {asmt.points_possible} pts
+                                          </span>
+                                        </div>
+                                      </TableHead>
+                                    ))}
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {visibleRoster.map((student, rowIdx) => (
+                                    <TableRow key={student.enrollment_id}>
+                                      <TableCell className="min-w-44 align-top font-medium">
+                                        {student.name}
+                                      </TableCell>
+                                      <TableCell className="align-top">
+                                        <Badge
+                                          variant={
+                                            student.status === 'enrolled'
+                                              ? 'outline'
+                                              : 'secondary'
+                                          }
+                                        >
+                                          {student.status}
+                                        </Badge>
+                                      </TableCell>
+                                      {visibleAssessments.map(
+                                        (asmt, colIdx) => {
+                                          const cellKey = `${student.enrollment_id}:${asmt.id}`;
+                                          const existing =
+                                            gradesByCell.get(cellKey);
+                                          const cellBatch = existing
+                                            ? batches.find(
+                                                (b) => b.id === existing.batch,
+                                              )
+                                            : selectedBatch;
+                                          return (
+                                            <GradeMatrixCell
+                                              key={`${cellKey}-${existing?.version ?? 0}`}
+                                              enrollmentId={
+                                                student.enrollment_id
+                                              }
+                                              studentName={student.name}
+                                              enrollmentStatus={student.status}
+                                              assessment={asmt}
+                                              rowIndex={rowIdx}
+                                              colIndex={colIdx}
+                                              rowCount={visibleRoster.length}
+                                              colCount={
+                                                visibleAssessments.length
+                                              }
+                                              batch={cellBatch}
+                                              grade={existing}
+                                              draftOverlay={drafts[cellKey]}
+                                              cellError={
+                                                cellErrors[cellKey] ?? null
+                                              }
+                                              onDraftChange={setCellDraft}
+                                              onDiscardDraft={discardCellDraft}
+                                              onSaveCell={(params) =>
+                                                saveGrade.mutateAsync(params)
+                                              }
+                                              writesPending={writesPending}
+                                            />
+                                          );
+                                        },
+                                      )}
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+
+                            <div
+                              className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-3 text-sm"
+                              aria-label="Roster pagination"
+                            >
+                              <p className="text-muted-foreground">
+                                Page {pagination.currentPage} of{' '}
+                                {pagination.totalPages} (
+                                {pagination.totalItems} matching student
+                                {pagination.totalItems === 1 ? '' : 's'})
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    setPage((p) => Math.max(1, p - 1))
+                                  }
+                                  disabled={pagination.currentPage <= 1}
+                                >
+                                  Previous page
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    setPage((p) =>
+                                      Math.min(pagination.totalPages, p + 1),
+                                    )
+                                  }
+                                  disabled={
+                                    pagination.currentPage >=
+                                    pagination.totalPages
+                                  }
+                                >
+                                  Next page
+                                </Button>
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">
+                            No students match the current search and grade
+                            filters.
+                          </p>
+                        )
                       ) : (
                         <p className="text-sm text-muted-foreground">
-                          No students match the current search and grade
-                          filters.
+                          No students are enrolled in this offering.
                         </p>
-                      )
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        No students are enrolled in this offering.
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
             </>
           )}
         </>

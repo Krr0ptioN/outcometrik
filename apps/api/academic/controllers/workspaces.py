@@ -32,6 +32,7 @@ class InstructorWorkspaceController(APIView):
                         "course": offering.course.title,
                         "program": offering.program.title,
                         "term": f"{offering.term.year} {offering.term.season.title()}",
+                        "input_revision": offering.input_revision,
                         "roster": [
                             {
                                 "enrollment_id": str(enrollment.pk),

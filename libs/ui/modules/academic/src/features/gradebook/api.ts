@@ -65,6 +65,24 @@ export interface GradeCorrection {
   reason: string;
 }
 
+export interface GradeBulkItemWrite extends GradeWrite {
+  expected_version?: number;
+}
+
+export interface GradeBulkSaveRequest {
+  offering: string;
+  expected_input_revision?: number;
+  idempotency_key: string;
+  items: GradeBulkItemWrite[];
+}
+
+export interface GradeBulkSaveResponse {
+  offering: string;
+  input_revision: number;
+  idempotency_key: string;
+  grades: GradeRecord[];
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -142,6 +160,17 @@ function isHistoryEntry(value: unknown): value is GradeHistoryEntry {
     typeof value.reason === 'string' &&
     (typeof value.changed_by === 'number' || value.changed_by === null) &&
     typeof value.created_at === 'string'
+  );
+}
+
+function isGradeBulkResponse(value: unknown): value is GradeBulkSaveResponse {
+  return (
+    isRecord(value) &&
+    typeof value.offering === 'string' &&
+    typeof value.input_revision === 'number' &&
+    typeof value.idempotency_key === 'string' &&
+    Array.isArray(value.grades) &&
+    value.grades.every(isGrade)
   );
 }
 
@@ -262,6 +291,15 @@ export function correctGrade(gradeId: string, input: GradeCorrection) {
     `/api/v1/grades/${encodeURIComponent(gradeId)}/`,
     { method: 'PATCH', body: input },
     isGrade,
+    200,
+  );
+}
+
+export function saveGradesBulk(input: GradeBulkSaveRequest) {
+  return requestValidated(
+    '/api/v1/grades/bulk/',
+    { method: 'POST', body: input, cache: 'no-store' },
+    isGradeBulkResponse,
     200,
   );
 }
