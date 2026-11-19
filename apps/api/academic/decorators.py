@@ -3,6 +3,8 @@ import inspect
 from collections.abc import Callable
 from typing import Any
 
+from .guards import guard, require_permission
+
 
 def validate_payload(
     serializer_cls: type,
@@ -66,3 +68,11 @@ def validate_payload(
 # Convenience alias for NestJS-style naming
 validate_dto = validate_payload
 body = validate_payload
+
+__all__ = [
+    "body",
+    "guard",
+    "require_permission",
+    "validate_dto",
+    "validate_payload",
+]

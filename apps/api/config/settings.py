@@ -54,7 +54,11 @@ MIDDLEWARE = [
 ]
 
 WIREUP = WireupSettings(
-    injectables=[],
+    injectables=[
+        "config.config_service",
+        "academic.interceptors",
+        "access.policy",
+    ],
     auto_inject_views=False,
 )
 
@@ -102,6 +106,7 @@ REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    "EXCEPTION_HANDLER": "academic.filters.academic_exception_handler",
 }
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0")
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://redis:6379/1")

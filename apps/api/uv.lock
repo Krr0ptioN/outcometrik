@@ -187,12 +187,14 @@ source = { editable = "../../libs/modules/access" }
 dependencies = [
     { name = "django" },
     { name = "djangorestframework" },
+    { name = "wireup" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "django", specifier = ">=5.2,<6" },
     { name = "djangorestframework", specifier = ">=3.16,<4" },
+    { name = "wireup", specifier = ">=2.13,<3" },
 ]
 
 [[package]]

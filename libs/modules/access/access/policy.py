@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
+from wireup import injectable
 
 from .models import DirectCapabilityGrant, RoleAssignment, Scope
 
@@ -32,6 +33,7 @@ class ResourceContext:
     published: bool = False
 
 
+@injectable
 class AuthorizationService:
     def scope_ids(self, principal, capability):
         if (

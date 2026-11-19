@@ -91,3 +91,20 @@ The repository root `AGENTS.md` and `docs/CODE_STYLE.md` still apply.
   existing lifecycle or archival rules.
 - Run API tests, Ruff lint and formatting checks, Django system checks, and
   migration checks for backend changes. Report any environment-blocked checks.
+
+## Subtask git workflow & dependency injection conventions
+
+- **Linear Subtask Merging**:
+  - Always branch subtasks directly from an up-to-date `main` branch.
+  - Never branch from an unmerged subtask branch.
+  - Open an independent PR for each subtask with `Closes #<subtask-issue-id>` and `Ref: #<parent-issue-id>`.
+  - Ensure all CI workflows and PR validation checks pass.
+  - Wait until the PR is squash-merged into `main` before starting the next subtask.
+- **Dependency Injection & Inversion of Control**:
+  - Favor composition over inheritance: do not introduce monolithic controller or service base classes.
+  - Declare dependencies explicitly in `__init__` constructor (`di-prefer-constructor-injection`).
+  - Prohibit dynamic service locator calls (`self.get_service(...)`) inside action methods (`di-avoid-service-locator`).
+  - Use `@guard` / `@require_permission` decorators at the controller boundary for RBAC/ABAC authorization before handlers execute.
+  - Injected configuration must use `@injectable class ApiConfig` (`devops-use-config-module`).
+  - Use `@injectable class AppLogger` and `@intercept_logging` for structured execution timing.
+

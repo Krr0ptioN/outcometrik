@@ -3,7 +3,11 @@ name = "outcometrik-access"
 version = "0.1.0"
 description = "Scoped authorization for Outcometrik"
 requires-python = ">=3.13"
-dependencies = ["Django>=5.2,<6", "djangorestframework>=3.16,<4"]
+dependencies = [
+  "Django>=5.2,<6",
+  "djangorestframework>=3.16,<4",
+  "wireup>=2.13,<3",
+]
 
 [build-system]
 requires = ["hatchling>=1.27"]
