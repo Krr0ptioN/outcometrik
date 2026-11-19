@@ -24,16 +24,16 @@ As an instructor or coordinator, I can edit and validate syllabus mapping matric
 
 ## Acceptance criteria
 
-- [ ] The PRD mapping example can be entered: A→LO 60/40 and 40/100; LO→PO 2:1 and 1.
-- [ ] Validation errors identify the exact matrix cell and rule.
-- [ ] Unauthorized and approved-version edits are blocked.
-- [ ] Concurrent edit conflict does not discard another user's changes.
-- [ ] Keyboard and screen-reader checks cover the matrix workflow.
+- [x] The PRD mapping example can be entered: A→LO 60/40 and 40/100; LO→PO 2:1 and 1.
+- [x] Validation errors identify the exact matrix cell and rule.
+- [x] Unauthorized and approved-version edits are blocked.
+- [x] Concurrent edit conflict does not discard another user's changes.
+- [x] Keyboard and screen-reader checks cover the matrix workflow.
 ## Implementation tasks
 
-- [ ] Confirm API/data contract and authorization scope against the owning domain module.
-- [ ] Implement the smallest vertical slice that satisfies the acceptance criteria.
-- [ ] Add focused unit/integration coverage for success, invalid input, and denied scope.
-- [ ] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
-- [ ] Update API/UI documentation and verify downstream stories remain compatible.
+- [x] Confirm API/data contract and authorization scope against the owning domain module.
+- [x] Implement the smallest vertical slice that satisfies the acceptance criteria.
+- [x] Add focused unit/integration coverage for success, invalid input, and denied scope.
+- [x] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
+- [x] Update API/UI documentation and verify downstream stories remain compatible.
 

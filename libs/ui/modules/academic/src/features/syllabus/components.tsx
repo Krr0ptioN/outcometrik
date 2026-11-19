@@ -1,9 +1,12 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type KeyboardEvent } from 'react';
+import { ApiError } from '@outcometrik/api';
 import { errorMessage } from '@outcometrik/access';
 import {
+  Alert,
+  AlertDescription,
   Badge,
   Button,
   Field,
@@ -13,6 +16,7 @@ import {
   NativeSelect,
   Table,
   TableBody,
+  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -379,13 +383,582 @@ function CoursePOContributionSection({
   );
 }
 
-function SyllabusMappingStudio({
+export interface MatrixCellError {
+  matrix: 'alo' | 'lopo';
+  cellKey: string;
+  rowCode: string;
+  colCode: string;
+  rule: 'INVALID_RANGE';
+  message: string;
+}
+
+export interface ALoCellValidationResult {
+  valid: boolean;
+  numericValue: number;
+  error: string | null;
+}
+
+export interface LoPoCellValidationResult {
+  valid: boolean;
+  numericValue: number;
+  error: string | null;
+}
+
+export interface ALoMatrixValidation {
+  valid: boolean;
+  errors: MatrixCellError[];
+  errorByCell: Record<string, MatrixCellError>;
+  payload: Array<{
+    assessment: string;
+    learning_outcome: string;
+    weight: string;
+  }>;
+}
+
+export interface LoPoMatrixValidation {
+  valid: boolean;
+  errors: MatrixCellError[];
+  errorByCell: Record<string, MatrixCellError>;
+  payload: Array<{
+    learning_outcome: string;
+    program_outcome: string;
+    weight: number;
+  }>;
+}
+
+export interface LiveLODiagnostic {
+  id: string;
+  code: string;
+  status: 'MAPPED' | 'UNMAPPED';
+  totalAssessmentWeight: number;
+  mappedPoCount: number;
+  isOrphan: boolean;
+}
+
+export interface LivePODiagnostic {
+  id: string;
+  code: string;
+  status: 'ASSESSED' | 'NOT_ASSESSED' | 'UNREACHABLE';
+  totalLoWeight: number;
+}
+
+export interface TraceabilityAssessmentShare {
+  assessmentId: string;
+  assessmentCode: string;
+  weight: number;
+  shareLabel: string;
+}
+
+export interface TraceabilityPOLink {
+  poId: string;
+  poCode: string;
+  weight: number;
+  poTotalWeight: number;
+  poShareLabel: string;
+}
+
+export interface TraceabilityPathRow {
+  loId: string;
+  loCode: string;
+  loStatus: 'MAPPED' | 'UNMAPPED';
+  isOrphan: boolean;
+  totalAssessmentWeight: number;
+  assessmentShares: TraceabilityAssessmentShare[];
+  poLinks: TraceabilityPOLink[];
+}
+
+export interface LiveMappingDiagnostics {
+  aLoValidation: ALoMatrixValidation;
+  loPoValidation: LoPoMatrixValidation;
+  allCellErrors: MatrixCellError[];
+  incompatibleVersion: boolean;
+  incompatibleVersionMessage: string | null;
+  loDiagnostics: LiveLODiagnostic[];
+  poDiagnostics: LivePODiagnostic[];
+  unmappedLOs: string[];
+  orphanedLOs: string[];
+  unreachablePOs: string[];
+  unassessedPOs: string[];
+  traceabilityRows: TraceabilityPathRow[];
+}
+
+export function formatWeightNumber(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.?0+$/, '');
+}
+
+export function buildALoBaseline(version: Syllabus): Record<string, string> {
+  const baseline: Record<string, string> = {};
+  for (const mapping of version.assessment_lo_mappings ?? []) {
+    if (mapping.is_active && Number(mapping.weight) > 0) {
+      baseline[`${mapping.assessment}:${mapping.learning_outcome}`] =
+        mapping.weight;
+    }
+  }
+  return baseline;
+}
+
+export function buildLoPoBaseline(version: Syllabus): Record<string, string> {
+  const baseline: Record<string, string> = {};
+  for (const mapping of version.lo_po_mappings ?? []) {
+    if (mapping.is_active && mapping.weight >= 1 && mapping.weight <= 5) {
+      baseline[`${mapping.learning_outcome}:${mapping.program_outcome}`] =
+        String(mapping.weight);
+    }
+  }
+  return baseline;
+}
+
+export function isALoCellDirty(
+  draftValue: string | undefined,
+  baselineValue: string | undefined,
+): boolean {
+  const rawDraft = (draftValue ?? '').trim();
+  const rawBase = (baselineValue ?? '').trim();
+  if (rawDraft === rawBase) return false;
+  const draftNum = rawDraft === '' ? 0 : Number(rawDraft);
+  const baseNum = rawBase === '' ? 0 : Number(rawBase);
+  if (
+    !Number.isFinite(draftNum) ||
+    Number.isNaN(draftNum) ||
+    draftNum < 0 ||
+    !Number.isFinite(baseNum) ||
+    Number.isNaN(baseNum) ||
+    baseNum < 0
+  ) {
+    return true;
+  }
+  return draftNum !== baseNum;
+}
+
+export function isLoPoCellDirty(
+  draftValue: string | undefined,
+  baselineValue: string | undefined,
+): boolean {
+  const rawDraft = (draftValue ?? '').trim();
+  const rawBase = (baselineValue ?? '').trim();
+  if (rawDraft === rawBase) return false;
+  const draftValid = rawDraft === '' || /^[0-5]$/.test(rawDraft);
+  const baseValid = rawBase === '' || /^[0-5]$/.test(rawBase);
+  if (!draftValid || !baseValid) return true;
+  const draftNum = rawDraft === '' ? 0 : Number(rawDraft);
+  const baseNum = rawBase === '' ? 0 : Number(rawBase);
+  return draftNum !== baseNum;
+}
+
+export function validateALoCell(
+  assessmentCode: string,
+  loCode: string,
+  rawValue: string,
+): ALoCellValidationResult {
+  const trimmed = rawValue.trim();
+  if (trimmed === '') {
+    return { valid: true, numericValue: 0, error: null };
+  }
+  const num = Number(trimmed);
+  if (!Number.isFinite(num) || Number.isNaN(num) || num < 0) {
+    return {
+      valid: false,
+      numericValue: Number.NaN,
+      error: `Cell [${assessmentCode} → ${loCode}]: A→LO weight must be a nonnegative number (>= 0).`,
+    };
+  }
+  return { valid: true, numericValue: num, error: null };
+}
+
+export function validateLoPoCell(
+  loCode: string,
+  poCode: string,
+  rawValue: string,
+): LoPoCellValidationResult {
+  const trimmed = rawValue.trim();
+  if (trimmed === '') {
+    return { valid: true, numericValue: 0, error: null };
+  }
+  const isWholeNumber = /^\d+$/.test(trimmed);
+  const num = isWholeNumber ? Number(trimmed) : Number.NaN;
+  if (!isWholeNumber || !Number.isInteger(num) || num < 0 || num > 5) {
+    return {
+      valid: false,
+      numericValue: Number.NaN,
+      error: `Cell [${loCode} → ${poCode}]: LO→PO weight must be an integer from 1 to 5 (or 0 for unmapped).`,
+    };
+  }
+  return { valid: true, numericValue: num, error: null };
+}
+
+export function validateALoMatrix(
+  assessments: readonly Assessment[],
+  learningOutcomes: readonly Outcome[],
+  draft: Record<string, string>,
+): ALoMatrixValidation {
+  const errors: MatrixCellError[] = [];
+  const errorByCell: Record<string, MatrixCellError> = {};
+  const payload: ALoMatrixValidation['payload'] = [];
+
+  for (const assessment of assessments) {
+    for (const lo of learningOutcomes) {
+      const cellKey = `${assessment.id}:${lo.id}`;
+      const raw = draft[cellKey] ?? '';
+      const result = validateALoCell(assessment.code, lo.code, raw);
+      if (!result.valid && result.error) {
+        const err: MatrixCellError = {
+          matrix: 'alo',
+          cellKey,
+          rowCode: assessment.code,
+          colCode: lo.code,
+          rule: 'INVALID_RANGE',
+          message: result.error,
+        };
+        errors.push(err);
+        errorByCell[cellKey] = err;
+      } else if (result.numericValue > 0) {
+        payload.push({
+          assessment: assessment.id,
+          learning_outcome: lo.id,
+          weight: raw.trim(),
+        });
+      }
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    errorByCell,
+    payload,
+  };
+}
+
+export function validateLoPoMatrix(
+  learningOutcomes: readonly Outcome[],
+  programOutcomes: ReadonlyArray<{ id: string; code: string }>,
+  draft: Record<string, string>,
+): LoPoMatrixValidation {
+  const errors: MatrixCellError[] = [];
+  const errorByCell: Record<string, MatrixCellError> = {};
+  const payload: LoPoMatrixValidation['payload'] = [];
+
+  for (const lo of learningOutcomes) {
+    for (const po of programOutcomes) {
+      const cellKey = `${lo.id}:${po.id}`;
+      const raw = draft[cellKey] ?? '';
+      const result = validateLoPoCell(lo.code, po.code, raw);
+      if (!result.valid && result.error) {
+        const err: MatrixCellError = {
+          matrix: 'lopo',
+          cellKey,
+          rowCode: lo.code,
+          colCode: po.code,
+          rule: 'INVALID_RANGE',
+          message: result.error,
+        };
+        errors.push(err);
+        errorByCell[cellKey] = err;
+      } else if (result.numericValue >= 1 && result.numericValue <= 5) {
+        payload.push({
+          learning_outcome: lo.id,
+          program_outcome: po.id,
+          weight: result.numericValue,
+        });
+      }
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    errorByCell,
+    payload,
+  };
+}
+
+export function computeLiveMappingDiagnostics({
+  version,
+  programOutcomes,
+  aLoDraft,
+  loPoDraft,
+  activePoSetVersion,
+}: {
+  version: Syllabus;
+  programOutcomes: ReadonlyArray<{ id: string; code: string }>;
+  aLoDraft: Record<string, string>;
+  loPoDraft: Record<string, string>;
+  activePoSetVersion?: number | null;
+}): LiveMappingDiagnostics {
+  const aLoValidation = validateALoMatrix(
+    version.assessments,
+    version.learning_outcomes,
+    aLoDraft,
+  );
+  const loPoValidation = validateLoPoMatrix(
+    version.learning_outcomes,
+    programOutcomes,
+    loPoDraft,
+  );
+  const allCellErrors = [...aLoValidation.errors, ...loPoValidation.errors];
+
+  let incompatibleVersion = false;
+  let incompatibleVersionMessage: string | null = null;
+  if (version.po_set_version === null) {
+    incompatibleVersion = true;
+    incompatibleVersionMessage =
+      'INCOMPATIBLE_VERSION: This syllabus is not bound to any PO-set version. Bind the program’s active PO-set before approval.';
+  } else if (
+    activePoSetVersion !== undefined &&
+    activePoSetVersion !== null &&
+    version.po_set_version !== activePoSetVersion
+  ) {
+    incompatibleVersion = true;
+    incompatibleVersionMessage = `INCOMPATIBLE_VERSION: Syllabus is bound to PO-set v${version.po_set_version}, but the program’s active PO-set is v${activePoSetVersion}. Bind the active PO-set before approval.`;
+  }
+
+  const activeAssessments = version.assessments.filter((a) => a.is_active);
+  const loTotalMap = new Map<string, number>();
+  const loSharesMap = new Map<
+    string,
+    Array<{ assessmentId: string; assessmentCode: string; weight: number }>
+  >();
+
+  for (const lo of version.learning_outcomes) {
+    let total = 0;
+    const shares: Array<{
+      assessmentId: string;
+      assessmentCode: string;
+      weight: number;
+    }> = [];
+    for (const assessment of activeAssessments) {
+      const cellKey = `${assessment.id}:${lo.id}`;
+      const res = validateALoCell(
+        assessment.code,
+        lo.code,
+        aLoDraft[cellKey] ?? '',
+      );
+      if (res.valid && res.numericValue > 0) {
+        total += res.numericValue;
+        shares.push({
+          assessmentId: assessment.id,
+          assessmentCode: assessment.code,
+          weight: res.numericValue,
+        });
+      }
+    }
+    loTotalMap.set(lo.id, total);
+    loSharesMap.set(lo.id, shares);
+  }
+
+  const loPoLinksByLo = new Map<
+    string,
+    Array<{ poId: string; poCode: string; weight: number }>
+  >();
+  const poLinksByPo = new Map<
+    string,
+    Array<{ loId: string; loCode: string; weight: number }>
+  >();
+  for (const lo of version.learning_outcomes) {
+    loPoLinksByLo.set(lo.id, []);
+  }
+  for (const po of programOutcomes) {
+    poLinksByPo.set(po.id, []);
+  }
+
+  for (const lo of version.learning_outcomes) {
+    for (const po of programOutcomes) {
+      const cellKey = `${lo.id}:${po.id}`;
+      const res = validateLoPoCell(lo.code, po.code, loPoDraft[cellKey] ?? '');
+      if (res.valid && res.numericValue >= 1 && res.numericValue <= 5) {
+        loPoLinksByLo.get(lo.id)?.push({
+          poId: po.id,
+          poCode: po.code,
+          weight: res.numericValue,
+        });
+        poLinksByPo.get(po.id)?.push({
+          loId: lo.id,
+          loCode: lo.code,
+          weight: res.numericValue,
+        });
+      }
+    }
+  }
+
+  const loDiagnostics: LiveLODiagnostic[] = [];
+  const loStatusById = new Map<string, 'MAPPED' | 'UNMAPPED'>();
+  const unmappedLOs: string[] = [];
+  const orphanedLOs: string[] = [];
+
+  for (const lo of version.learning_outcomes) {
+    const totalAssessmentWeight = loTotalMap.get(lo.id) ?? 0;
+    const status: 'MAPPED' | 'UNMAPPED' =
+      totalAssessmentWeight > 0 ? 'MAPPED' : 'UNMAPPED';
+    loStatusById.set(lo.id, status);
+    const mappedPoCount = loPoLinksByLo.get(lo.id)?.length ?? 0;
+    const isOrphan =
+      (status === 'MAPPED' && mappedPoCount === 0) ||
+      (status === 'UNMAPPED' && mappedPoCount > 0);
+
+    if (status === 'UNMAPPED') {
+      unmappedLOs.push(lo.code);
+    }
+    if (isOrphan) {
+      orphanedLOs.push(lo.code);
+    }
+    loDiagnostics.push({
+      id: lo.id,
+      code: lo.code,
+      status,
+      totalAssessmentWeight,
+      mappedPoCount,
+      isOrphan,
+    });
+  }
+
+  const poDiagnostics: LivePODiagnostic[] = [];
+  const poTotalWeightById = new Map<string, number>();
+  const unreachablePOs: string[] = [];
+  const unassessedPOs: string[] = [];
+
+  for (const po of programOutcomes) {
+    const links = poLinksByPo.get(po.id) ?? [];
+    const reachableLinks = links.filter(
+      (link) => loStatusById.get(link.loId) === 'MAPPED',
+    );
+    const unreachableLinks = links.filter(
+      (link) => loStatusById.get(link.loId) !== 'MAPPED',
+    );
+
+    if (reachableLinks.length > 0) {
+      const totalLoWeight = reachableLinks.reduce(
+        (sum, link) => sum + link.weight,
+        0,
+      );
+      poTotalWeightById.set(po.id, totalLoWeight);
+      poDiagnostics.push({
+        id: po.id,
+        code: po.code,
+        status: 'ASSESSED',
+        totalLoWeight,
+      });
+    } else if (unreachableLinks.length > 0) {
+      poTotalWeightById.set(po.id, 0);
+      unreachablePOs.push(po.code);
+      poDiagnostics.push({
+        id: po.id,
+        code: po.code,
+        status: 'UNREACHABLE',
+        totalLoWeight: 0,
+      });
+    } else {
+      poTotalWeightById.set(po.id, 0);
+      unassessedPOs.push(po.code);
+      poDiagnostics.push({
+        id: po.id,
+        code: po.code,
+        status: 'NOT_ASSESSED',
+        totalLoWeight: 0,
+      });
+    }
+  }
+
+  const traceabilityRows: TraceabilityPathRow[] = loDiagnostics.map((loDiag) => {
+    const rawShares = loSharesMap.get(loDiag.id) ?? [];
+    const totalW = loDiag.totalAssessmentWeight;
+    const assessmentShares: TraceabilityAssessmentShare[] = rawShares.map(
+      (share) => {
+        const pct = totalW > 0 ? ((share.weight / totalW) * 100).toFixed(1) : '0.0';
+        return {
+          assessmentId: share.assessmentId,
+          assessmentCode: share.assessmentCode,
+          weight: share.weight,
+          shareLabel: `${share.assessmentCode} (${formatWeightNumber(share.weight)}/${formatWeightNumber(totalW)}, ${pct}%)`,
+        };
+      },
+    );
+
+    const rawPoLinks = loPoLinksByLo.get(loDiag.id) ?? [];
+    const poLinks: TraceabilityPOLink[] = rawPoLinks.map((link) => {
+      const poTotal = poTotalWeightById.get(link.poId) ?? 0;
+      const ratioPart =
+        poTotal > 0 ? `${link.weight}/${poTotal}` : 'unreachable';
+      return {
+        poId: link.poId,
+        poCode: link.poCode,
+        weight: link.weight,
+        poTotalWeight: poTotal,
+        poShareLabel: `${link.poCode} (weight ${link.weight}, ${ratioPart})`,
+      };
+    });
+
+    return {
+      loId: loDiag.id,
+      loCode: loDiag.code,
+      loStatus: loDiag.status,
+      isOrphan: loDiag.isOrphan,
+      totalAssessmentWeight: totalW,
+      assessmentShares,
+      poLinks,
+    };
+  });
+
+  return {
+    aLoValidation,
+    loPoValidation,
+    allCellErrors,
+    incompatibleVersion,
+    incompatibleVersionMessage,
+    loDiagnostics,
+    poDiagnostics,
+    unmappedLOs,
+    orphanedLOs,
+    unreachablePOs,
+    unassessedPOs,
+    traceabilityRows,
+  };
+}
+
+export function getNextMatrixCellCoord(
+  rowIndex: number,
+  colIndex: number,
+  rowCount: number,
+  colCount: number,
+  key: string,
+): { rowIndex: number; colIndex: number } | null {
+  if (rowCount <= 0 || colCount <= 0) return null;
+  if (key === 'ArrowUp') {
+    return { rowIndex: Math.max(0, rowIndex - 1), colIndex };
+  }
+  if (key === 'ArrowDown') {
+    return { rowIndex: Math.min(rowCount - 1, rowIndex + 1), colIndex };
+  }
+  if (key === 'ArrowLeft') {
+    return { rowIndex, colIndex: Math.max(0, colIndex - 1) };
+  }
+  if (key === 'ArrowRight') {
+    return { rowIndex, colIndex: Math.min(colCount - 1, colIndex + 1) };
+  }
+  return null;
+}
+
+export function isVersionConflictError(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    (error.status === 409 || error.kind === 'conflict')
+  );
+}
+
+export function SyllabusMappingStudio({
   version,
   canDraft,
+  programId,
+  activePoSetVersion,
+  initialALoOverrides,
+  initialLoPoOverrides,
   onSaved,
 }: {
   version: Syllabus;
   canDraft: boolean;
+  programId?: string;
+  activePoSetVersion?: number | null;
+  initialALoOverrides?: Record<string, string>;
+  initialLoPoOverrides?: Record<string, string>;
   onSaved: () => void;
 }) {
   const queryClient = useQueryClient();
@@ -399,20 +972,72 @@ function SyllabusMappingStudio({
     queryKey: valKey,
     queryFn: ({ signal }) => getSyllabusMappingValidation(version.id, signal),
   });
+  const poSetsQuery = useQuery({
+    queryKey: ['academic', 'po-sets', programId],
+    queryFn: ({ signal }) => getProgramOutcomeSets(programId ?? '', signal),
+    enabled: Boolean(programId) && activePoSetVersion === undefined,
+  });
 
-  const aLoLookup = new Map<string, string>();
-  for (const m of version.assessment_lo_mappings ?? []) {
-    if (m.is_active && Number(m.weight) > 0) {
-      aLoLookup.set(`${m.assessment}:${m.learning_outcome}`, m.weight);
+  const [aLoOverridesBySyllabus, setALoOverridesBySyllabus] = useState<
+    Record<string, Record<string, string>>
+  >(() => (initialALoOverrides ? { [version.id]: initialALoOverrides } : {}));
+  const [loPoOverridesBySyllabus, setLoPoOverridesBySyllabus] = useState<
+    Record<string, Record<string, string>>
+  >(() => (initialLoPoOverrides ? { [version.id]: initialLoPoOverrides } : {}));
+
+  const aLoBaseline = buildALoBaseline(version);
+  const loPoBaseline = buildLoPoBaseline(version);
+  const aLoOverrides = aLoOverridesBySyllabus[version.id] ?? {};
+  const loPoOverrides = loPoOverridesBySyllabus[version.id] ?? {};
+
+  const report = validationQuery.data;
+  const programOutcomes: Array<{ id: string; code: string }> = (
+    report?.po_statuses ?? []
+  ).map((po) => ({
+    id: po.program_outcome_id,
+    code: po.code,
+  }));
+
+  const aLoDraft: Record<string, string> = {};
+  let dirtyALoCount = 0;
+  for (const assessment of version.assessments) {
+    for (const lo of version.learning_outcomes) {
+      const key = `${assessment.id}:${lo.id}`;
+      const baseVal = aLoBaseline[key] ?? '';
+      const val = key in aLoOverrides ? aLoOverrides[key] : baseVal;
+      aLoDraft[key] = val;
+      if (isALoCellDirty(val, baseVal)) {
+        dirtyALoCount += 1;
+      }
     }
   }
 
-  const loPoLookup = new Map<string, number>();
-  for (const m of version.lo_po_mappings ?? []) {
-    if (m.is_active && m.weight >= 1) {
-      loPoLookup.set(`${m.learning_outcome}:${m.program_outcome}`, m.weight);
+  const loPoDraft: Record<string, string> = {};
+  let dirtyLoPoCount = 0;
+  for (const lo of version.learning_outcomes) {
+    for (const po of programOutcomes) {
+      const key = `${lo.id}:${po.id}`;
+      const baseVal = loPoBaseline[key] ?? '';
+      const val = key in loPoOverrides ? loPoOverrides[key] : baseVal;
+      loPoDraft[key] = val;
+      if (isLoPoCellDirty(val, baseVal)) {
+        dirtyLoPoCount += 1;
+      }
     }
   }
+
+  const resolvedActivePoSetVersion =
+    activePoSetVersion !== undefined
+      ? activePoSetVersion
+      : poSetsQuery.data?.find((item) => item.active)?.version;
+
+  const liveDiagnostics = computeLiveMappingDiagnostics({
+    version,
+    programOutcomes,
+    aLoDraft,
+    loPoDraft,
+    activePoSetVersion: resolvedActivePoSetVersion,
+  });
 
   const aLoMutation = useMutation({
     mutationFn: (
@@ -428,6 +1053,11 @@ function SyllabusMappingStudio({
         mappings,
       ),
     onSuccess: async () => {
+      setALoOverridesBySyllabus((prev) => {
+        const next = { ...prev };
+        delete next[version.id];
+        return next;
+      });
       await queryClient.invalidateQueries({ queryKey: valKey });
       onSaved();
     },
@@ -443,65 +1073,155 @@ function SyllabusMappingStudio({
     ) =>
       replaceLOPOMappings(version.id, version.mapping_revision ?? 1, mappings),
     onSuccess: async () => {
+      setLoPoOverridesBySyllabus((prev) => {
+        const next = { ...prev };
+        delete next[version.id];
+        return next;
+      });
       await queryClient.invalidateQueries({ queryKey: valKey });
       onSaved();
     },
   });
 
   const editable = canDraft && version.status === 'draft';
-  const report = validationQuery.data;
-  const loStatusMap = new Map(
-    (report?.lo_statuses ?? []).map((item) => [item.learning_outcome_id, item]),
+  const hasConflict =
+    (aLoMutation.isError && isVersionConflictError(aLoMutation.error)) ||
+    (loPoMutation.isError && isVersionConflictError(loPoMutation.error));
+  const isSaving = aLoMutation.isPending || loPoMutation.isPending;
+  const totalDirtyCount = dirtyALoCount + dirtyLoPoCount;
+
+  const versionStateLabel =
+    version.status === 'draft'
+      ? canDraft
+        ? 'Draft (editable)'
+        : 'Draft (read-only)'
+      : version.status === 'approved'
+        ? 'Approved (locked / read-only)'
+        : 'Retired (read-only)';
+
+  const syncStateLabel = hasConflict
+    ? 'Version conflict (409)'
+    : isSaving
+      ? 'Saving…'
+      : totalDirtyCount > 0
+        ? 'Unsaved changes'
+        : `Saved (Revision v${version.mapping_revision ?? 1})`;
+
+  const loDiagMap = new Map(
+    liveDiagnostics.loDiagnostics.map((item) => [item.id, item]),
   );
+  const poDiagMap = new Map(
+    liveDiagnostics.poDiagnostics.map((item) => [item.id, item]),
+  );
+
+  function updateALoCell(cellKey: string, value: string) {
+    setALoOverridesBySyllabus((prev) => ({
+      ...prev,
+      [version.id]: {
+        ...(prev[version.id] ?? {}),
+        [cellKey]: value,
+      },
+    }));
+  }
+
+  function updateLoPoCell(cellKey: string, value: string) {
+    setLoPoOverridesBySyllabus((prev) => ({
+      ...prev,
+      [version.id]: {
+        ...(prev[version.id] ?? {}),
+        [cellKey]: value,
+      },
+    }));
+  }
+
+  function discardALoDraft() {
+    setALoOverridesBySyllabus((prev) => {
+      const next = { ...prev };
+      delete next[version.id];
+      return next;
+    });
+    aLoMutation.reset();
+  }
+
+  function discardLoPoDraft() {
+    setLoPoOverridesBySyllabus((prev) => {
+      const next = { ...prev };
+      delete next[version.id];
+      return next;
+    });
+    loPoMutation.reset();
+  }
+
+  function handleRefreshAfterConflict() {
+    aLoMutation.reset();
+    loPoMutation.reset();
+    void queryClient.invalidateQueries({ queryKey: valKey });
+    onSaved();
+  }
+
+  function handleMatrixKeyDown(
+    event: KeyboardEvent<HTMLInputElement>,
+    prefix: 'alo' | 'lopo',
+    rowIndex: number,
+    colIndex: number,
+    rowCount: number,
+    colCount: number,
+  ) {
+    const { key } = event;
+    if (
+      key !== 'ArrowUp' &&
+      key !== 'ArrowDown' &&
+      key !== 'ArrowLeft' &&
+      key !== 'ArrowRight'
+    ) {
+      return;
+    }
+    const input = event.currentTarget;
+    if (
+      !event.altKey &&
+      !event.ctrlKey &&
+      key === 'ArrowLeft' &&
+      input.selectionStart !== null &&
+      input.selectionStart > 0
+    ) {
+      return;
+    }
+    if (
+      !event.altKey &&
+      !event.ctrlKey &&
+      key === 'ArrowRight' &&
+      input.selectionEnd !== null &&
+      input.selectionEnd < input.value.length
+    ) {
+      return;
+    }
+    const next = getNextMatrixCellCoord(
+      rowIndex,
+      colIndex,
+      rowCount,
+      colCount,
+      key,
+    );
+    if (!next) return;
+    event.preventDefault();
+    const target = input
+      .closest('table')
+      ?.querySelector<HTMLElement>(
+        `[data-matrix-cell="${prefix}-${next.rowIndex}-${next.colIndex}"]`,
+      );
+    target?.focus();
+  }
 
   function submitALo(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const mappings: Array<{
-      assessment: string;
-      learning_outcome: string;
-      weight: string;
-    }> = [];
-    for (const assessment of version.assessments) {
-      for (const lo of version.learning_outcomes) {
-        const raw = String(
-          form.get(`alo_${assessment.id}_${lo.id}`) ?? '',
-        ).trim();
-        if (raw !== '' && Number(raw) > 0) {
-          mappings.push({
-            assessment: assessment.id,
-            learning_outcome: lo.id,
-            weight: raw,
-          });
-        }
-      }
-    }
-    aLoMutation.mutate(mappings);
+    if (!editable || !liveDiagnostics.aLoValidation.valid) return;
+    aLoMutation.mutate(liveDiagnostics.aLoValidation.payload);
   }
 
   function submitLoPo(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const mappings: Array<{
-      learning_outcome: string;
-      program_outcome: string;
-      weight: number;
-    }> = [];
-    for (const lo of version.learning_outcomes) {
-      for (const po of report?.po_statuses ?? []) {
-        const raw = Number(
-          form.get(`lopo_${lo.id}_${po.program_outcome_id}`) ?? 0,
-        );
-        if (raw >= 1 && raw <= 5) {
-          mappings.push({
-            learning_outcome: lo.id,
-            program_outcome: po.program_outcome_id,
-            weight: raw,
-          });
-        }
-      }
-    }
-    loPoMutation.mutate(mappings);
+    if (!editable || !liveDiagnostics.loPoValidation.valid) return;
+    loPoMutation.mutate(liveDiagnostics.loPoValidation.payload);
   }
 
   return (
@@ -511,17 +1231,107 @@ function SyllabusMappingStudio({
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h4 className="font-medium">
-          Curriculum mapping matrices (A→LO & LO→PO)
+          Curriculum mapping matrices (A→LO &amp; LO→PO)
         </h4>
-        <Badge variant="outline">
-          Revision v{version.mapping_revision ?? 1}
-        </Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant={editable ? 'outline' : 'secondary'}>
+            {versionStateLabel}
+          </Badge>
+          <Badge
+            variant={
+              hasConflict
+                ? 'destructive'
+                : totalDirtyCount > 0
+                  ? 'secondary'
+                  : 'outline'
+            }
+          >
+            {syncStateLabel}
+          </Badge>
+          {liveDiagnostics.allCellErrors.length > 0 && (
+            <Badge variant="destructive">
+              INVALID_RANGE ({liveDiagnostics.allCellErrors.length})
+            </Badge>
+          )}
+          {liveDiagnostics.incompatibleVersion && (
+            <Badge variant="destructive">INCOMPATIBLE_VERSION</Badge>
+          )}
+        </div>
       </div>
+
       <p className="text-xs text-muted-foreground">
         Assessment→LO weights are nonnegative relative values (no sum-to-100
-        constraint). Active LO→PO links carry integer weights 1–5; unmapped LOs
-        are UNMAPPED and unassessed POs are NOT_ASSESSED (never numeric zero).
+        constraint). Active LO→PO links carry integer weights 1–5 (or 0 for
+        unmapped); unmapped LOs are UNMAPPED and unassessed POs are NOT_ASSESSED
+        (never numeric zero). Use arrow keys to navigate between matrix cells.
       </p>
+
+      {version.status === 'approved' && (
+        <Alert>
+          <AlertDescription>
+            <strong>Locked / Read-Only:</strong> Approved syllabus versions are
+            immutable to preserve historical evidence. Click{' '}
+            <strong>Create revision</strong> above to start a new editable draft
+            version.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {!canDraft && version.status === 'draft' && (
+        <Alert>
+          <AlertDescription>
+            <strong>Read-Only:</strong> You do not have drafting permission to
+            edit mapping matrices for this offering.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {liveDiagnostics.incompatibleVersion &&
+        liveDiagnostics.incompatibleVersionMessage && (
+          <div role="alert" className="rounded border border-destructive p-3 text-sm">
+            <p className="font-medium">INCOMPATIBLE_VERSION</p>
+            <p>{liveDiagnostics.incompatibleVersionMessage}</p>
+          </div>
+        )}
+
+      {hasConflict && (
+        <div
+          role="alert"
+          className="space-y-2 rounded border border-destructive p-3 text-sm"
+        >
+          <p className="font-medium">Version conflict (409)</p>
+          <p>
+            Another user saved a newer mapping revision on the server. Your
+            unsaved draft edits have been preserved below. Refresh server
+            mappings to load the latest revision before re-applying your
+            changes.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleRefreshAfterConflict}
+          >
+            Refresh server mappings
+          </Button>
+        </div>
+      )}
+
+      {liveDiagnostics.allCellErrors.length > 0 && (
+        <div
+          role="alert"
+          className="space-y-1 rounded border border-destructive p-3 text-sm"
+        >
+          <p className="font-medium">
+            Mapping validation errors ({liveDiagnostics.allCellErrors.length})
+          </p>
+          <ul className="list-disc space-y-1 pl-5">
+            {liveDiagnostics.allCellErrors.map((err) => (
+              <li key={`${err.matrix}-${err.cellKey}`}>{err.message}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {validationQuery.isPending && (
         <p role="status">Validating mapping matrices…</p>
@@ -529,45 +1339,69 @@ function SyllabusMappingStudio({
       {validationQuery.isError && (
         <p role="alert">{errorMessage(validationQuery.error)}</p>
       )}
-      {aLoMutation.isError && (
+      {aLoMutation.isError && !isVersionConflictError(aLoMutation.error) && (
         <p role="alert">{errorMessage(aLoMutation.error)}</p>
       )}
-      {loPoMutation.isError && (
+      {loPoMutation.isError && !isVersionConflictError(loPoMutation.error) && (
         <p role="alert">{errorMessage(loPoMutation.error)}</p>
       )}
 
       {version.assessments.length > 0 &&
       version.learning_outcomes.length > 0 ? (
-        <form
-          key={`alo-${version.id}-${version.mapping_revision ?? 1}`}
-          onSubmit={submitALo}
-          className="space-y-3"
-        >
-          <h5 className="text-sm font-medium">
-            1. Assessment → Learning Outcome (A→LO) relative weights
-          </h5>
+        <form onSubmit={submitALo} className="space-y-3" noValidate>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h5 className="text-sm font-medium">
+              1. Assessment → Learning Outcome (A→LO) relative weights
+            </h5>
+            {dirtyALoCount > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="secondary">
+                  Unsaved A→LO changes ({dirtyALoCount} cells)
+                </Badge>
+                {editable && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={discardALoDraft}
+                    disabled={aLoMutation.isPending}
+                  >
+                    Discard unsaved changes
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
           <Table>
+            <TableCaption>
+              Assessment to Learning Outcome (A→LO) relative weight matrix
+            </TableCaption>
             <TableHeader>
               <TableRow>
-                <TableHead>Assessment</TableHead>
+                <TableHead scope="col">Assessment</TableHead>
                 {version.learning_outcomes.map((lo) => {
-                  const statusItem = loStatusMap.get(lo.id);
+                  const diag = loDiagMap.get(lo.id);
                   return (
-                    <TableHead key={lo.id}>
+                    <TableHead key={lo.id} scope="col">
                       <div className="flex flex-col gap-1">
                         <span>{lo.code}</span>
-                        {statusItem && (
-                          <Badge
-                            variant={
-                              statusItem.status === 'MAPPED'
-                                ? 'outline'
-                                : 'secondary'
-                            }
-                          >
-                            {statusItem.status === 'MAPPED'
-                              ? `MAPPED (${statusItem.total_assessment_weight})`
-                              : 'UNMAPPED'}
-                          </Badge>
+                        {diag && (
+                          <div className="flex flex-wrap gap-1">
+                            <Badge
+                              variant={
+                                diag.status === 'MAPPED'
+                                  ? 'outline'
+                                  : 'secondary'
+                              }
+                            >
+                              {diag.status === 'MAPPED'
+                                ? `MAPPED (Σ=${formatWeightNumber(diag.totalAssessmentWeight)})`
+                                : 'UNMAPPED'}
+                            </Badge>
+                            {diag.isOrphan && (
+                              <Badge variant="secondary">ORPHAN</Badge>
+                            )}
+                          </div>
                         )}
                       </div>
                     </TableHead>
@@ -576,32 +1410,67 @@ function SyllabusMappingStudio({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {version.assessments.map((assessment) => (
+              {version.assessments.map((assessment, rowIndex) => (
                 <TableRow key={assessment.id}>
-                  <TableCell className="font-medium">
+                  <th
+                    scope="row"
+                    className="p-2 text-left align-middle font-medium whitespace-nowrap"
+                  >
                     {assessment.code}{' '}
-                    <span className="text-xs text-muted-foreground">
-                      ({assessment.max_points} pts)
+                    <span className="text-xs font-normal text-muted-foreground">
+                      ({assessment.max_points} pts
+                      {assessment.is_active ? '' : ', inactive'})
                     </span>
-                  </TableCell>
-                  {version.learning_outcomes.map((lo) => {
-                    const currentWeight =
-                      aLoLookup.get(`${assessment.id}:${lo.id}`) ?? '0';
+                  </th>
+                  {version.learning_outcomes.map((lo, colIndex) => {
+                    const cellKey = `${assessment.id}:${lo.id}`;
+                    const value = aLoDraft[cellKey] ?? '';
+                    const cellError =
+                      liveDiagnostics.aLoValidation.errorByCell[cellKey];
+                    const errorId = `alo-err-${version.id}-${assessment.id}-${lo.id}`;
                     return (
                       <TableCell key={lo.id}>
                         {editable ? (
-                          <Input
-                            aria-label={`${assessment.code} to ${lo.code} weight`}
-                            name={`alo_${assessment.id}_${lo.id}`}
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            defaultValue={currentWeight}
-                            className="w-24"
-                          />
+                          <div>
+                            <Input
+                              aria-label={`Assessment ${assessment.code} to ${lo.code} relative weight`}
+                              aria-invalid={cellError ? 'true' : undefined}
+                              aria-describedby={cellError ? errorId : undefined}
+                              data-matrix-cell={`alo-${rowIndex}-${colIndex}`}
+                              name={`alo_${assessment.id}_${lo.id}`}
+                              type="text"
+                              inputMode="decimal"
+                              placeholder="0"
+                              value={value}
+                              onChange={(event) =>
+                                updateALoCell(cellKey, event.target.value)
+                              }
+                              onKeyDown={(event) =>
+                                handleMatrixKeyDown(
+                                  event,
+                                  'alo',
+                                  rowIndex,
+                                  colIndex,
+                                  version.assessments.length,
+                                  version.learning_outcomes.length,
+                                )
+                              }
+                              className="w-24"
+                            />
+                            {cellError && (
+                              <p
+                                id={errorId}
+                                className="mt-1 text-xs text-destructive"
+                              >
+                                {cellError.message}
+                              </p>
+                            )}
+                          </div>
                         ) : (
                           <span>
-                            {Number(currentWeight) > 0 ? currentWeight : '—'}
+                            {value.trim() !== '' && Number(value) > 0
+                              ? value
+                              : '—'}
                           </span>
                         )}
                       </TableCell>
@@ -612,8 +1481,13 @@ function SyllabusMappingStudio({
             </TableBody>
           </Table>
           {editable && (
-            <Button type="submit" disabled={aLoMutation.isPending}>
-              Save A→LO matrix
+            <Button
+              type="submit"
+              disabled={
+                aLoMutation.isPending || !liveDiagnostics.aLoValidation.valid
+              }
+            >
+              {aLoMutation.isPending ? 'Saving…' : 'Save A→LO matrix'}
             </Button>
           )}
         </form>
@@ -624,103 +1498,283 @@ function SyllabusMappingStudio({
         </p>
       )}
 
-      {version.learning_outcomes.length > 0 &&
-      (report?.po_statuses.length ?? 0) > 0 ? (
+      {version.learning_outcomes.length > 0 && programOutcomes.length > 0 ? (
         <form
-          key={`lopo-${version.id}-${version.mapping_revision ?? 1}`}
           onSubmit={submitLoPo}
           className="space-y-3 border-t pt-3"
+          noValidate
         >
-          <h5 className="text-sm font-medium">
-            2. Learning Outcome → Program Outcome (LO→PO) integer weights (1–5)
-          </h5>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h5 className="text-sm font-medium">
+              2. Learning Outcome → Program Outcome (LO→PO) integer weights
+              (1–5)
+            </h5>
+            {dirtyLoPoCount > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="secondary">
+                  Unsaved LO→PO changes ({dirtyLoPoCount} cells)
+                </Badge>
+                {editable && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={discardLoPoDraft}
+                    disabled={loPoMutation.isPending}
+                  >
+                    Discard unsaved changes
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
           <Table>
+            <TableCaption>
+              Learning Outcome to Program Outcome (LO→PO) integer weight matrix
+              (1 to 5, or 0 for unmapped)
+            </TableCaption>
             <TableHeader>
               <TableRow>
-                <TableHead>LO</TableHead>
-                {report?.po_statuses.map((po) => (
-                  <TableHead key={po.program_outcome_id}>
-                    <div className="flex flex-col gap-1">
-                      <span>{po.code}</span>
-                      <Badge
-                        variant={
-                          po.status === 'ASSESSED' ? 'outline' : 'secondary'
-                        }
-                      >
-                        {po.status === 'ASSESSED'
-                          ? `ASSESSED (Σ=${po.total_lo_weight})`
-                          : 'NOT_ASSESSED'}
-                      </Badge>
-                    </div>
-                  </TableHead>
-                ))}
+                <TableHead scope="col">Learning Outcome</TableHead>
+                {programOutcomes.map((po) => {
+                  const diag = poDiagMap.get(po.id);
+                  return (
+                    <TableHead key={po.id} scope="col">
+                      <div className="flex flex-col gap-1">
+                        <span>{po.code}</span>
+                        {diag && (
+                          <Badge
+                            variant={
+                              diag.status === 'ASSESSED'
+                                ? 'outline'
+                                : diag.status === 'UNREACHABLE'
+                                  ? 'destructive'
+                                  : 'secondary'
+                            }
+                          >
+                            {diag.status === 'ASSESSED'
+                              ? `ASSESSED (Σ=${diag.totalLoWeight})`
+                              : diag.status}
+                          </Badge>
+                        )}
+                      </div>
+                    </TableHead>
+                  );
+                })}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {version.learning_outcomes.map((lo) => (
-                <TableRow key={lo.id}>
-                  <TableCell className="font-medium">{lo.code}</TableCell>
-                  {report?.po_statuses.map((po) => {
-                    const currentWeight =
-                      loPoLookup.get(`${lo.id}:${po.program_outcome_id}`) ?? 0;
-                    return (
-                      <TableCell key={po.program_outcome_id}>
-                        {editable ? (
-                          <NativeSelect
-                            aria-label={`${lo.code} to ${po.code} weight`}
-                            name={`lopo_${lo.id}_${po.program_outcome_id}`}
-                            defaultValue={String(currentWeight)}
-                          >
-                            <option value="0">— (0)</option>
-                            {[1, 2, 3, 4, 5].map((w) => (
-                              <option key={w} value={String(w)}>
-                                {w}
-                              </option>
-                            ))}
-                          </NativeSelect>
-                        ) : (
-                          <span>{currentWeight > 0 ? currentWeight : '—'}</span>
+              {version.learning_outcomes.map((lo, rowIndex) => {
+                const loDiag = loDiagMap.get(lo.id);
+                return (
+                  <TableRow key={lo.id}>
+                    <th
+                      scope="row"
+                      className="p-2 text-left align-middle font-medium whitespace-nowrap"
+                    >
+                      <div className="flex flex-wrap items-center gap-1">
+                        <span>{lo.code}</span>
+                        {loDiag?.isOrphan && (
+                          <Badge variant="secondary">ORPHAN</Badge>
                         )}
-                      </TableCell>
-                    );
-                  })}
-                </TableRow>
-              ))}
+                      </div>
+                    </th>
+                    {programOutcomes.map((po, colIndex) => {
+                      const cellKey = `${lo.id}:${po.id}`;
+                      const value = loPoDraft[cellKey] ?? '';
+                      const cellError =
+                        liveDiagnostics.loPoValidation.errorByCell[cellKey];
+                      const errorId = `lopo-err-${version.id}-${lo.id}-${po.id}`;
+                      return (
+                        <TableCell key={po.id}>
+                          {editable ? (
+                            <div>
+                              <Input
+                                aria-label={`${lo.code} to ${po.code} integer weight (1 to 5, or 0 for unmapped)`}
+                                aria-invalid={cellError ? 'true' : undefined}
+                                aria-describedby={
+                                  cellError ? errorId : undefined
+                                }
+                                data-matrix-cell={`lopo-${rowIndex}-${colIndex}`}
+                                name={`lopo_${lo.id}_${po.id}`}
+                                type="text"
+                                inputMode="numeric"
+                                placeholder="0"
+                                value={value}
+                                onChange={(event) =>
+                                  updateLoPoCell(cellKey, event.target.value)
+                                }
+                                onKeyDown={(event) =>
+                                  handleMatrixKeyDown(
+                                    event,
+                                    'lopo',
+                                    rowIndex,
+                                    colIndex,
+                                    version.learning_outcomes.length,
+                                    programOutcomes.length,
+                                  )
+                                }
+                                className="w-20"
+                              />
+                              {cellError && (
+                                <p
+                                  id={errorId}
+                                  className="mt-1 text-xs text-destructive"
+                                >
+                                  {cellError.message}
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <span>
+                              {value.trim() !== '' && Number(value) >= 1
+                                ? value
+                                : '—'}
+                            </span>
+                          )}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
           {editable && (
-            <Button type="submit" disabled={loPoMutation.isPending}>
-              Save LO→PO matrix
+            <Button
+              type="submit"
+              disabled={
+                loPoMutation.isPending || !liveDiagnostics.loPoValidation.valid
+              }
+            >
+              {loPoMutation.isPending ? 'Saving…' : 'Save LO→PO matrix'}
             </Button>
           )}
         </form>
       ) : null}
 
-      {report && (
+      {liveDiagnostics.traceabilityRows.length > 0 && (
         <div
-          className="space-y-2 border-t pt-3 text-sm"
-          aria-label="Mapping diagnostics"
+          className="space-y-2 border-t pt-3"
+          aria-label="Equivalent traceability summary table"
         >
-          <div className="flex items-center gap-2">
-            <span className="font-medium">Pre-approval readiness:</span>
-            <Badge
-              variant={report.is_valid_for_approval ? 'outline' : 'secondary'}
-            >
-              {report.is_valid_for_approval
-                ? 'Ready for approval'
-                : 'Issues detected'}
-            </Badge>
-          </div>
-          {report.errors.length > 0 && (
-            <ul className="list-disc space-y-1 pl-5 text-sm" role="alert">
-              {report.errors.map((err) => (
-                <li key={err}>{err}</li>
+          <h5 className="text-sm font-medium">
+            3. Equivalent Assessment → LO → PO traceability summary
+          </h5>
+          <Table>
+            <TableCaption>
+              Equivalent textual summary of active Assessment to Learning
+              Outcome to Program Outcome traceability paths
+            </TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead scope="col">Learning Outcome</TableHead>
+                <TableHead scope="col">A→LO Relative Shares</TableHead>
+                <TableHead scope="col">LO→PO Weights</TableHead>
+                <TableHead scope="col">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {liveDiagnostics.traceabilityRows.map((row) => (
+                <TableRow key={row.loId}>
+                  <th
+                    scope="row"
+                    className="p-2 text-left align-middle font-medium whitespace-nowrap"
+                  >
+                    {row.loCode}
+                  </th>
+                  <TableCell>
+                    {row.assessmentShares.length > 0
+                      ? row.assessmentShares
+                          .map((share) => share.shareLabel)
+                          .join(' + ')
+                      : 'None (UNMAPPED)'}
+                  </TableCell>
+                  <TableCell>
+                    {row.poLinks.length > 0
+                      ? row.poLinks.map((link) => link.poShareLabel).join(', ')
+                      : 'None (NOT_ASSESSED)'}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      <Badge
+                        variant={
+                          row.loStatus === 'MAPPED' ? 'outline' : 'secondary'
+                        }
+                      >
+                        {row.loStatus === 'MAPPED'
+                          ? `MAPPED (Σ=${formatWeightNumber(row.totalAssessmentWeight)})`
+                          : 'UNMAPPED'}
+                      </Badge>
+                      {row.isOrphan && (
+                        <Badge variant="secondary">ORPHAN</Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
               ))}
-            </ul>
-          )}
+            </TableBody>
+          </Table>
         </div>
       )}
 
+      <div
+        className="space-y-2 border-t pt-3 text-sm"
+        aria-label="Mapping diagnostics"
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-medium">Live draft diagnostics:</span>
+          {liveDiagnostics.unmappedLOs.length > 0 && (
+            <Badge variant="secondary">
+              UNMAPPED: {liveDiagnostics.unmappedLOs.join(', ')}
+            </Badge>
+          )}
+          {liveDiagnostics.orphanedLOs.length > 0 && (
+            <Badge variant="secondary">
+              ORPHAN: {liveDiagnostics.orphanedLOs.join(', ')}
+            </Badge>
+          )}
+          {liveDiagnostics.unreachablePOs.length > 0 && (
+            <Badge variant="destructive">
+              UNREACHABLE: {liveDiagnostics.unreachablePOs.join(', ')}
+            </Badge>
+          )}
+          {liveDiagnostics.unassessedPOs.length > 0 && (
+            <Badge variant="secondary">
+              NOT_ASSESSED: {liveDiagnostics.unassessedPOs.join(', ')}
+            </Badge>
+          )}
+          {liveDiagnostics.unmappedLOs.length === 0 &&
+            liveDiagnostics.orphanedLOs.length === 0 &&
+            liveDiagnostics.unreachablePOs.length === 0 &&
+            !liveDiagnostics.incompatibleVersion &&
+            liveDiagnostics.allCellErrors.length === 0 && (
+              <Badge variant="outline">Draft paths valid</Badge>
+            )}
+        </div>
+
+        {report && (
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-medium">Server pre-approval readiness:</span>
+              <Badge
+                variant={report.is_valid_for_approval ? 'outline' : 'secondary'}
+              >
+                {report.is_valid_for_approval
+                  ? 'Ready for approval'
+                  : 'Issues detected'}
+              </Badge>
+            </div>
+            {report.errors.length > 0 && (
+              <ul className="list-disc space-y-1 pl-5 text-sm" role="alert">
+                {report.errors.map((err) => (
+                  <li key={err}>{err}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </div>
     </section>
   );
 }
@@ -924,6 +1978,7 @@ export function SyllabusWorkspace({
           <SyllabusMappingStudio
             version={version}
             canDraft={canDraft}
+            programId={programId}
             onSaved={() => void queryClient.invalidateQueries({ queryKey: key })}
           />
         </>
