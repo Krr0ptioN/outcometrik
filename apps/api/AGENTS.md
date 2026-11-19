@@ -31,6 +31,25 @@ The repository root `AGENTS.md` and `docs/CODE_STYLE.md` still apply.
   or services. Add focused service tests for allowed and denied scopes, and API
   tests for HTTP behavior and serialization.
 
+## Controller action design (discrete HTTP handlers)
+
+- Follow the single-responsibility handler pattern (analogous to NestJS `@Get()`/`@Post()`
+  and Spring Boot `@GetMapping`/`@PostMapping`).
+- Do NOT combine multiple HTTP verbs into a single controller method with
+  `if request.method == ...` branching (e.g., avoid `@action(methods=["get", "post"]) def items(...)`).
+- Write separate, discrete methods for each HTTP method on custom actions, using
+  verb-prefixed method names:
+  - `list_<resource>` for `GET` collection sub-actions.
+  - `create_<resource>` for `POST` creation sub-actions.
+  - `update_<resource>` for `PATCH` or `PUT` update sub-actions.
+  - `delete_<resource>` for `DELETE` removal sub-actions.
+- Specify matching `url_path` and `url_name` on paired actions targeting the same
+  endpoint (e.g., `@action(detail=True, methods=["get"], url_path="items", url_name="items")`
+  and `@action(detail=True, methods=["post"], url_path="items", url_name="items")`).
+- Use `AcademicRouter` (from `academic.router`) in URL registrations. It automatically
+  merges discrete actions sharing the same `(url, detail)` into a unified route mapping
+  without route shadowing or 405 errors.
+
 ## Django conventions
 
 - Prefer explicit service classes and typed method inputs over module-level
