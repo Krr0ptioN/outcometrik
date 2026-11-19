@@ -1,10 +1,10 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
-from rest_framework import serializers, status
+from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.test import APIRequestFactory
 
-from .controllers.base import AcademicController, validate_payload
+from .decorators import validate_payload
 
 
 class ItemSerializer(serializers.Serializer):
@@ -13,7 +13,11 @@ class ItemSerializer(serializers.Serializer):
     tag = serializers.CharField(required=False, default="general")
 
 
-class DecoratedSampleController(AcademicController):
+class DecoratedSampleController(
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    viewsets.GenericViewSet,
+):
     permission_classes = []
     authentication_classes = []
 
@@ -96,6 +100,7 @@ def test_handle_exception_catches_django_validation_error():
     req = factory.get("/trigger_domain_error/")
     resp = view(req)
     assert resp.status_code == status.HTTP_400_BAD_REQUEST
+    assert resp["Cache-Control"] == "no-store"
     assert "Domain validation failed." in str(resp.data)
 
 
@@ -106,4 +111,5 @@ def test_handle_exception_catches_django_field_validation_error():
     req = factory.get("/trigger_field_domain_error/")
     resp = view(req)
     assert resp.status_code == status.HTTP_400_BAD_REQUEST
+    assert resp["Cache-Control"] == "no-store"
     assert "name" in resp.data

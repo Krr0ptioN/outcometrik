@@ -1,13 +1,16 @@
+import pytest
 from access.policy import AuthorizationService
 from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.test import RequestFactory
 from rest_framework.views import APIView
+from wireup.errors import UnknownServiceRequestedError
 from wireup.integration.django import get_app_container
 from wireup.ioc.container.async_container import async_container_force_sync_scope
 
 from academic.filters import AcademicExceptionFilter, academic_exception_handler
 from academic.interceptors import AppLogger, intercept_logging
+from academic.services import InstitutionService, WireupServiceProvider, academic_service_provider
 from config.config_service import ApiConfig
 
 
@@ -84,3 +87,16 @@ def test_exception_filter_mixin():
     resp = view.handle_exception(exc)
     assert resp.status_code == 400
     assert resp["Cache-Control"] == "no-store"
+
+
+def test_wireup_service_provider_delegates_to_container():
+    class UnregisteredDummyService:
+        pass
+
+    assert isinstance(academic_service_provider, WireupServiceProvider)
+    svc = academic_service_provider.provide(InstitutionService)
+    assert isinstance(svc, InstitutionService)
+    assert isinstance(svc.auth_service, AuthorizationService)
+
+    with pytest.raises(UnknownServiceRequestedError):
+        academic_service_provider.provide(UnregisteredDummyService)

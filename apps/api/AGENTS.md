@@ -3,108 +3,159 @@
 These conventions apply to API applications and modules beneath `apps/api/`.
 The repository root `AGENTS.md` and `docs/CODE_STYLE.md` still apply.
 
-## Academic API structure
+## Academic API structure & Wireup DI
 
-- Keep academic HTTP controllers in `academic/controllers/`, with a controller
-  module for each resource or closely related endpoint: institutions,
-  departments, programs, terms, courses, program courses, memberships,
-  offerings, instructor assignments, enrollments, and workspaces.
-- Keep academic domain services in `academic/services/`. Do not add new domain
-  logic to a monolithic `services.py` file.
-- Keep controllers thin. Controllers translate HTTP requests and responses,
-  invoke serializers, and delegate querying and mutations to injected services.
-  They must not decide authorization, scope visibility, lifecycle rules, or
-  domain invariants.
-- Services receive the acting user explicitly and own authorization, scoped
-  querysets, domain rules, transactions, and writes. Do not infer an actor from
-  global state or from serializer context inside a service.
-- Inject request-scoped service instances through the academic service provider
-  seam. Keep service classes replaceable in tests; do not construct services
-  directly in individual controller actions.
-- Serializers validate and represent the API contract. Put cross-field domain
-  rules, immutable-identity rules, authorization, and state transitions in
-  services or domain policy modules.
-- Keep selectors/queryset scoping reusable and deny-by-default. Controllers
-  must obtain records through service-scoped querysets before retrieving or
-  mutating individual objects.
-- Preserve existing routes and wire contracts when restructuring controllers
-  or services. Add focused service tests for allowed and denied scopes, and API
-  tests for HTTP behavior and serialization.
+- Keep academic HTTP controllers in `academic/controllers/`, organized by domain resource:
+  `institutions`, `departments`, `terms`, `courses`, `programs`, `program_courses`,
+  `program_memberships`, `offerings`, `instructor_assignments`, `enrollments`,
+  `outcomes` (`po_sets`), `syllabi`, `assessments`, `grades`, and `workspaces`.
+- Keep pure `@injectable` domain services in `academic/services/` (`structure`, `programs`,
+  `offerings`, `enrollments`, `outcomes`, `syllabi`, `assessments`, `grades`, `workspaces`).
+  Do not add new domain logic to a monolithic `services.py` file.
+- Register every module containing `@injectable` providers or domain services in
+  `WIREUP.injectables` inside `apps/api/config/settings.py` (with `auto_inject_views=False`
+  and `wireup.integration.django.wireup_middleware` enabled in `MIDDLEWARE`).
+- **Composition over inheritance**: do not introduce monolithic controller or service base
+  classes (legacy `AcademicController` and `AcademicService` were removed in DC-01.10).
+  Controllers compose DRF mixins (`mixins.CreateModelMixin`, `mixins.ListModelMixin`,
+  `mixins.RetrieveModelMixin`, `mixins.UpdateModelMixin`, `viewsets.GenericViewSet`, or
+  `APIView`) and shared `AcademicPagination` from `academic/controllers/base.py`.
+- **Explicit constructor injection (`di-prefer-constructor-injection`)**:
+  - Services declare collaborators (for example, `auth_service: AuthorizationService`) in
+    their `__init__` constructor and accept an optional `actor: Any = None` keyword argument.
+  - Controllers accept optional injected service instances in
+    `__init__(self, service: MyService | None = None, **kwargs)` and resolve default
+    instances via `academic_service_provider.provide(MyService)` (`WireupServiceProvider` in
+    `academic/services/provider.py`), which delegates directly to Wireup's
+    `get_app_container()`.
+  - Keep controllers and services unit-testable by passing mock or stub collaborators directly
+    into `__init__` constructors.
+- **Prohibit runtime service locators (`di-avoid-service-locator`)**: never resolve services
+  dynamically inside action methods or service methods (legacy `get_service(...)` lookups are
+  removed). Declare all collaborators up front in `__init__` so Wireup validates the
+  dependency graph at container boot time.
+- **Keep controllers thin**: controllers translate HTTP requests and responses, apply guards
+  and payload validation decorators, invoke serializers, and delegate queries and mutations to
+  injected services. Controllers must not implement lifecycle rules or domain invariants.
+- Serializers validate and represent the wire contract. Put cross-field domain rules,
+  immutable-identity rules, and state transitions in domain services or validator classes.
+- Preserve existing routes and wire contracts when restructuring controllers or services. Add
+  focused DI/service tests (`test_*_di.py`) for container resolution, allowed/denied scopes,
+  and HTTP contracts.
 
-## Controller action design (discrete HTTP handlers)
+## Authorization guards & scoping (`security-use-guards`)
 
-- Follow the single-responsibility handler pattern (analogous to NestJS `@Get()`/`@Post()`
-  and Spring Boot `@GetMapping`/`@PostMapping`).
-- Do NOT combine multiple HTTP verbs into a single controller method with
-  `if request.method == ...` branching (e.g., avoid `@action(methods=["get", "post"]) def items(...)`).
-- Write separate, discrete methods for each HTTP method on custom actions, using
-  verb-prefixed method names:
-  - `list_<resource>` for `GET` collection sub-actions.
-  - `create_<resource>` for `POST` creation sub-actions.
-  - `update_<resource>` for `PATCH` or `PUT` update sub-actions.
-  - `delete_<resource>` for `DELETE` removal sub-actions.
-- Specify matching `url_path` and `url_name` on paired actions targeting the same
-  endpoint (e.g., `@action(detail=True, methods=["get"], url_path="items", url_name="items")`
-  and `@action(detail=True, methods=["post"], url_path="items", url_name="items")`).
-- Use `AcademicRouter` (from `academic.router`) in URL registrations. It automatically
-  merges discrete actions sharing the same `(url, detail)` into a unified route mapping
-  without route shadowing or 405 errors.
-- Use the `@validate_payload(SerializerClass)` interceptor decorator (analogous to NestJS
-  `@Body(ValidationPipe)`). It instantiates, context-binds, and validates the serializer before
-  the handler executes, injecting validated data as `payload` into the method kwargs.
-  For partial updates (e.g. PATCH), pass `partial=True`. When merging URL parameters into the
-  validated payload, pass `merge_data=lambda self, request, pk=None: {"parent": str(self.get_object().pk)}`.
-- Do NOT write boilerplate `try: ... except DjangoValidationError: ...` blocks in controllers.
-  `AcademicController.handle_exception` intercepts `DjangoValidationError` globally (analogous to a
-  NestJS `ExceptionFilter`) and transforms it into a standard DRF 400 `ValidationError` response.
+- Enforce RBAC/ABAC capability validation declaratively at the controller boundary using
+  `@require_permission` or `@guard` (alias exported from `academic.decorators` and
+  `academic.guards`) before action handlers execute:
+  - Use `scope_field` for declarative dot-separated lookup on the payload or target instance
+    (for example, `@require_permission("program.manage", scope_field="department.institution")`,
+    `@require_permission("syllabus.draft", scope_field="offering")`,
+    `@require_permission("access.manage", scope_field="name")`).
+  - Use `scope_param` when the scope UUID comes from a URL kwarg or payload field, or
+    `scope_getter` when custom resolution is required.
+  - Detail actions (`pk` in kwargs) without an explicit `scope_getter` or `scope_param`
+    resolve the stored object via `self.get_object()` and extract `scope_field` (or `pk`).
+- **Zero mutation authorization checks inside domain services**: domain services must not
+  call `_check_access` or perform controller-boundary capability checks inside `create`/`update`
+  mutations. Services own:
+  - Actor-scoped, deny-by-default read querysets (`get_queryset(actor=...)` and
+    `visible_queryset(...)` backed by `academic/scoping.py`),
+  - Domain invariants, row locking (`select_for_update`), transactions, and persistence.
+- Pass the acting user (`actor`) explicitly to service queries and actor-attributed operations
+  (for example, `approve`, `activate`, `correct`, `release`). Do not infer an actor from
+  global state or serializer context inside a service.
+- Controllers must retrieve records through service-scoped querysets (`get_queryset`) before
+  mutating individual objects so out-of-scope detail lookups return `404`.
+
+## Decorator-driven routing & payload validation
+
+- Register controllers and HTTP routes using NestJS-style decorators exported from
+  `academic.decorators` (implemented in `academic/router.py` and `academic/decorators.py`):
+  - Class decorator: `@controller("<prefix>", basename="<name>")`.
+  - Method decorators: `@get(...)`, `@post(...)`, `@put(...)`, `@patch(...)`, `@delete(...)`
+    (wrapping `@route(...)`).
+    - Root collection routes: `@get()`, `@post()`
+    - Detail routes: `@get("{id}")`, `@patch("{id}")`, `@delete("{id}")`
+    - Sub-resource routes: `@get("{id}/enrollments")`, `@post("{id}/approve")`,
+      `@patch(r"{id}/learning-outcomes/(?P<child_pk>[^/.]+)", url_name="learning-outcome-detail")`
+- Use `AcademicRouter` (`academic_router` in `academic/router.py`) with auto-discovery in
+  `academic/urls.py` (`import academic.controllers`). `AcademicRouter` maps root/detail
+  decorator overrides and merges discrete actions sharing `(url, detail)` into a unified
+  route mapping without route shadowing or `405` errors.
+- Follow the single-responsibility handler pattern: write discrete methods for each HTTP verb
+  (`list_<resource>`, `create_<resource>`, `update_<resource>`, `delete_<resource>`). Do NOT
+  combine multiple HTTP verbs into a single handler with `if request.method == ...` branching.
+- Use `@validate_payload(SerializerClass)` (aliases `@validate_dto`, `@body`) before handler
+  execution. It context-binds and validates the serializer, injecting `payload=serializer.validated_data`
+  (and `serializer=serializer` when requested) into handler kwargs. For partial updates pass
+  `partial=True` (automatically enabled on `PATCH`); to inject URL params into the payload
+  before validation, pass
+  `merge_data=lambda self, request, pk=None: {"offering": str(self.get_object().pk)}`.
+
+## Cross-cutting providers, interceptors, and exception filter
+
+- **Configuration (`devops-use-config-module`)**: inject `@injectable class ApiConfig` from
+  `config/config_service.py` rather than scattering raw `django.conf.settings` lookups inside
+  services or components.
+- **Structured logging & execution timing**: inject `@injectable class AppLogger` and apply
+  `@intercept_logging` from `academic/interceptors.py` for structured action timing and audit
+  logging.
+- **Global exception filter**: `academic_exception_handler` (`academic/filters.py`) is
+  configured as `REST_FRAMEWORK["EXCEPTION_HANDLER"]` in `apps/api/config/settings.py`
+  (with `AcademicExceptionFilter` available as a mixin for standalone views). It globally
+  intercepts `django.core.exceptions.ValidationError` (`400`) and
+  `django.core.exceptions.PermissionDenied` (`403`) and sets `Cache-Control: no-store`.
+  Do NOT write boilerplate `try: ... except DjangoValidationError: ...` blocks in controllers.
+  All controllers also ensure `Cache-Control: no-store` in `finalize_response`.
 
 ## Domain validator design (business invariant enforcement)
 
-- Follow the class-based domain validator pattern (e.g., `GradeValidator`, `ProgramOutcomeSetValidator`,
-  `SyllabusValidator`).
+- Follow the class-based domain validator pattern (e.g., `GradeValidator`,
+  `ProgramOutcomeSetValidator`, `SyllabusValidator`).
 - Encapsulate domain invariant rules, lifecycle prerequisites, sibling uniqueness constraints,
   and editability checks into dedicated validator classes in `<domain>_validation.py`.
 - Structure validator classes with descriptive static methods:
-  - `validate_<lifecycle_action>` (e.g., `validate_activation`, `validate_approval`, `validate_revision`)
-  - `validate_<invariant>` (e.g., `validate_editable`, `validate_assessment_points`, `validate_mutation`,
-    `validate_set_update`)
+  - `validate_<lifecycle_action>` (e.g., `validate_activation`, `validate_approval`,
+    `validate_revision`)
+  - `validate_<invariant>` (e.g., `validate_editable`, `validate_assessment_points`,
+    `validate_mutation`, `validate_set_update`)
 - Keep domain validation pure and isolated from database transaction locking (`select_for_update`)
   and write operations. Services own row locks, transactions, and mutations, passing models or
   pre-queried related state to validators.
 - Validators must raise `django.core.exceptions.ValidationError` with specific, user-actionable
   error messages (or field error dictionaries for field-specific invariants).
-- Export domain validator classes in `academic.services.__init__.py` alongside services so they can
-  be tested in isolation and reused across commands or batch pipelines.
-- Avoid loose module-level business or validation helper functions. Callers (controllers, commands,
-  and tests) must directly invoke the domain service class (e.g. `ProgramOutcomeSetService.activate`)
-  or the domain validator class (e.g. `ProgramOutcomeSetValidator.validate_activation`).
+- Export domain validator classes in `academic/services/__init__.py` alongside services so they
+  can be tested in isolation and reused across commands or batch pipelines.
+- Avoid loose module-level business or validation helper functions. Callers (controllers,
+  commands, and tests) must directly invoke the domain service class or domain validator class.
 
 ## Django conventions
 
-- Prefer explicit service classes and typed method inputs over module-level
+- Prefer explicit `@injectable` service classes and typed method inputs over module-level
   business functions.
-- Keep each transaction around the complete domain operation, including its
-  audit events and related assignments.
-- Use the access module's authorization and assignment services; do not write
-  role or capability records directly from academic controllers.
-- Do not add destructive delete endpoints for academic history. Use the
-  existing lifecycle or archival rules.
-- Run API tests, Ruff lint and formatting checks, Django system checks, and
-  migration checks for backend changes. Report any environment-blocked checks.
+- Keep each transaction (`@transaction.atomic`) around the complete domain operation, including
+  its audit events, `RevisionTracker.bump(...)`, and related assignments.
+- Use the `access` module's authorization and assignment services (`access.services.assign`,
+  `access.services.revoke`, `AuthorizationService`); do not write role or capability records
+  directly from academic controllers.
+- Do not add destructive delete endpoints for academic history. Use the existing lifecycle or
+  archival rules.
+- Run API tests, Ruff lint and formatting checks, Django system checks, and migration checks
+  for backend changes. Report any checks blocked by the environment.
 
-## Subtask git workflow & dependency injection conventions
+## Subtask git / worktree & linear squash-merge workflow
 
-- **Linear Subtask Merging**:
-  - Always branch subtasks directly from an up-to-date `main` branch.
-  - Never branch from an unmerged subtask branch.
-  - Open an independent PR for each subtask with `Closes #<subtask-issue-id>` and `Ref: #<parent-issue-id>`.
-  - Ensure all CI workflows and PR validation checks pass.
-  - Wait until the PR is squash-merged into `main` before starting the next subtask.
-- **Dependency Injection & Inversion of Control**:
-  - Favor composition over inheritance: do not introduce monolithic controller or service base classes.
-  - Declare dependencies explicitly in `__init__` constructor (`di-prefer-constructor-injection`).
-  - Prohibit dynamic service locator calls (`self.get_service(...)`) inside action methods (`di-avoid-service-locator`).
-  - Use `@guard` / `@require_permission` decorators at the controller boundary for RBAC/ABAC authorization before handlers execute.
-  - Injected configuration must use `@injectable class ApiConfig` (`devops-use-config-module`).
-  - Use `@injectable class AppLogger` and `@intercept_logging` for structured execution timing.
-
+- **Dedicated branch per subtask**: branch directly from an up-to-date `main` branch (e.g.
+  `feat/<issue-slug>`). Never branch from an unmerged feature branch.
+- **Isolated worktrees**: when executing subtasks in parallel or via a dedicated `git worktree`,
+  use an isolated PostgreSQL database (`POSTGRES_DB=outcometrik_<slug>`) and never modify
+  sibling worktrees. Do not run `git checkout main` or `gh pr merge --delete-branch` inside
+  a linked worktree; delete only the remote branch after squash-merge.
+- **Linear squash-merge**:
+  - Rebase onto latest `origin/main` (`git fetch origin main && git rebase origin/main`) and
+    re-verify checks before pushing.
+  - Open an independent PR targeting `main` with a conventional PR title, valid branch name,
+    non-empty body, `Closes #<subtask-issue-id>`, and `Ref: #<parent-issue-id>`.
+  - Wait until all CI workflows (`PR Validation`, `lint`, `test`, `build`, `e2e`) pass and the
+    PR is squash-merged into `main` before starting the next subtask.
