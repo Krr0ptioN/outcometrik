@@ -97,21 +97,20 @@ def require_permission(
                     payload = getattr(request, "data", getattr(request, "POST", {}))
                     if isinstance(payload, dict) and scope_param in payload:
                         scope_id = payload[scope_param]
-            elif scope_field is not None:
-                if "pk" in kwargs:
-                    instance = None
-                    model_cls = getattr(getattr(self, "service", None), "model", None)
-                    if model_cls is not None:
-                        instance = model_cls.objects.filter(pk=kwargs["pk"]).first()
-                    if instance is None and hasattr(self, "get_object"):
-                        instance = self.get_object()
-                    scope_id = _extract_field_path(instance, scope_field)
-                else:
-                    payload = getattr(request, "data", getattr(request, "POST", {}))
-                    if isinstance(payload, dict):
-                        scope_id = _resolve_scope_from_data(self, payload, scope_field)
             elif "pk" in kwargs:
-                scope_id = kwargs["pk"]
+                if hasattr(self, "get_object"):
+                    instance = self.get_object()
+                    scope_id = (
+                        _extract_field_path(instance, scope_field)
+                        if scope_field
+                        else getattr(instance, "pk", kwargs["pk"])
+                    )
+                else:
+                    scope_id = kwargs["pk"]
+            elif scope_field is not None:
+                payload = getattr(request, "data", getattr(request, "POST", {}))
+                if isinstance(payload, dict):
+                    scope_id = _resolve_scope_from_data(self, payload, scope_field)
 
             if scope_id is None:
                 raise PermissionDenied("This action is not permitted in this scope.")
