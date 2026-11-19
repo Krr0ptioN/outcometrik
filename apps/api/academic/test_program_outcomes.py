@@ -16,7 +16,6 @@ from academic.models import (
     ProgramOutcomeSet,
 )
 from academic.services import ProgramOutcomeService, ProgramOutcomeSetService
-from academic.services.outcomes import activate_set
 
 pytestmark = pytest.mark.django_db
 User = get_user_model()
@@ -56,7 +55,9 @@ def make_draft(world, count=11):
 
 def test_create_draft_assigns_incrementing_version(world):
     first = make_draft(world)
-    activate_set(first, world["admin"], EFFECTIVE)
+    ProgramOutcomeSetService(actor=world["admin"]).activate(
+        instance=first, effective_date=EFFECTIVE
+    )
     second = ProgramOutcomeSetService(actor=world["admin"]).create(
         program=world["program"], source_reference="docs/ref"
     )
@@ -91,31 +92,41 @@ def test_activation_rejects_missing_description(world):
     outcome_set = make_draft(world, count=3)
     ProgramOutcome.objects.filter(outcome_set=outcome_set, code="PO2").update(description=" ")
     with pytest.raises(ValidationError):
-        activate_set(outcome_set, world["admin"], EFFECTIVE)
+        ProgramOutcomeSetService(actor=world["admin"]).activate(
+            instance=outcome_set, effective_date=EFFECTIVE
+        )
 
 
 def test_activation_rejects_missing_source_url_and_reference(world):
     outcome_set = make_draft(world, count=2)
     ProgramOutcome.objects.filter(outcome_set=outcome_set, code="PO1").update(source_url="")
     with pytest.raises(ValidationError):
-        activate_set(outcome_set, world["admin"], EFFECTIVE)
+        ProgramOutcomeSetService(actor=world["admin"]).activate(
+            instance=outcome_set, effective_date=EFFECTIVE
+        )
     ProgramOutcome.objects.filter(outcome_set=outcome_set, code="PO1").update(source_url="x")
     ProgramOutcomeSet.objects.filter(pk=outcome_set.pk).update(source_reference="")
     with pytest.raises(ValidationError):
-        activate_set(ProgramOutcomeSet.objects.get(pk=outcome_set.pk), world["admin"], EFFECTIVE)
+        ProgramOutcomeSetService(actor=world["admin"]).activate(
+            instance=ProgramOutcomeSet.objects.get(pk=outcome_set.pk), effective_date=EFFECTIVE
+        )
 
 
 def test_activation_rejects_ordering_gap(world):
     outcome_set = make_draft(world, count=3)
     ProgramOutcome.objects.filter(outcome_set=outcome_set, code="PO3").update(ordering=5)
     with pytest.raises(ValidationError):
-        activate_set(outcome_set, world["admin"], EFFECTIVE)
+        ProgramOutcomeSetService(actor=world["admin"]).activate(
+            instance=outcome_set, effective_date=EFFECTIVE
+        )
 
 
 def test_activation_requires_effective_date(world):
     outcome_set = make_draft(world)
     with pytest.raises(ValidationError):
-        activate_set(outcome_set, world["admin"], None)
+        ProgramOutcomeSetService(actor=world["admin"]).activate(
+            instance=outcome_set, effective_date=None
+        )
 
 
 def test_activation_records_actor_and_time(world):
@@ -132,7 +143,9 @@ def test_activation_records_actor_and_time(world):
 
 def test_active_set_is_immutable(world):
     outcome_set = make_draft(world)
-    activate_set(outcome_set, world["admin"], EFFECTIVE)
+    ProgramOutcomeSetService(actor=world["admin"]).activate(
+        instance=outcome_set, effective_date=EFFECTIVE
+    )
     outcome_set.refresh_from_db()
 
     outcome_set.source_reference = "changed"
@@ -165,10 +178,14 @@ def test_active_set_is_immutable(world):
 
 def test_new_version_leaves_old_unchanged(world):
     first = make_draft(world)
-    activate_set(first, world["admin"], EFFECTIVE)
+    ProgramOutcomeSetService(actor=world["admin"]).activate(
+        instance=first, effective_date=EFFECTIVE
+    )
     second = make_draft(world)
     ProgramOutcome.objects.filter(outcome_set=second, code="PO1").update(label="Reworded")
-    activate_set(second, world["admin"], dt.date(2027, 9, 1))
+    ProgramOutcomeSetService(actor=world["admin"]).activate(
+        instance=second, effective_date=dt.date(2027, 9, 1)
+    )
 
     first.refresh_from_db()
     assert first.outcomes.get(code="PO1").label == "Label 1"
@@ -178,10 +195,14 @@ def test_new_version_leaves_old_unchanged(world):
 
 def test_new_active_set_must_start_after_current(world):
     first = make_draft(world)
-    activate_set(first, world["admin"], EFFECTIVE)
+    ProgramOutcomeSetService(actor=world["admin"]).activate(
+        instance=first, effective_date=EFFECTIVE
+    )
     second = make_draft(world)
     with pytest.raises(ValidationError):
-        activate_set(second, world["admin"], EFFECTIVE)
+        ProgramOutcomeSetService(actor=world["admin"]).activate(
+            instance=second, effective_date=EFFECTIVE
+        )
 
 
 def test_denied_scope_for_user_without_capability(world):

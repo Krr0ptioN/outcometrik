@@ -75,9 +75,9 @@ The repository root `AGENTS.md` and `docs/CODE_STYLE.md` still apply.
   error messages (or field error dictionaries for field-specific invariants).
 - Export domain validator classes in `academic.services.__init__.py` alongside services so they can
   be tested in isolation and reused across commands or batch pipelines.
-- When migrating legacy module-level validation functions, keep a backward-compatible alias in the
-  original module pointing to the validator class method (e.g.,
-  `validate_activation = ProgramOutcomeSetValidator.validate_activation`).
+- Avoid loose module-level business or validation helper functions. Callers (controllers, commands,
+  and tests) must directly invoke the domain service class (e.g. `ProgramOutcomeSetService.activate`)
+  or the domain validator class (e.g. `ProgramOutcomeSetValidator.validate_activation`).
 
 ## Django conventions
 

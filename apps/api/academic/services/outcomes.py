@@ -7,9 +7,6 @@ from ..models import Program, ProgramOutcome, ProgramOutcomeSet
 from .base import AcademicService
 from .outcome_validation import ProgramOutcomeSetValidator
 
-# Backwards-compatible alias
-validate_activation = ProgramOutcomeSetValidator.validate_activation
-
 
 def _scoped_programs(actor):
     return scoping.scope_programs(actor, Program.objects.all())
@@ -55,13 +52,6 @@ class ProgramOutcomeSetService(AcademicService):
         locked.activated_by = self.actor
         locked.save()
         return locked
-
-
-def activate_set(outcome_set, actor, effective_date=None, authorize=False):
-    """Backwards-compatible convenience wrapper delegating to ProgramOutcomeSetService.activate."""
-    return ProgramOutcomeSetService(actor=actor).activate(
-        instance=outcome_set, effective_date=effective_date, authorize=authorize
-    )
 
 
 class ProgramOutcomeService(AcademicService):

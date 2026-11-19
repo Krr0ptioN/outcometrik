@@ -7,7 +7,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from academic.models import Program, ProgramOutcome, ProgramOutcomeSet
-from academic.services.outcomes import activate_set
+from academic.services import ProgramOutcomeSetService
 
 DEFAULT_FILE = Path(__file__).resolve().parents[2] / "seed_data" / "program_outcomes.json"
 EXPECTED_CODES = [f"PO{i}" for i in range(1, 12)]
@@ -60,5 +60,9 @@ class Command(BaseCommand):
                 source_url=outcome["source_url"],
                 ordering=index,
             )
-        activate_set(outcome_set, actor, date.fromisoformat(opts["effective_date"]))
+        ProgramOutcomeSetService(actor=actor).activate(
+            instance=outcome_set,
+            effective_date=date.fromisoformat(opts["effective_date"]),
+            authorize=False,
+        )
         self.stdout.write(f"Seeded and activated PO set v1 for {program.code}.")
