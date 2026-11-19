@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal
 
 from access.models import AppendOnlyQuerySet
 from django.conf import settings
@@ -873,3 +874,134 @@ class LOPOMapping(DraftOnlyModel):
 
     def __str__(self) -> str:
         return f"{self.syllabus_id}:{self.learning_outcome_id}->{self.program_outcome_id}={self.weight}"
+
+
+class CalculationRun(TimestampedModel):
+    """Frozen input manifest and execution record for an offering or program calculation."""
+
+    class ScopeKind(models.TextChoices):
+        OFFERING = "offering", "Offering"
+        PROGRAM = "program", "Program"
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        COMPLETED = "completed", "Completed"
+        FAILED = "failed", "Failed"
+
+    scope_kind = models.CharField(max_length=16, choices=ScopeKind.choices)
+    program = models.ForeignKey(Program, on_delete=models.PROTECT, related_name="calculation_runs")
+    offering = models.ForeignKey(
+        CourseOffering,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="calculation_runs",
+    )
+    po_set_version = models.PositiveIntegerField()
+    engine_version = models.CharField(max_length=32)
+    policy_version = models.CharField(max_length=64)
+    input_hash = models.CharField(max_length=64)
+    manifest = models.JSONField()
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
+    is_complete_for_publication = models.BooleanField(default=False)
+    error_detail = models.TextField(blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+    )
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["program", "offering", "input_hash", "engine_version", "policy_version"],
+                condition=models.Q(status="completed", scope_kind="offering"),
+                name="uniq_completed_offering_calc_run",
+            ),
+            models.UniqueConstraint(
+                fields=["program", "input_hash", "engine_version", "policy_version"],
+                condition=models.Q(status="completed", scope_kind="program"),
+                name="uniq_completed_program_calc_run",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(scope_kind="offering", offering__isnull=False)
+                    | models.Q(scope_kind="program", offering__isnull=True)
+                ),
+                name="calc_run_scope_matches_offering",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=["program", "scope_kind", "status"], name="calc_run_prog_scope_idx"
+            ),
+            models.Index(fields=["offering", "status"], name="calc_run_offering_status_idx"),
+        ]
+
+    def __str__(self) -> str:
+        target = self.offering_id if self.scope_kind == self.ScopeKind.OFFERING else self.program_id
+        return f"{self.scope_kind}:{target}:{self.status}:{self.input_hash[:8]}"
+
+
+class OutcomeScore(TimestampedModel):
+    """Explainable attainment score produced by a completed CalculationRun."""
+
+    class Level(models.TextChoices):
+        LO = "lo", "Learning Outcome"
+        COURSE_PO = "course_po", "Course Program Outcome"
+        CUMULATIVE_PO = "cumulative_po", "Cumulative Program Outcome"
+
+    class Status(models.TextChoices):
+        OK = "OK", "OK"
+        INCOMPLETE = "INCOMPLETE", "Incomplete"
+        UNMAPPED = "UNMAPPED", "Unmapped"
+        NOT_ASSESSED = "NOT_ASSESSED", "Not Assessed"
+        ALL_EXEMPT = "ALL_EXEMPT", "All Exempt"
+
+    run = models.ForeignKey(CalculationRun, on_delete=models.PROTECT, related_name="scores")
+    level = models.CharField(max_length=16, choices=Level.choices)
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="outcome_scores"
+    )
+    offering = models.ForeignKey(
+        CourseOffering,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="outcome_scores",
+    )
+    learning_outcome = models.ForeignKey(
+        LearningOutcome,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="outcome_scores",
+    )
+    program_outcome = models.ForeignKey(
+        ProgramOutcome,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="outcome_scores",
+    )
+    outcome_code = models.CharField(max_length=32)
+    value = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
+    numerator = models.DecimalField(max_digits=18, decimal_places=6, null=True, blank=True)
+    denominator = models.DecimalField(max_digits=18, decimal_places=6, null=True, blank=True)
+    coverage = models.DecimalField(max_digits=7, decimal_places=4, default=Decimal(0))
+    status = models.CharField(max_length=16, choices=Status.choices)
+    evidence = models.JSONField(default=dict)
+
+    class Meta:
+        ordering = ["level", "student_id", "outcome_code", "id"]
+        indexes = [
+            models.Index(fields=["run", "level", "student"], name="outcome_score_run_lvl_stu_idx"),
+            models.Index(fields=["run", "outcome_code"], name="outcome_score_run_code_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.run_id}:{self.level}:{self.student_id}:{self.outcome_code}={self.status}"

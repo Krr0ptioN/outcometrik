@@ -20,5 +20,7 @@ for model in (
     models.Assessment,
     models.ProgramOutcomeSet,
     models.ProgramOutcome,
+    models.CalculationRun,
+    models.OutcomeScore,
 ):
     admin.site.register(model)

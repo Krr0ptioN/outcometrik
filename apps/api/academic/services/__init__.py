@@ -1,4 +1,5 @@
 from .assessments import AssessmentService
+from .calculations import CALC_POLICY_VERSION, ENGINE_VERSION, CalculationService
 from .enrollments import EnrollmentService
 from .grade_import import GradeImportConflict, GradeImportService
 from .grade_validation import GradeValidator
@@ -14,8 +15,11 @@ from .syllabus_validation import SyllabusMappingVersionConflict, SyllabusValidat
 from .workspaces import WorkspaceService
 
 __all__ = [
+    "CALC_POLICY_VERSION",
+    "ENGINE_VERSION",
     "AcademicTermService",
     "AssessmentService",
+    "CalculationService",
     "CourseOfferingService",
     "CourseService",
     "DepartmentService",

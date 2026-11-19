@@ -5,6 +5,7 @@ from .models import (
     AcademicTerm,
     Assessment,
     AssessmentLOMapping,
+    CalculationRun,
     Course,
     CourseOffering,
     CoursePOContribution,
@@ -18,6 +19,7 @@ from .models import (
     InstructorAssignment,
     LearningOutcome,
     LOPOMapping,
+    OutcomeScore,
     Program,
     ProgramCourse,
     ProgramMembership,
@@ -606,3 +608,65 @@ class GradeImportApplySerializer(serializers.Serializer):
         if not cleaned:
             raise serializers.ValidationError("This field may not be blank.")
         return cleaned
+
+
+class CalculationRunSerializer(AcademicSerializer):
+    class Meta:
+        model = CalculationRun
+        fields = [
+            "id",
+            "scope_kind",
+            "program",
+            "offering",
+            "po_set_version",
+            "engine_version",
+            "policy_version",
+            "input_hash",
+            "manifest",
+            "status",
+            "is_complete_for_publication",
+            "error_detail",
+            "created_by",
+            "completed_at",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+
+class OutcomeScoreSerializer(AcademicSerializer):
+    display_value = serializers.SerializerMethodField()
+
+    class Meta:
+        model = OutcomeScore
+        fields = [
+            "id",
+            "run",
+            "level",
+            "student",
+            "offering",
+            "learning_outcome",
+            "program_outcome",
+            "outcome_code",
+            "value",
+            "display_value",
+            "numerator",
+            "denominator",
+            "coverage",
+            "status",
+            "evidence",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+    def get_display_value(self, obj: OutcomeScore) -> str | None:
+        return (obj.evidence or {}).get("display_value")
+
+
+class OfferingCalculationRunCreateSerializer(serializers.Serializer):
+    offering = serializers.PrimaryKeyRelatedField(queryset=CourseOffering.objects.all())
+
+
+class ProgramCalculationRunCreateSerializer(serializers.Serializer):
+    program = serializers.PrimaryKeyRelatedField(queryset=Program.objects.all())

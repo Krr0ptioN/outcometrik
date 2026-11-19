@@ -128,3 +128,41 @@ def scope_courses(user, qs):
         | Q(program_courses__program__in=programs)
         | Q(home_department__institution_id__in=admin_institutions)
     ).distinct()
+
+
+CALCULATION_PROGRAM_CAPABILITIES = (
+    "outcomes.view",
+    "program.manage",
+)
+
+CALCULATION_OFFERING_CAPABILITIES = (
+    "grades.view",
+    "grades.edit",
+    "grades.release",
+    "offering.manage",
+    "outcomes.view",
+)
+
+
+def scope_calculation_runs(user, qs):
+    """Calculation runs are visible only to authorized staff; never exposed to students."""
+    from .models import CalculationRun
+
+    if user is None or not getattr(user, "is_authenticated", False):
+        return qs.none()
+
+    program_ids = set()
+    for capability in CALCULATION_PROGRAM_CAPABILITIES:
+        program_ids.update(_program_ids(user, capability))
+
+    offering_ids = set()
+    for capability in CALCULATION_OFFERING_CAPABILITIES:
+        offering_ids.update(_offering_ids(user, capability))
+
+    if not program_ids and not offering_ids:
+        return qs.none()
+
+    return qs.filter(
+        Q(program_id__in=program_ids)
+        | Q(scope_kind=CalculationRun.ScopeKind.OFFERING, offering_id__in=offering_ids)
+    ).distinct()
