@@ -1,7 +1,7 @@
 from rest_framework import mixins, viewsets
 from rest_framework.permissions import IsAuthenticated
 
-from ..decorators import controller, require_permission
+from ..decorators import controller, get, patch, post, require_permission
 from ..serializers import CourseSerializer
 from ..services import CourseService, academic_service_provider
 from .base import AcademicPagination
@@ -28,6 +28,15 @@ class CourseController(
     def get_queryset(self):
         return self.service.get_queryset(actor=self.request.user)
 
+    @get()
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @get("{id}")
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+    @post()
     @require_permission("access.manage", scope_field="home_department.institution")
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
@@ -36,6 +45,7 @@ class CourseController(
     def update(self, request, *args, **kwargs):
         return super().update(request, *args, **kwargs)
 
+    @patch("{id}")
     @require_permission("access.manage", scope_field="home_department.institution")
     def partial_update(self, request, *args, **kwargs):
         return super().partial_update(request, *args, **kwargs)

@@ -199,6 +199,73 @@ def test_http_verb_decorators():
     )
 
 
+def test_explicit_crud_route_decorators():
+    from .decorators import controller, delete, get, patch, post
+
+    custom_router = AcademicRouter()
+
+    @controller("explicit-crud", basename="explicit-item", router=custom_router)
+    class ExplicitCrudViewSet(ViewSet):
+        permission_classes = []
+        authentication_classes = []
+
+        @get()
+        def list(self, request):
+            return Response({"action": "list"})
+
+        @post()
+        def create(self, request):
+            return Response({"action": "create"}, status=status.HTTP_201_CREATED)
+
+        @get("{id}")
+        def retrieve(self, request, pk=None):
+            return Response({"action": "retrieve", "pk": pk})
+
+        @patch("{id}")
+        def update(self, request, pk=None):
+            return Response({"action": "update", "pk": pk})
+
+        @delete("{id}")
+        def destroy(self, request, pk=None):
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        @get("{id}/stats")
+        def stats(self, request, pk=None):
+            return Response({"action": "stats", "pk": pk})
+
+    urls = custom_router.urls
+    patterns = {str(u.pattern): u.callback for u in urls}
+    factory = APIRequestFactory()
+
+    assert "^explicit-crud/$" in patterns
+    assert "^explicit-crud/(?P<pk>[^/.]+)/$" in patterns
+    assert "^explicit-crud/(?P<pk>[^/.]+)/stats/$" in patterns
+
+    list_cb = patterns["^explicit-crud/$"]
+    assert list_cb(factory.get("/explicit-crud/")).data == {"action": "list"}
+    assert list_cb(factory.post("/explicit-crud/")).status_code == status.HTTP_201_CREATED
+
+    detail_cb = patterns["^explicit-crud/(?P<pk>[^/.]+)/$"]
+    assert detail_cb(factory.get("/explicit-crud/42/"), pk="42").data == {
+        "action": "retrieve",
+        "pk": "42",
+    }
+    assert detail_cb(factory.patch("/explicit-crud/42/"), pk="42").data == {
+        "action": "update",
+        "pk": "42",
+    }
+    assert (
+        detail_cb(factory.delete("/explicit-crud/42/"), pk="42").status_code
+        == status.HTTP_204_NO_CONTENT
+    )
+
+    stats_cb = patterns["^explicit-crud/(?P<pk>[^/.]+)/stats/$"]
+    assert stats_cb(factory.get("/explicit-crud/42/stats/"), pk="42").data == {
+        "action": "stats",
+        "pk": "42",
+    }
+
+
 def test_academic_router_contains_all_decorated_controllers():
     import academic.controllers  # noqa: F401
     from academic.router import academic_router

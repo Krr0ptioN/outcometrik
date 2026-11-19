@@ -59,6 +59,7 @@ WIREUP = WireupSettings(
         "academic.interceptors",
         "access.policy",
         "academic.services.structure",
+        "academic.services.programs",
     ],
     auto_inject_views=False,
 )

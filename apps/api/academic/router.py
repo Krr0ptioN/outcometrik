@@ -59,10 +59,51 @@ class AcademicRouter(SimpleRouter):
 
     def get_routes(self, viewset):
         routes = super().get_routes(viewset)
+
+        # Inspect viewset methods for explicit route decorators targeting root or detail
+        root_overrides: dict[str, str] = {}
+        detail_overrides: dict[str, str] = {}
+        for attr_name in dir(viewset):
+            attr = getattr(viewset, attr_name, None)
+            if hasattr(attr, "_http_route"):
+                meta = attr._http_route
+                if not meta["path"]:
+                    if meta["detail"]:
+                        detail_overrides[meta["method"]] = attr_name
+                    else:
+                        root_overrides[meta["method"]] = attr_name
+
+        updated_routes = []
+        for r in routes:
+            if not isinstance(r, Route):
+                updated_routes.append(r)
+                continue
+            if r.url == "^{prefix}{trailing_slash}$" and not r.detail and root_overrides:
+                mapping = dict(r.mapping)
+                mapping.update(root_overrides)
+                r = Route(
+                    url=r.url,
+                    mapping=mapping,
+                    name=r.name,
+                    detail=r.detail,
+                    initkwargs=r.initkwargs,
+                )
+            elif r.url == "^{prefix}/{lookup}{trailing_slash}$" and r.detail and detail_overrides:
+                mapping = dict(r.mapping)
+                mapping.update(detail_overrides)
+                r = Route(
+                    url=r.url,
+                    mapping=mapping,
+                    name=r.name,
+                    detail=r.detail,
+                    initkwargs=r.initkwargs,
+                )
+            updated_routes.append(r)
+
         merged_routes = []
         routes_by_key = {}
 
-        for route_item in routes:
+        for route_item in updated_routes:
             if not isinstance(route_item, Route):
                 merged_routes.append(route_item)
                 continue
@@ -117,6 +158,17 @@ def controller(
     return decorator
 
 
+def _normalize_route(path_suffix: str = "", *, detail: bool = False) -> tuple[str, bool]:
+    """Normalizes path declarations such as ':id', '{id}', '{pk}', or subpaths."""
+    path = path_suffix.strip("/") if path_suffix else ""
+    for token in (":id", "{id}", ":pk", "{pk}"):
+        if path == token:
+            return "", True
+        if path.startswith(f"{token}/"):
+            return path[len(token) + 1 :], True
+    return path, detail
+
+
 def route(
     method: str,
     path_suffix: str = "",
@@ -126,19 +178,29 @@ def route(
 ) -> Callable:
     """Action route decorator analogous to NestJS `@Get()`, `@Post()`, etc.
 
-    Wraps DRF `@action` with clean HTTP verb semantics.
+    Supports:
+    - Root collection: `@get()`, `@post()` (or `@get("")`, `@post("")`)
+    - Detail instance: `@get("{id}")`, `@patch("{id}")`, `@get(detail=True)`
+    - Sub-resources: `@get("stats")`, `@post("{id}/approve")`, `@post("approve", detail=True)`
     """
     from rest_framework.decorators import action
 
-    url_path = path_suffix.strip("/") if path_suffix else None
+    clean_path, is_detail = _normalize_route(path_suffix, detail=detail)
 
     def decorator(func: Callable) -> Callable:
-        return action(
-            detail=detail,
-            methods=[method.lower()],
-            url_path=url_path,
-            **action_kwargs,
-        )(func)
+        func._http_route = {
+            "method": method.lower(),
+            "path": clean_path,
+            "detail": is_detail,
+        }
+        if clean_path:
+            return action(
+                detail=is_detail,
+                methods=[method.lower()],
+                url_path=clean_path,
+                **action_kwargs,
+            )(func)
+        return func
 
     return decorator
 
