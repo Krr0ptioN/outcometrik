@@ -58,6 +58,27 @@ The repository root `AGENTS.md` and `docs/CODE_STYLE.md` still apply.
   `AcademicController.handle_exception` intercepts `DjangoValidationError` globally (analogous to a
   NestJS `ExceptionFilter`) and transforms it into a standard DRF 400 `ValidationError` response.
 
+## Domain validator design (business invariant enforcement)
+
+- Follow the class-based domain validator pattern (e.g., `GradeValidator`, `ProgramOutcomeSetValidator`,
+  `SyllabusValidator`).
+- Encapsulate domain invariant rules, lifecycle prerequisites, sibling uniqueness constraints,
+  and editability checks into dedicated validator classes in `<domain>_validation.py`.
+- Structure validator classes with descriptive static methods:
+  - `validate_<lifecycle_action>` (e.g., `validate_activation`, `validate_approval`, `validate_revision`)
+  - `validate_<invariant>` (e.g., `validate_editable`, `validate_assessment_points`, `validate_mutation`,
+    `validate_set_update`)
+- Keep domain validation pure and isolated from database transaction locking (`select_for_update`)
+  and write operations. Services own row locks, transactions, and mutations, passing models or
+  pre-queried related state to validators.
+- Validators must raise `django.core.exceptions.ValidationError` with specific, user-actionable
+  error messages (or field error dictionaries for field-specific invariants).
+- Export domain validator classes in `academic.services.__init__.py` alongside services so they can
+  be tested in isolation and reused across commands or batch pipelines.
+- When migrating legacy module-level validation functions, keep a backward-compatible alias in the
+  original module pointing to the validator class method (e.g.,
+  `validate_activation = ProgramOutcomeSetValidator.validate_activation`).
+
 ## Django conventions
 
 - Prefer explicit service classes and typed method inputs over module-level

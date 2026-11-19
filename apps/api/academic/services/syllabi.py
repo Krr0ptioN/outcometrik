@@ -14,6 +14,7 @@ from ..models import (
 )
 from .base import AcademicService
 from .revisions import RevisionTracker
+from .syllabus_validation import SyllabusValidator
 
 MANAGED_FIELDS = ("code", "description", "order")
 ASSESSMENT_FIELDS = ("code", "kind", "order", "is_required", "is_active", "max_points")
@@ -49,9 +50,7 @@ class SyllabusService(AcademicService):
 
     @staticmethod
     def _editable(syllabus):
-        if syllabus.status != Syllabus.Status.DRAFT:
-            raise ValidationError("This syllabus version is locked; create a revision instead.")
-        return syllabus
+        return SyllabusValidator.validate_editable(syllabus)
 
     # -- lifecycle -------------------------------------------------------
 
@@ -70,14 +69,7 @@ class SyllabusService(AcademicService):
         )
         if po_set_version is None and active_set:
             po_set_version = active_set.version
-        blocked = offering.syllabi.filter(
-            status__in=(Syllabus.Status.DRAFT, Syllabus.Status.APPROVED)
-        ).exists()
-        if blocked:
-            raise ValidationError(
-                "A draft or approved syllabus already exists for this offering;"
-                " revise the approved version or retire the draft first."
-            )
+        SyllabusValidator.validate_creation(offering)
         version = offering.syllabi.count() + 1
         syllabus = Syllabus(
             offering=offering,
@@ -106,9 +98,6 @@ class SyllabusService(AcademicService):
         # Approval authority is program-scoped: coordinators approve their program's
         # offerings. Instructors hold only offering-scoped roles and cannot approve.
         require(self.actor, "syllabus.approve", offering.program_id)
-        self._editable(syllabus)
-        if not syllabus.learning_outcomes.exists() or not syllabus.assessments.exists():
-            raise ValidationError("A syllabus version needs at least one LO and one assessment.")
         active_set = (
             ProgramOutcomeSet.objects.filter(
                 program_id=offering.program_id,
@@ -118,8 +107,7 @@ class SyllabusService(AcademicService):
             .order_by("-effective_date")
             .first()
         )
-        if not active_set or syllabus.po_set_version != active_set.version:
-            raise ValidationError("Syllabus must bind to the program's active PO-set version.")
+        SyllabusValidator.validate_approval(syllabus, active_set)
         # Supersede: a newer approved version retires the previously official one so
         # the single-official-version constraint holds across the whole history.
         offering_versions.exclude(pk=syllabus.pk).filter(status=Syllabus.Status.APPROVED).update(
@@ -146,10 +134,7 @@ class SyllabusService(AcademicService):
         )
         offering = syllabus.offering
         require(self.actor, "syllabus.draft", offering.pk)
-        if syllabus.status != Syllabus.Status.APPROVED:
-            raise ValidationError("Only an approved syllabus version can be revised.")
-        if offering.syllabi.filter(status=Syllabus.Status.DRAFT).exists():
-            raise ValidationError("A draft revision already exists for this offering.")
+        SyllabusValidator.validate_revision(syllabus, offering)
         version = offering.syllabi.count() + 1
         revision = Syllabus(
             offering=offering,
@@ -193,7 +178,6 @@ class SyllabusService(AcademicService):
             Syllabus.objects.select_for_update().select_related("offering").get(pk=syllabus.pk)
         )
         require(self.actor, "syllabus.draft", syllabus.offering_id)
-        self._editable(syllabus)
         active = (
             ProgramOutcomeSet.objects.filter(
                 program_id=syllabus.offering.program_id,
@@ -203,8 +187,7 @@ class SyllabusService(AcademicService):
             .order_by("-effective_date")
             .first()
         )
-        if not active:
-            raise ValidationError("No active PO-set exists for this program.")
+        SyllabusValidator.validate_active_po_set_binding(syllabus, active)
         syllabus.po_set_version = active.version
         syllabus.save(update_fields=["po_set_version", "updated_at"])
         return syllabus
@@ -229,8 +212,7 @@ class SyllabusService(AcademicService):
         syllabus = Syllabus.objects.select_for_update().get(pk=syllabus.pk)
         require(self.actor, "syllabus.draft", syllabus.offering_id)
         self._editable(syllabus)
-        if data.get("max_points") is not None and data["max_points"] <= 0:
-            raise ValidationError({"max_points": "Maximum points must be greater than zero."})
+        SyllabusValidator.validate_assessment_points(data.get("max_points"))
         try:
             with transaction.atomic():
                 return SyllabusAssessment.objects.create(syllabus=syllabus, **data)
@@ -264,8 +246,7 @@ class SyllabusService(AcademicService):
         for field in ASSESSMENT_FIELDS:
             if field in data:
                 setattr(instance, field, data[field])
-        if instance.max_points is not None and instance.max_points <= 0:
-            raise ValidationError({"max_points": "Maximum points must be greater than zero."})
+        SyllabusValidator.validate_assessment_points(instance.max_points)
         try:
             with transaction.atomic():
                 instance.save()
@@ -304,11 +285,7 @@ class SyllabusService(AcademicService):
             Syllabus.objects.select_for_update().select_related("offering").get(pk=syllabus.pk)
         )
         require(self.actor, "syllabus.draft", syllabus.offering_id)
-        self._editable(syllabus)
-        if syllabus.learning_outcomes.exists() or syllabus.assessments.exists():
-            raise ValidationError(
-                "This syllabus version holds configuration; revise instead of removing it."
-            )
+        SyllabusValidator.validate_draft_removal(syllabus)
         Syllabus.objects.filter(pk=syllabus.pk).update(status=Syllabus.Status.RETIRED)
         syllabus.status = Syllabus.Status.RETIRED
         return syllabus
