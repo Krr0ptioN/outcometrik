@@ -1,3 +1,4 @@
+from .analytics import CohortAnalyticsService
 from .assessments import AssessmentService
 from .calculations import CALC_POLICY_VERSION, ENGINE_VERSION, CalculationService
 from .enrollments import EnrollmentService
@@ -21,6 +22,7 @@ __all__ = [
     "AcademicTermService",
     "AssessmentService",
     "CalculationService",
+    "CohortAnalyticsService",
     "CourseOfferingService",
     "CourseService",
     "DepartmentService",
