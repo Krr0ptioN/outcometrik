@@ -24,16 +24,17 @@ As an authorized user, I can download a reproducible CSV or PDF report for my pe
 
 ## Acceptance criteria
 
-- [ ] Authorized CSV and PDF exports match the selected immutable publication.
-- [ ] Unauthorized scope and unpublished data never appear in an export.
-- [ ] Null, incomplete, exempt, and zero states are preserved.
-- [ ] CSV formula injection safeguards and export audit events are tested.
-- [ ] Re-running an export for the same publication produces equivalent content.
+- [x] Authorized CSV and PDF exports match the selected immutable publication (`AcademicPublicationReader` wired to `CALC-03` publications and `ANA-01` cohort analytics).
+- [x] Unauthorized scope and unpublished data never appear in an export.
+- [x] Null, incomplete, exempt, and zero states are preserved.
+- [x] CSV formula injection safeguards and export audit events are tested.
+- [x] Re-running an export for the same publication produces equivalent content.
+
 ## Implementation tasks
 
-- [ ] Confirm API/data contract and authorization scope against the owning domain module.
-- [ ] Implement the smallest vertical slice that satisfies the acceptance criteria.
-- [ ] Add focused unit/integration coverage for success, invalid input, and denied scope.
-- [ ] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
-- [ ] Update API/UI documentation and verify downstream stories remain compatible.
+- [x] Confirm API/data contract and authorization scope against the owning domain module.
+- [x] Implement the smallest vertical slice that satisfies the acceptance criteria.
+- [x] Add focused unit/integration coverage for success, invalid input, and denied scope.
+- [x] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
+- [x] Update API/UI documentation and verify downstream stories remain compatible.
 

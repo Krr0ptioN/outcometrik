@@ -1,11 +1,9 @@
-# EXP-01 — Report export API contract (draft)
+# EXP-01 — Report export API contract
 
-Status: **draft prototype contract.** The publication, analytics and calculation stories
-([CALC-03](CALC-03-publication-stale-version-protocol.md), [ANA-01](ANA-01-cohort-analytics.md))
-are not implemented yet. The export UI and the API's export layer (`apps/api/reports`) are
-built against this contract; a real publication reader replaces the placeholder when those
-stories land. Product rules live in
-[EXP-01](EXP-01-score-report-exports.md) and PRD §§7, 11.5.
+Status: **implemented.** `apps/api/reports` reads immutable published results through
+`AcademicPublicationReader` backed by [CALC-03](CALC-03-publication-stale-version-protocol.md)
+(`PublicationService`) and [ANA-01](ANA-01-cohort-analytics.md) (`CohortAnalyticsService`).
+Product rules live in [EXP-01](EXP-01-score-report-exports.md) and PRD §§7, 11.5.
 
 ## Endpoint
 
@@ -80,4 +78,3 @@ Export access follows on-screen access (PRD §11.5), using the existing capabili
 ## Not in this prototype
 
 - Large exports delivered as a job (`202` with a status URL) when measured latency requires it. Clients should treat any `2xx` other than `200` as unsupported until that is specified.
-- A real publication reader. Until CALC-03/ANA-01 provide one, the API answers every export with `404`.

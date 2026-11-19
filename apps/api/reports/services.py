@@ -19,7 +19,7 @@ from django.utils import timezone
 from .csv_export import render_csv
 from .domain import Report, count_lines
 from .pdf_export import render_pdf
-from .readers import PublicationReader, UnavailablePublicationReader
+from .readers import AcademicPublicationReader, PublicationReader
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ class RenderedExport:
 class ReportExportService:
     def __init__(self, *, actor, reader: PublicationReader | None = None, clock=timezone.now):
         self.actor = actor
-        self.reader = reader or UnavailablePublicationReader()
+        self.reader = reader if reader is not None else AcademicPublicationReader()
         self.clock = clock
 
     @property
@@ -164,4 +164,4 @@ class ReportServiceProvider:
         return service_class(actor=actor, reader=self.reader)
 
 
-report_service_provider = ReportServiceProvider()
+report_service_provider = ReportServiceProvider(AcademicPublicationReader())
