@@ -57,53 +57,56 @@ export function ExportPanel({
       : '';
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="border-border bg-card shadow-[var(--shadow-sm)]">
+      <CardHeader className="border-b border-border/70 pb-4">
         <CardTitle>
-          <h2>{title}</h2>
+          <h2 className="text-base font-semibold tracking-tight">{title}</h2>
         </CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 pt-5">
         {availability !== 'ready' ? (
           <p className="text-sm text-muted-foreground">
             {UNAVAILABLE[availability]}
           </p>
         ) : (
           <>
-            <Field>
-              <FieldLabel htmlFor={formatId}>File format</FieldLabel>
-              <NativeSelect
-                id={formatId}
-                value={format}
-                disabled={exportReport.isPending}
-                onChange={(event) => {
-                  if (!isExportFormat(event.target.value)) return;
-                  setFormat(event.target.value);
-                  exportReport.reset();
-                }}
+            <div className="flex flex-wrap items-end gap-4">
+              <Field className="min-w-[220px] flex-1">
+                <FieldLabel htmlFor={formatId}>File format</FieldLabel>
+                <NativeSelect
+                  id={formatId}
+                  value={format}
+                  disabled={exportReport.isPending}
+                  onChange={(event) => {
+                    if (!isExportFormat(event.target.value)) return;
+                    setFormat(event.target.value);
+                    exportReport.reset();
+                  }}
+                >
+                  <NativeSelectOption value="csv">
+                    CSV (spreadsheet · formula-safe)
+                  </NativeSelectOption>
+                  <NativeSelectOption value="pdf">
+                    PDF (print or accreditation archive)
+                  </NativeSelectOption>
+                </NativeSelect>
+                <FieldDescription>
+                  Preserves publication traceability metadata and null values;
+                  not assessed values are never shown as zero in either format.
+                </FieldDescription>
+              </Field>
+              <Button
+                type="button"
+                disabled={!request || exportReport.isPending}
+                aria-busy={exportReport.isPending}
+                onClick={() => request && exportReport.mutate(request)}
               >
-                <NativeSelectOption value="csv">
-                  CSV (spreadsheet)
-                </NativeSelectOption>
-                <NativeSelectOption value="pdf">
-                  PDF (print or share)
-                </NativeSelectOption>
-              </NativeSelect>
-              <FieldDescription>
-                Not assessed values are never shown as zero in either format.
-              </FieldDescription>
-            </Field>
-            <Button
-              type="button"
-              disabled={!request || exportReport.isPending}
-              aria-busy={exportReport.isPending}
-              onClick={() => request && exportReport.mutate(request)}
-            >
-              {exportReport.isPending
-                ? 'Preparing…'
-                : `Download ${format.toUpperCase()}`}
-            </Button>
+                {exportReport.isPending
+                  ? 'Preparing…'
+                  : `Download ${format.toUpperCase()}`}
+              </Button>
+            </div>
             {/* Always rendered so assistive technology announces changes to it. */}
             <p role="status" className="min-h-5 text-sm text-muted-foreground">
               {status}

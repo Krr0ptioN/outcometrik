@@ -10,12 +10,15 @@ export {
   shortRef,
 } from './api';
 export {
+  BUCKET_META,
   CohortOverview,
   formatExclusionParts,
   totalExclusionsCount,
 } from './components/cohort-overview';
 export type {
+  CohortFilterValues,
   CohortOverviewProps,
+  CohortOverviewTab,
   CohortSelection,
 } from './components/cohort-overview';
 export {
