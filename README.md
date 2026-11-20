@@ -71,18 +71,18 @@ boundary.
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| **Frontend** | Next.js 15, React 19, TypeScript, App Router |
-| **UI** | Tailwind CSS, shadcn/ui, Radix UI |
-| **Server state** | TanStack Query |
-| **Backend** | Django 5.2+, Django REST Framework |
-| **Database** | PostgreSQL 16 (SQLite is supported for isolated tests) |
-| **Background work** | Celery 5 with Redis |
-| **Python tooling** | uv, pytest, Ruff |
-| **Monorepo** | Nx 22, pnpm 12 |
-| **Web testing** | Vitest, Testing Library, Playwright |
-| **Deployment** | Docker for the API; OpenNext and Cloudflare Workers for the web |
+| Layer               | Technology                                                      |
+| ------------------- | --------------------------------------------------------------- |
+| **Frontend**        | Next.js 15, React 19, TypeScript, App Router                    |
+| **UI**              | Tailwind CSS, shadcn/ui, Radix UI                               |
+| **Server state**    | TanStack Query                                                  |
+| **Backend**         | Django 5.2+, Django REST Framework                              |
+| **Database**        | PostgreSQL 16 (SQLite is supported for isolated tests)          |
+| **Background work** | Celery 5 with Redis                                             |
+| **Python tooling**  | uv, pytest, Ruff                                                |
+| **Monorepo**        | Nx 22, pnpm 12                                                  |
+| **Web testing**     | Vitest, Testing Library, Playwright                             |
+| **Deployment**      | Docker for the API; OpenNext and Cloudflare Workers for the web |
 
 ## Project Structure
 
@@ -179,17 +179,17 @@ For isolated API tests without PostgreSQL:
 
 Run commands from the repository root:
 
-| Command | Description |
-|---|---|
-| `pnpm dev:web` | Start the Next.js development server |
-| `pnpm dev:api` | Start Django after syncing dependencies and migrations |
-| `pnpm prepare:api` | Sync API and module dependencies with uv |
-| `pnpm build` | Build all Nx projects with build targets |
-| `pnpm lint` | Run all configured lint targets |
-| `pnpm test` | Run all configured unit and integration tests |
-| `pnpm e2e` | Run all configured Playwright E2E targets |
-| `pnpm format:check` | Check repository formatting |
-| `pnpm format` | Format supported repository files |
+| Command             | Description                                            |
+| ------------------- | ------------------------------------------------------ |
+| `pnpm dev:web`      | Start the Next.js development server                   |
+| `pnpm dev:api`      | Start Django after syncing dependencies and migrations |
+| `pnpm prepare:api`  | Sync API and module dependencies with uv               |
+| `pnpm build`        | Build all Nx projects with build targets               |
+| `pnpm lint`         | Run all configured lint targets                        |
+| `pnpm test`         | Run all configured unit and integration tests          |
+| `pnpm e2e`          | Run all configured Playwright E2E targets              |
+| `pnpm format:check` | Check repository formatting                            |
+| `pnpm format`       | Format supported repository files                      |
 
 Targeted checks are preferred during development:
 
@@ -236,20 +236,42 @@ remain authoritative on the server.
 
 ### Demo Data
 
-With PostgreSQL and Redis running:
+With PostgreSQL and Redis running, seed the deterministic Acıbadem University
+Computer Engineering demo dataset (idempotent; safe to re-run):
 
 ```sh
 ./tools/manage-api.sh migrate
+make seed-demo
+# or: pnpm seed:demo
+# or: ./tools/manage-api.sh seed_demo
+```
+
+`seed_demo` populates two M:N programs (`B.Sc. Computer Engineering` and
+`B.Sc. Software Engineering`), versioned PO sets (`PO-Set v1` archived and
+`PO-Set v2` active with PO1–PO11), 45 students (including PRD §5 reference
+student Deniz Aydın `2023041018` with `LO1=86.0`, `LO2=82.9`, `PO1=85.0`,
+`PO2=82.9`, and cumulative `PO1=86.9`), gradebook edge cases (`0.0`, `EXEMPT`,
+blocking `ABSENT`, `WITHDRAWN`), direct capability grants, historical and active
+publications, a pending `v2 Draft` syllabus, and initial audit log events.
+
+Local demo credentials (set `DEMO_SEED_PASSWORD` in your local `.env` or pass
+`--password` when running `seed_demo`; never hardcoded in production bundles):
+
+| Persona             | Username / Email                   | Scope & Highlights                                                                 |
+| ------------------- | ---------------------------------- | ---------------------------------------------------------------------------------- |
+| System Admin        | `admin@acibadem.edu.tr`            | Institution administrator (`ACU`)                                                  |
+| Program Coordinator | `emre.karahan@acibadem.edu.tr`     | Coordinator for `CSE` & `SWE`; also Instructor for `CSE 321-01`                    |
+| Instructor          | `selin.kaya@acibadem.edu.tr`       | Instructor for `CSE 311-01`, `CSE 311-02`, `CSE 214-01` + direct capability grants |
+| Student (PRD §5)    | `deniz.aydin@live.acibadem.edu.tr` | Student `2023041018` (Deniz Aydın)                                                 |
+
+For the legacy Bologna catalog seed:
+
+```sh
 ./tools/manage-api.sh seed_acibadem
 ```
 
-The seed command creates local demonstration data and writes generated
-credentials to the ignored `seeded_creentials.json` file. Keep that file
-private and with the local database. Use the displayed demo accounts at
-`/login` to explore administrator, coordinator, instructor, and student views.
-
-The seed command is restricted to local debug development and does not create
-production data.
+Both seed commands are restricted to local `DEBUG` development with a local
+database and never run in production.
 
 ### Environment Variables
 
@@ -261,16 +283,16 @@ Copy the relevant example before starting local development:
 
 Important variables include:
 
-| Variable | Purpose |
-|---|---|
-| `DJANGO_SECRET_KEY` | Django signing and session secret |
-| `DJANGO_DEBUG` | Local debug mode |
-| `DJANGO_ALLOWED_HOSTS` | Allowed API hostnames |
-| `DJANGO_CSRF_TRUSTED_ORIGINS` | Web origins allowed to submit CSRF-protected requests |
-| `POSTGRES_*` | PostgreSQL database connection and Compose credentials |
-| `CELERY_BROKER_URL` | Redis broker URL |
-| `CELERY_RESULT_BACKEND` | Redis result backend URL |
-| `API_UPSTREAM` | Server-side Next.js rewrite target, defaulting to `http://127.0.0.1:8000` |
+| Variable                      | Purpose                                                                   |
+| ----------------------------- | ------------------------------------------------------------------------- |
+| `DJANGO_SECRET_KEY`           | Django signing and session secret                                         |
+| `DJANGO_DEBUG`                | Local debug mode                                                          |
+| `DJANGO_ALLOWED_HOSTS`        | Allowed API hostnames                                                     |
+| `DJANGO_CSRF_TRUSTED_ORIGINS` | Web origins allowed to submit CSRF-protected requests                     |
+| `POSTGRES_*`                  | PostgreSQL database connection and Compose credentials                    |
+| `CELERY_BROKER_URL`           | Redis broker URL                                                          |
+| `CELERY_RESULT_BACKEND`       | Redis result backend URL                                                  |
+| `API_UPSTREAM`                | Server-side Next.js rewrite target, defaulting to `http://127.0.0.1:8000` |
 
 Never commit local passwords, generated credentials, production secrets, or
 personal data.

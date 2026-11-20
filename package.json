@@ -11,6 +11,7 @@
     "test": "nx run-many -t test",
     "e2e": "nx run-many -t e2e",
     "prepare:api": "nx run api:sync",
+    "seed:demo": "./tools/manage-api.sh seed_demo",
     "format:check": "prettier --check .",
     "format": "prettier --write ."
   },

@@ -10,6 +10,11 @@
       "options": { "cwd": "apps/api" },
       "cache": false
     },
+    "seed-demo": {
+      "command": "../../tools/manage-api.sh seed_demo",
+      "options": { "cwd": "apps/api" },
+      "cache": false
+    },
     "sync": {
       "command": "uv sync --all-groups",
       "options": { "cwd": "apps/api" },
