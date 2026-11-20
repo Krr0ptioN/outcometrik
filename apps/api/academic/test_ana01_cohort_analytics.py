@@ -896,3 +896,109 @@ def test_stale_publication_status_is_reported_without_mutating_snapshot(analytic
     assert data["publication_status"] == "stale"
     assert data["publication_id"] == str(w["pub_fall"].pk)
     assert data["run_id"] == str(w["run_fall"].pk)
+
+
+def test_ui04_measured_zero_and_unassessed_student_stay_distinct(analytics_world):
+    """UI-04 acceptance scenario: 1 measured zero (0.0) + 1 unassessed student.
+
+    The PO must report mean="0.0" with n=1, population_size=2, coverage="0.5000",
+    and 1 NOT_ASSESSED exclusion separately — never coercing the unassessed student
+    into a second zero or inflating n to 2.
+    """
+    w = analytics_world
+    _, current_hash, _ = CalculationService().build_manifest_and_hash(
+        scope_kind=CalculationRun.ScopeKind.PROGRAM,
+        program=w["program"],
+        offering=None,
+        lock=False,
+    )
+    run = CalculationRun.objects.create(
+        scope_kind=CalculationRun.ScopeKind.PROGRAM,
+        program=w["program"],
+        po_set_version=1,
+        engine_version=w["run_fall"].engine_version,
+        policy_version=w["run_fall"].policy_version,
+        input_hash=current_hash,
+        manifest={"scope_kind": "program", "offerings": []},
+        status=CalculationRun.Status.COMPLETED,
+        is_complete_for_publication=True,
+        created_by=w["coord"],
+    )
+
+    OutcomeScore.objects.bulk_create(
+        [
+            OutcomeScore(
+                run=run,
+                level=OutcomeScore.Level.CUMULATIVE_PO,
+                student=w["students"][0],
+                program_outcome=w["po1"],
+                outcome_code="PO-1",
+                value=Decimal("0.000000"),
+                coverage=Decimal("1.0000"),
+                status=OutcomeScore.Status.OK,
+            ),
+            OutcomeScore(
+                run=run,
+                level=OutcomeScore.Level.CUMULATIVE_PO,
+                student=w["students"][1],
+                program_outcome=w["po1"],
+                outcome_code="PO-1",
+                value=None,
+                coverage=Decimal("0.0000"),
+                status=OutcomeScore.Status.NOT_ASSESSED,
+            ),
+        ]
+    )
+
+    pub = Publication.objects.create(
+        program=w["program"],
+        term=w["term_fall"],
+        run=run,
+        series_version=2,
+        po_set_version=1,
+        audience=Publication.Audience.FACULTY,
+        input_hash=run.input_hash,
+        idempotency_key="ui04-zero-vs-unassessed",
+        published_by=w["coord"],
+    )
+
+    resp = _client(w["coord"]).get(
+        "/api/v1/analytics/cohort/",
+        {
+            "program_id": str(w["program"].pk),
+            "publication_id": str(pub.pk),
+        },
+    )
+    assert resp.status_code == 200
+    assert resp["Cache-Control"] == "no-store"
+
+    data = resp.json()
+    assert data["publication_id"] == str(pub.pk)
+    assert data["run_id"] == str(run.pk)
+    assert data["po_set_version"] == 1
+    assert data["publication_status"] == "published"
+    assert data["sample_size"] == 1
+    assert data["population_size"] == 2
+    assert data["coverage"] == "0.5000"
+    assert data["exclusions"]["NOT_ASSESSED"] == 1
+
+    po1 = next(item for item in data["outcomes"] if item["code"] == "PO-1")
+    assert po1["mean"] == "0.0"
+    assert po1["median"] == "0.0"
+    assert po1["min"] == "0.0"
+    assert po1["max"] == "0.0"
+    assert po1["n"] == 1
+    assert po1["population_size"] == 2
+    assert po1["coverage"] == "0.5000"
+    assert po1["distribution"] == {
+        "<50": 1,
+        "50-69.9": 0,
+        "70-84.9": 0,
+        "85-100": 0,
+    }
+    assert po1["exclusions"] == {
+        "NOT_ASSESSED": 1,
+        "INCOMPLETE": 0,
+        "ALL_EXEMPT": 0,
+        "UNMAPPED": 0,
+    }
