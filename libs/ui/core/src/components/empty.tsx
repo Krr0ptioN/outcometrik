@@ -1,3 +1,5 @@
+import * as React from 'react';
+import { Inbox } from 'lucide-react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../lib/utils';
 
@@ -6,7 +8,7 @@ function Empty({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="empty"
       className={cn(
-        'flex min-w-0 flex-1 flex-col items-center justify-center gap-6 rounded-lg border-dashed p-6 text-center text-balance md:p-12',
+        'flex min-w-0 flex-1 flex-col items-center justify-center gap-5 rounded-[var(--radius-card,10px)] border border-dashed border-[var(--border-strong)] bg-card/60 p-6 text-center text-balance md:p-10',
         className,
       )}
       {...props}
@@ -93,6 +95,37 @@ function EmptyContent({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
+export interface EmptyStateProps extends React.ComponentProps<'div'> {
+  icon?: React.ReactNode;
+  title: string;
+  description?: string;
+  action?: React.ReactNode;
+}
+
+function EmptyState({
+  icon,
+  title,
+  description,
+  action,
+  className,
+  ...props
+}: EmptyStateProps) {
+  return (
+    <Empty data-slot="empty-state" className={className} {...props}>
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          {icon ?? <Inbox className="size-5" aria-hidden="true" />}
+        </EmptyMedia>
+        <EmptyTitle className="text-base font-semibold">{title}</EmptyTitle>
+        {description ? (
+          <EmptyDescription>{description}</EmptyDescription>
+        ) : null}
+      </EmptyHeader>
+      {action ? <EmptyContent>{action}</EmptyContent> : null}
+    </Empty>
+  );
+}
+
 export {
   Empty,
   EmptyHeader,
@@ -100,4 +133,5 @@ export {
   EmptyDescription,
   EmptyContent,
   EmptyMedia,
+  EmptyState,
 };

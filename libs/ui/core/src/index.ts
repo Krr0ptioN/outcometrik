@@ -10,7 +10,15 @@ export {
   FieldContent,
   FieldTitle,
 } from './components/field';
-export { Skeleton } from './components/skeleton';
+export {
+  Skeleton,
+  SkeletonText,
+  SkeletonTable,
+  SkeletonCard,
+  SkeletonMetric,
+  type SkeletonTextProps,
+  type SkeletonTableProps,
+} from './components/skeleton';
 export {
   Avatar,
   AvatarImage,
@@ -32,9 +40,13 @@ export {
   DialogTrigger,
 } from './components/dialog';
 export { Input } from './components/input';
-export { MultiSelectCombobox, type MultiSelectOption } from './components/multi-select-combobox';
+export {
+  MultiSelectCombobox,
+  type MultiSelectOption,
+} from './components/multi-select-combobox';
 export { Button, buttonVariants } from './components/button';
 export { Alert, AlertTitle, AlertDescription } from './components/alert';
+export { ErrorBanner, type ErrorBannerProps } from './components/error-banner';
 export { Separator } from './components/separator';
 export {
   Sidebar,
@@ -104,12 +116,41 @@ export {
 } from './components/table';
 export { Badge, badgeVariants } from './components/badge';
 export {
+  StatusDot,
+  MeasuredZeroTag,
+  AbsentTag,
+  ExemptTag,
+  WithdrawnTag,
+  StaleTag,
+  NotAssessedText,
+  type StatusDotProps,
+  type MeasuredZeroTagProps,
+  type StateTagProps,
+  type NotAssessedTextProps,
+} from './components/status';
+export {
   Empty,
   EmptyHeader,
   EmptyTitle,
   EmptyDescription,
   EmptyContent,
   EmptyMedia,
+  EmptyState,
+  type EmptyStateProps,
 } from './components/empty';
+export {
+  ThemeProvider,
+  useTheme,
+  THEME_STORAGE_KEY,
+  THEME_COLORS,
+  isThemePreference,
+  resolveTheme,
+  applyThemeToDocument,
+  type ThemePreference,
+  type ResolvedTheme,
+  type ThemeContextValue,
+  type ThemeProviderProps,
+} from './components/theme-provider';
+export { ThemeToggle, type ThemeToggleProps } from './components/theme-toggle';
 export { Label } from './components/label';
 export { cn } from './lib/utils';
