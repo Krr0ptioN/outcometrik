@@ -152,5 +152,14 @@ export {
   type ThemeProviderProps,
 } from './components/theme-provider';
 export { ThemeToggle, type ThemeToggleProps } from './components/theme-toggle';
+export { BrandCrest, type BrandCrestProps } from './components/brand-crest';
+export {
+  RoleSidebarShell,
+  StudentTopNavShell,
+  type RoleSidebarShellProps,
+  type StudentTopNavShellProps,
+  type ShellNavItem,
+  type ShellUser,
+} from './components/app-shell';
 export { Label } from './components/label';
 export { cn } from './lib/utils';
