@@ -71,7 +71,6 @@ def require_permission(
 ) -> Callable:
     """Guard decorator that enforces RBAC/ABAC authorization before an action executes.
 
-    Analogous to NestJS `@UseGuards(CapabilityGuard)`.
     Extracts the actor (`request.user`) and `scope_id`, then verifies capability.
     Raises `PermissionDenied` (DRF HTTP 403) if authorization fails or scope is missing.
 
