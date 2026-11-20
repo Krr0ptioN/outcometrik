@@ -64,7 +64,7 @@ class PublicationService:
             queryset = Publication.objects.all()
         effective_actor = actor if actor is not None else self.actor
         return scoping.scope_publications(effective_actor, queryset).select_related(
-            "program", "offering", "term", "run", "published_by"
+            "program", "offering", "offering__course", "term", "run", "published_by"
         )
 
     def is_stale(self, *, publication: Publication) -> bool:

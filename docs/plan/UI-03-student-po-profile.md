@@ -24,16 +24,16 @@ As a student, I can view my released PO1–PO11 profile and inspect why each val
 
 ## Acceptance criteria
 
-- [ ] A student sees all eleven outcomes with correct null/status behavior.
-- [ ] The canonical values and evidence path are visible for an authorized publication.
-- [ ] A grade correction makes the current result stale without rewriting history.
-- [ ] Direct-object and URL-manipulation tests cannot expose another student.
-- [ ] Keyboard and non-visual users can read the same profile data.
+- [x] A student sees all eleven outcomes with correct null/status behavior.
+- [x] The canonical values and evidence path are visible for an authorized publication.
+- [x] A grade correction makes the current result stale without rewriting history.
+- [x] Direct-object and URL-manipulation tests cannot expose another student.
+- [x] Keyboard and non-visual users can read the same profile data.
 ## Implementation tasks
 
-- [ ] Confirm API/data contract and authorization scope against the owning domain module.
-- [ ] Implement the smallest vertical slice that satisfies the acceptance criteria.
-- [ ] Add focused unit/integration coverage for success, invalid input, and denied scope.
-- [ ] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
-- [ ] Update API/UI documentation and verify downstream stories remain compatible.
+- [x] Confirm API/data contract and authorization scope against the owning domain module.
+- [x] Implement the smallest vertical slice that satisfies the acceptance criteria.
+- [x] Add focused unit/integration coverage for success, invalid input, and denied scope.
+- [x] Integrate the UI states and accessible error/empty/loading behavior when the story has a UI surface.
+- [x] Update API/UI documentation and verify downstream stories remain compatible.
 

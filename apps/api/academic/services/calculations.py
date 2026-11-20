@@ -415,6 +415,8 @@ def _compute_from_manifest(manifest: dict[str, Any]) -> tuple[list[dict[str, Any
     # Policy calc-policy-v1: latest completed approved attempt per catalog course.
     offering_results: dict[str, _OfferingComputation] = {}
     offering_by_id: dict[str, dict[str, Any]] = {}
+    course_po_rows_by_key: dict[tuple[str, str, str], dict[str, Any]] = {}
+    lo_rows_by_key: dict[tuple[str, str, str], dict[str, Any]] = {}
     attempts_by_student_course: dict[
         tuple[str, str], list[tuple[dict[str, Any], dict[str, Any]]]
     ] = {}
@@ -422,7 +424,14 @@ def _compute_from_manifest(manifest: dict[str, Any]) -> tuple[list[dict[str, Any
     for offering_data in manifest["offerings"]:
         off_id = offering_data["id"]
         offering_by_id[off_id] = offering_data
-        offering_results[off_id] = _compute_offering(offering_data, po_list, po_set_version)
+        off_comp = _compute_offering(offering_data, po_list, po_set_version)
+        offering_results[off_id] = off_comp
+        for row in off_comp.score_rows:
+            enr_id = row["evidence"]["enrollment_id"]
+            if row["level"] == OutcomeScore.Level.COURSE_PO and row["program_outcome_id"]:
+                course_po_rows_by_key[(off_id, enr_id, row["program_outcome_id"])] = row
+            elif row["level"] == OutcomeScore.Level.LO and row["learning_outcome_id"]:
+                lo_rows_by_key[(off_id, enr_id, row["learning_outcome_id"])] = row
         for enr in offering_data["enrollments"]:
             if not enr["eligible_for_outcomes"]:
                 continue
@@ -484,6 +493,34 @@ def _compute_from_manifest(manifest: dict[str, Any]) -> tuple[list[dict[str, Any
                 course_po_res = offering_results[off_id].course_po_by_enrollment[chosen_enr["id"]][
                     po_id
                 ]
+                course_po_row = course_po_rows_by_key.get((off_id, chosen_enr["id"], po_id))
+                lo_contributions: list[dict[str, Any]] = []
+                if course_po_row is not None:
+                    for lo_contrib in course_po_row["evidence"].get("contributions", []):
+                        lo_id = lo_contrib["learning_outcome_id"]
+                        lo_row = lo_rows_by_key.get((off_id, chosen_enr["id"], lo_id))
+                        lo_evidence = lo_row["evidence"] if lo_row is not None else {}
+                        lo_contributions.append(
+                            {
+                                **lo_contrib,
+                                "numerator": (
+                                    None
+                                    if lo_row is None or lo_row["numerator"] is None
+                                    else canonical_decimal(lo_row["numerator"])
+                                ),
+                                "denominator": (
+                                    None
+                                    if lo_row is None or lo_row["denominator"] is None
+                                    else canonical_decimal(lo_row["denominator"])
+                                ),
+                                "assessment_contributions": list(
+                                    lo_evidence.get("contributions", [])
+                                ),
+                                "missing": list(lo_evidence.get("missing", [])),
+                                "exemptions": list(lo_evidence.get("exemptions", [])),
+                            }
+                        )
+
                 entry_key = f"course:{chosen_offering['course_id']}"
                 entries.append(entry_from_result(entry_key, weight, course_po_res))
                 course_meta[entry_key] = {
@@ -504,6 +541,7 @@ def _compute_from_manifest(manifest: dict[str, Any]) -> tuple[list[dict[str, Any
                         if course_po_res.value is None
                         else canonical_decimal(course_po_res.value)
                     ),
+                    "lo_contributions": lo_contributions,
                 }
 
             if not entries:

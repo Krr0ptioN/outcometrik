@@ -12,6 +12,7 @@ export type {
   ExportPanelProps,
   ExportRequest,
 } from './features/exports';
+
 export {
   CohortOverview,
   cohortErrorMessage,
@@ -41,3 +42,32 @@ export type {
   CoordinatorPublication,
   PublicationStatus,
 } from './features/cohort-overview';
+
+export {
+  CANONICAL_PO_CODES,
+  StudentPOProfile,
+  buildStudentPOProfile,
+  getStudentPublicationScores,
+  getStudentPublications,
+  normalizePoCode,
+  roundHalfUpOneDecimal,
+  studentProfileErrorMessage,
+  studentProfileKeys,
+  useStudentPublicationScores,
+  useStudentPublications,
+} from './features/student-profile';
+export type {
+  AssessmentEvidenceContribution,
+  CourseEvidenceContribution,
+  LoEvidenceContribution,
+  OutcomeScoreEvidence,
+  OutcomeScoreLevel,
+  OutcomeScoreStatus,
+  ProgramOutcomeMetadata,
+  PublicationAudience,
+  PublicationScopeKind,
+  StudentOutcomeScore,
+  StudentPOProfileItem,
+  StudentPOProfileProps,
+  StudentPublication,
+} from './features/student-profile';

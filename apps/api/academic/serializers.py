@@ -675,15 +675,26 @@ class ProgramCalculationRunCreateSerializer(serializers.Serializer):
 
 class PublicationSerializer(AcademicSerializer):
     stale = serializers.SerializerMethodField()
+    scope_kind = serializers.CharField(source="run.scope_kind", read_only=True)
+    program_code = serializers.CharField(source="program.code", read_only=True)
+    program_title = serializers.CharField(source="program.title", read_only=True)
+    offering_label = serializers.SerializerMethodField()
+    term_label = serializers.SerializerMethodField()
+    program_outcomes = serializers.SerializerMethodField()
 
     class Meta:
         model = Publication
         fields = [
             "id",
             "program",
+            "program_code",
+            "program_title",
             "offering",
+            "offering_label",
             "term",
+            "term_label",
             "run",
+            "scope_kind",
             "series_version",
             "po_set_version",
             "audience",
@@ -692,6 +703,7 @@ class PublicationSerializer(AcademicSerializer):
             "published_by",
             "published_at",
             "stale",
+            "program_outcomes",
             "created_at",
             "updated_at",
         ]
@@ -704,6 +716,31 @@ class PublicationSerializer(AcademicSerializer):
         if service is not None:
             return service.is_stale(publication=obj)
         return False
+
+    def get_offering_label(self, obj: Publication) -> str | None:
+        if obj.offering_id is None:
+            return None
+        return f"{obj.offering.course.code} · {obj.offering.section}"
+
+    def get_term_label(self, obj: Publication) -> str | None:
+        if obj.term_id is None:
+            return None
+        return f"{obj.term.year} {obj.term.season.title()}"
+
+    def get_program_outcomes(self, obj: Publication) -> list[dict[str, object]]:
+        outcomes = ProgramOutcome.objects.filter(
+            outcome_set__program_id=obj.program_id,
+            outcome_set__version=obj.po_set_version,
+        ).order_by("ordering", "id")
+        return [
+            {
+                "code": po.code,
+                "label": po.label,
+                "description": po.description,
+                "ordering": po.ordering,
+            }
+            for po in outcomes
+        ]
 
 
 class PublicationCreateSerializer(serializers.Serializer):
