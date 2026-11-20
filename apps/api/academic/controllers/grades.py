@@ -3,7 +3,7 @@ from rest_framework import mixins, status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from ..decorators import controller, get, patch, post, require_permission, validate_payload
+from ..decorators import controller, get, patch, post, scoped_permission, validate_payload
 from ..models import CourseOffering
 from ..serializers import (
     GradeBatchSerializer,
@@ -62,15 +62,24 @@ class GradeController(
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
-    @post()
-    @require_permission("grades.edit", scope_field="enrollment.offering")
+    @post(
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("grades.edit", scope_field="enrollment.offering"),
+        ]
+    )
     @validate_payload(GradeWriteSerializer)
     def create(self, request, *args, payload=None, **kwargs):
         grade = self.service.create(actor=request.user, **payload)
         return Response(GradeSerializer(grade).data, status=status.HTTP_201_CREATED)
 
-    @post("bulk")
-    @require_permission("grades.edit", scope_field="offering")
+    @post(
+        "bulk",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("grades.edit", scope_field="offering"),
+        ],
+    )
     @validate_payload(GradeBulkSaveSerializer)
     def bulk(self, request, *args, payload=None, **kwargs):
         try:
@@ -95,8 +104,13 @@ class GradeController(
             status=status.HTTP_200_OK,
         )
 
-    @patch("{id}")
-    @require_permission("grades.edit", scope_field="offering")
+    @patch(
+        "{id}",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("grades.edit", scope_field="offering"),
+        ],
+    )
     @validate_payload(GradeUpdateSerializer)
     def partial_update(self, request, *args, payload=None, **kwargs):
         grade = self.get_object()
@@ -113,29 +127,52 @@ class GradeController(
             )
         return Response(GradeSerializer(updated).data)
 
-    @get("{id}/history")
-    @require_permission("grades.edit", scope_field="offering")
+    @get(
+        "{id}/history",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("grades.edit", scope_field="offering"),
+        ],
+    )
     def history(self, request, *args, **kwargs):
         grade = self.get_object()
         rows = self.service.history(grade=grade)
         return Response(GradeHistorySerializer(rows, many=True).data)
 
-    @get("import/template", url_name="import-template")
-    @require_permission("grades.edit", scope_field="offering")
+    @get(
+        "import/template",
+        url_name="import-template",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("grades.edit", scope_field="offering"),
+        ],
+    )
     def import_template(self, request, *args, **kwargs):
         offering = get_object_or_404(CourseOffering, pk=request.query_params.get("offering"))
         payload = self.import_service.template_payload(offering=offering)
         return Response(payload, status=status.HTTP_200_OK)
 
-    @post("import/dry-run", url_name="import-dry-run")
-    @require_permission("grades.edit", scope_field="offering")
+    @post(
+        "import/dry-run",
+        url_name="import-dry-run",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("grades.edit", scope_field="offering"),
+        ],
+    )
     @validate_payload(GradeImportDryRunSerializer)
     def import_dry_run(self, request, *args, payload=None, **kwargs):
         report = self.import_service.dry_run(**payload)
         return Response(report, status=status.HTTP_200_OK)
 
-    @post("import/apply", url_name="import-apply")
-    @require_permission("grades.edit", scope_field="offering")
+    @post(
+        "import/apply",
+        url_name="import-apply",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("grades.edit", scope_field="offering"),
+        ],
+    )
     @validate_payload(GradeImportApplySerializer)
     def import_apply(self, request, *args, payload=None, **kwargs):
         try:
@@ -186,13 +223,22 @@ class GradeBatchController(
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
-    @post()
-    @require_permission("grades.edit", scope_field="offering")
+    @post(
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("grades.edit", scope_field="offering"),
+        ]
+    )
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
 
-    @post("{id}/release")
-    @require_permission("grades.edit", scope_field="offering")
+    @post(
+        "{id}/release",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("grades.edit", scope_field="offering"),
+        ],
+    )
     def release(self, request, *args, **kwargs):
         batch = self.get_object()
         released = self.service.release(batch=batch, actor=request.user)

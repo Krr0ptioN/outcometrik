@@ -2,7 +2,7 @@ from rest_framework import mixins, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from ..decorators import controller, get, patch, post, require_permission, validate_payload
+from ..decorators import controller, get, patch, post, scoped_permission, validate_payload
 from ..serializers import EnrollmentSerializer, EnrollmentStatusUpdateSerializer
 from ..services import EnrollmentService, academic_service_provider
 from .base import AcademicPagination
@@ -38,13 +38,22 @@ class EnrollmentController(
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
-    @post()
-    @require_permission("offering.manage", scope_field="offering")
+    @post(
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("offering.manage", scope_field="offering"),
+        ]
+    )
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
 
-    @patch("{id}")
-    @require_permission("grades.edit", scope_field="offering")
+    @patch(
+        "{id}",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("grades.edit", scope_field="offering"),
+        ],
+    )
     @validate_payload(EnrollmentStatusUpdateSerializer)
     def partial_update(self, request, *args, payload=None, **kwargs):
         enrollment = self.get_object()

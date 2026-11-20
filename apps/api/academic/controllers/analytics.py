@@ -8,7 +8,7 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from ..decorators import controller, get, require_permission
+from ..decorators import controller, get, scoped_permission
 from ..models import Publication
 from ..services import CohortAnalyticsService, academic_service_provider
 
@@ -66,11 +66,17 @@ class AnalyticsController(viewsets.GenericViewSet):
         super().__init__(**kwargs)
         self.service = service or academic_service_provider.provide(CohortAnalyticsService)
 
-    @get("cohort", url_name="cohort")
-    @require_permission(
-        "outcomes.view",
-        scope_field="program",
-        scope_getter=_resolve_analytics_program_scope,
+    @get(
+        "cohort",
+        url_name="cohort",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission(
+                "outcomes.view",
+                scope_field="program",
+                scope_getter=_resolve_analytics_program_scope,
+            ),
+        ],
     )
     def cohort(self, request, *args, **kwargs):
         params = request.query_params
@@ -95,11 +101,17 @@ class AnalyticsController(viewsets.GenericViewSet):
         )
         return Response(summary)
 
-    @get("trends", url_name="trends")
-    @require_permission(
-        "outcomes.view",
-        scope_field="program",
-        scope_getter=_resolve_analytics_program_scope,
+    @get(
+        "trends",
+        url_name="trends",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission(
+                "outcomes.view",
+                scope_field="program",
+                scope_getter=_resolve_analytics_program_scope,
+            ),
+        ],
     )
     def trends(self, request, *args, **kwargs):
         params = request.query_params

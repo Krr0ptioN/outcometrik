@@ -2,7 +2,7 @@ from rest_framework import mixins, status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from ..decorators import controller, get, post, require_permission, validate_payload
+from ..decorators import controller, get, post, scoped_permission, validate_payload
 from ..serializers import (
     OutcomeScoreSerializer,
     PublicationCreateSerializer,
@@ -46,8 +46,12 @@ class PublicationController(
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
-    @post()
-    @require_permission("outcomes.publish", scope_field="run.program")
+    @post(
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("outcomes.publish", scope_field="run.program"),
+        ]
+    )
     @validate_payload(PublicationCreateSerializer)
     def create(self, request, *args, payload=None, **kwargs):
         try:

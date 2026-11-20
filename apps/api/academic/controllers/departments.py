@@ -1,7 +1,7 @@
 from rest_framework import mixins, viewsets
 from rest_framework.permissions import IsAuthenticated
 
-from ..decorators import controller, get, patch, post, require_permission
+from ..decorators import controller, get, patch, post, put, scoped_permission
 from ..serializers import DepartmentSerializer
 from ..services import DepartmentService, academic_service_provider
 from .base import AcademicPagination
@@ -36,17 +36,32 @@ class DepartmentController(
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
-    @post()
-    @require_permission("access.manage", scope_field="institution")
+    @post(
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("access.manage", scope_field="institution"),
+        ]
+    )
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
 
-    @require_permission("access.manage", scope_field="institution")
+    @put(
+        "{id}",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("access.manage", scope_field="institution"),
+        ],
+    )
     def update(self, request, *args, **kwargs):
         return super().update(request, *args, **kwargs)
 
-    @patch("{id}")
-    @require_permission("access.manage", scope_field="institution")
+    @patch(
+        "{id}",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("access.manage", scope_field="institution"),
+        ],
+    )
     def partial_update(self, request, *args, **kwargs):
         return super().partial_update(request, *args, **kwargs)
 

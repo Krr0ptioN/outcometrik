@@ -2,7 +2,7 @@ from rest_framework import mixins, status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from ..decorators import controller, get, post, require_permission, validate_payload
+from ..decorators import controller, get, post, scoped_permission, validate_payload
 from ..serializers import (
     CalculationRunSerializer,
     OfferingCalculationRunCreateSerializer,
@@ -42,8 +42,14 @@ class CalculationRunController(
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
-    @post("offering", url_name="run-offering")
-    @require_permission("grades.view", scope_field="offering")
+    @post(
+        "offering",
+        url_name="run-offering",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("grades.view", scope_field="offering"),
+        ],
+    )
     @validate_payload(OfferingCalculationRunCreateSerializer)
     def run_offering(self, request, *args, payload=None, **kwargs):
         run, created = self.service.run_offering(offering=payload["offering"], actor=request.user)
@@ -52,8 +58,14 @@ class CalculationRunController(
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )
 
-    @post("program", url_name="run-program")
-    @require_permission("outcomes.view", scope_field="program")
+    @post(
+        "program",
+        url_name="run-program",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("outcomes.view", scope_field="program"),
+        ],
+    )
     @validate_payload(ProgramCalculationRunCreateSerializer)
     def run_program(self, request, *args, payload=None, **kwargs):
         run, created = self.service.run_program(program=payload["program"], actor=request.user)

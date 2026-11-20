@@ -43,19 +43,23 @@ The repository root `AGENTS.md` and `docs/CODE_STYLE.md` still apply.
   focused DI/service tests (`test_*_di.py`) for container resolution, allowed/denied scopes,
   and HTTP contracts.
 
-## Authorization guards & scoping (`security-use-guards`)
+## Authorization permissions & scoping (`security-use-guards`)
 
 - Enforce RBAC/ABAC capability validation declaratively at the controller boundary using
-  `@require_permission` or `@guard` (alias exported from `academic.decorators` and
-  `academic.guards`) before action handlers execute:
+  DRF's native `permission_classes` with `HasScopedCapability` / `scoped_permission(...)`
+  (exported from `academic.decorators` and `academic.guards`):
+  - Pass `permission_classes=[IsAuthenticated, scoped_permission(...)]` directly to
+    route decorators (`@get`, `@post`, `@put`, `@patch`, `@delete`) or DRF's
+    `permission_classes` / `get_permissions()`.
   - Use `scope_field` for declarative dot-separated lookup on the payload or target instance
-    (for example, `@require_permission("program.manage", scope_field="department.institution")`,
-    `@require_permission("syllabus.draft", scope_field="offering")`,
-    `@require_permission("access.manage", scope_field="name")`).
+    (for example, `scoped_permission("program.manage", scope_field="department.institution")`,
+    `scoped_permission("syllabus.draft", scope_field="offering")`,
+    `scoped_permission("access.manage", scope_field="name")`).
   - Use `scope_param` when the scope UUID comes from a URL kwarg or payload field, or
     `scope_getter` when custom resolution is required.
   - Detail actions (`pk` in kwargs) without an explicit `scope_getter` or `scope_param`
-    resolve the stored object via `self.get_object()` and extract `scope_field` (or `pk`).
+    defer to `HasScopedCapability.has_object_permission()`, which DRF runs automatically
+    inside `self.get_object()` (single DB query, preserving `404` on scoped-out objects).
 - **Zero mutation authorization checks inside domain services**: domain services must not
   call `_check_access` or perform controller-boundary capability checks inside `create`/`update`
   mutations. Services own:

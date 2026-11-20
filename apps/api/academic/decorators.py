@@ -3,7 +3,7 @@ import inspect
 from collections.abc import Callable
 from typing import Any
 
-from .guards import HasScopedCapability, guard, require_permission, scoped_permission
+from .guards import HasScopedCapability, scoped_permission
 
 
 def validate_payload(
@@ -77,11 +77,9 @@ __all__ = [
     "controller",
     "delete",
     "get",
-    "guard",
     "patch",
     "post",
     "put",
-    "require_permission",
     "route",
     "scoped_permission",
     "validate_dto",

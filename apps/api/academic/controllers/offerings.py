@@ -2,7 +2,7 @@ from rest_framework import mixins, status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from ..decorators import controller, get, patch, post, require_permission, validate_payload
+from ..decorators import controller, get, patch, post, scoped_permission, validate_payload
 from ..serializers import CourseOfferingSerializer, EnrollmentSerializer
 from ..services import CourseOfferingService, EnrollmentService, academic_service_provider
 from .base import AcademicPagination
@@ -46,13 +46,16 @@ class CourseOfferingController(
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
-    @post()
-    @require_permission("offering.manage", scope_field="program")
+    @post(
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("offering.manage", scope_field="program"),
+        ]
+    )
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
 
-    @patch("{id}")
-    @require_permission("offering.manage")
+    @patch("{id}", permission_classes=[IsAuthenticated, scoped_permission("offering.manage")])
     def partial_update(self, request, *args, **kwargs):
         return super().partial_update(request, *args, **kwargs)
 
@@ -66,8 +69,10 @@ class CourseOfferingController(
             EnrollmentSerializer(page, many=True, context=self.get_serializer_context()).data
         )
 
-    @post("{id}/enrollments")
-    @require_permission("offering.manage")
+    @post(
+        "{id}/enrollments",
+        permission_classes=[IsAuthenticated, scoped_permission("offering.manage")],
+    )
     @validate_payload(
         EnrollmentSerializer,
         merge_data=lambda self, request, pk=None: {"offering": str(self.get_object().pk)},

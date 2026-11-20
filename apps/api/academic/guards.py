@@ -1,4 +1,4 @@
-"""DRF-native scoped RBAC/ABAC permission classes and action permission helpers.
+"""DRF-native scoped RBAC/ABAC permission classes.
 
 Integrates `access.policy.authorization` directly into Django REST Framework's
 `BasePermission` lifecycle (`has_permission` / `has_object_permission` /
@@ -12,7 +12,6 @@ Integrates `access.policy.authorization` directly into Django REST Framework's
 
 from __future__ import annotations
 
-import functools
 from collections.abc import Callable
 from typing import Any
 
@@ -96,12 +95,10 @@ def _resolve_request_scope(
     scope_field: str | None = None,
     scope_param: str | None = None,
     scope_getter: Callable[..., Any] | None = None,
-    args: tuple[Any, ...] = (),
-    kwargs: dict[str, Any] | None = None,
 ) -> Any:
-    kw = kwargs if kwargs is not None else getattr(view, "kwargs", {}) or {}
+    kw = getattr(view, "kwargs", {}) or {}
     if scope_getter is not None:
-        return scope_getter(view, request, *args, **kw)
+        return scope_getter(view, request, **kw)
     if scope_param is not None:
         if scope_param in kw:
             return kw[scope_param]
@@ -127,8 +124,9 @@ def _resolve_request_scope(
 class HasScopedCapability(BasePermission):
     """DRF `BasePermission` enforcing scoped RBAC/ABAC capabilities.
 
-    Subclass or instantiate via `scoped_permission(...)` to attach directly to
-    DRF's `permission_classes`, `get_permissions()`, or `@action(permission_classes=...)`.
+    Instantiate a concrete class via `scoped_permission(...)` and attach it
+    directly to DRF's `permission_classes`, `get_permissions()`, or route
+    decorators (`@post(..., permission_classes=[IsAuthenticated, scoped_permission(...)])`).
     """
 
     message = "This action is not permitted in this scope."
@@ -181,7 +179,7 @@ def scoped_permission(
     scope_param: str | None = None,
     scope_getter: Callable[..., Any] | None = None,
 ) -> type[HasScopedCapability]:
-    """Factory returning a DRF `BasePermission` class for a scoped capability.
+    """Factory returning a DRF `BasePermission` subclass for a scoped capability.
 
     Because DRF expects classes in `permission_classes` (instantiating them in
     `get_permissions()`), this dynamically creates a `HasScopedCapability` subclass
@@ -198,75 +196,4 @@ def scoped_permission(
     return type(f"HasScopedCapability_{safe_cap}", (HasScopedCapability,), attrs)
 
 
-def require_permission(
-    capability: str,
-    *,
-    scope_field: str | None = None,
-    scope_param: str | None = None,
-    scope_getter: Callable[..., Any] | None = None,
-) -> Callable:
-    """Attach a DRF-native `HasScopedCapability` permission class to a controller action.
-
-    When applied to a DRF ViewSet/APIView method registered with `@controller`,
-    the permission class is attached as `_drf_permission_classes` so DRF's
-    `get_permissions()` enforces it natively during `check_permissions()` and
-    `check_object_permissions()` (inside `self.get_object()`), avoiding duplicate
-    object lookups and bypassing nothing in DRF's permission pipeline.
-
-    When a decorated method is called directly in isolation outside DRF's
-    `dispatch()` lifecycle (e.g. plain Python unit tests), the wrapper evaluates
-    the same `HasScopedCapability` instance and raises `PermissionDenied` on denial.
-    """
-    perm_cls = scoped_permission(
-        capability,
-        scope_field=scope_field,
-        scope_param=scope_param,
-        scope_getter=scope_getter,
-    )
-
-    def decorator(view_func: Callable) -> Callable:
-        @functools.wraps(view_func)
-        def wrapper(self, request, *args, **kwargs):
-            # Inside a DRF view that wired action permissions into `get_permissions()`,
-            # DRF already ran `check_permissions()` in `initial()` and will run
-            # `check_object_permissions()` inside `self.get_object()`.
-            if getattr(self, "_drf_action_permissions_enforced", False):
-                return view_func(self, request, *args, **kwargs)
-
-            # Fallback for direct non-DRF unit test invocations of the method.
-            perm = perm_cls()
-            actor = getattr(request, "user", None)
-            if scope_getter is None and scope_param is None and "pk" in kwargs:
-                if hasattr(self, "get_object"):
-                    instance = self.get_object()
-                    allowed = perm.has_object_permission(request, self, instance)
-                else:
-                    allowed = _is_allowed(actor, capability, kwargs["pk"])
-            else:
-                scope_id = _resolve_request_scope(
-                    self,
-                    request,
-                    scope_field=scope_field,
-                    scope_param=scope_param,
-                    scope_getter=scope_getter,
-                    args=args,
-                    kwargs=kwargs,
-                )
-                allowed = _is_allowed(actor, capability, scope_id)
-
-            if not allowed:
-                raise PermissionDenied(perm.message)
-
-            return view_func(self, request, *args, **kwargs)
-
-        existing = list(getattr(view_func, "_drf_permission_classes", ()))
-        existing.append(perm_cls)
-        wrapper._drf_permission_classes = tuple(existing)
-        return wrapper
-
-    return decorator
-
-
-guard = require_permission
-
-__all__ = ["HasScopedCapability", "guard", "require_permission", "scoped_permission"]
+__all__ = ["HasScopedCapability", "scoped_permission"]

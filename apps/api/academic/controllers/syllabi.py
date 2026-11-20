@@ -8,7 +8,7 @@ from ..decorators import (
     get,
     patch,
     post,
-    require_permission,
+    scoped_permission,
     validate_payload,
 )
 from ..serializers import (
@@ -59,8 +59,12 @@ class SyllabusController(
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
-    @post()
-    @require_permission("syllabus.draft", scope_field="offering")
+    @post(
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("syllabus.draft", scope_field="offering"),
+        ]
+    )
     @validate_payload(SyllabusCreateSerializer)
     def create(self, request, *args, payload=None, **kwargs):
         syllabus = self.service.create(**payload)
@@ -72,28 +76,48 @@ class SyllabusController(
     def partial_update(self, request, *args, **kwargs):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
-    @post("{id}/approve")
-    @require_permission("syllabus.approve", scope_field="offering.program")
+    @post(
+        "{id}/approve",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("syllabus.approve", scope_field="offering.program"),
+        ],
+    )
     def approve(self, request, pk=None):
         syllabus = self.get_object()
         approved = self.service.approve(syllabus=syllabus, actor=request.user)
         return Response(self.get_serializer(approved).data)
 
-    @post("{id}/revise")
-    @require_permission("syllabus.draft", scope_field="offering")
+    @post(
+        "{id}/revise",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("syllabus.draft", scope_field="offering"),
+        ],
+    )
     def revise(self, request, pk=None):
         syllabus = self.get_object()
         revision = self.service.revise(syllabus=syllabus)
         return Response(self.get_serializer(revision).data, status=status.HTTP_201_CREATED)
 
-    @post("{id}/bind-active-po-set")
-    @require_permission("syllabus.draft", scope_field="offering")
+    @post(
+        "{id}/bind-active-po-set",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("syllabus.draft", scope_field="offering"),
+        ],
+    )
     def bind_active_po_set(self, request, pk=None):
         syllabus = self.service.bind_active_po_set(syllabus=self.get_object())
         return Response(self.get_serializer(syllabus).data)
 
-    @post("{id}/retire")
-    @require_permission("syllabus.draft", scope_field="offering")
+    @post(
+        "{id}/retire",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("syllabus.draft", scope_field="offering"),
+        ],
+    )
     def retire(self, request, pk=None):
         syllabus = self.get_object()
         retired = self.service.remove_unused_draft(syllabus=syllabus)
@@ -106,8 +130,14 @@ class SyllabusController(
         queryset = syllabus.learning_outcomes.order_by("order", "created_at")
         return Response(LearningOutcomeSerializer(queryset, many=True).data)
 
-    @post("{id}/learning-outcomes", url_name="learning-outcomes")
-    @require_permission("syllabus.draft", scope_field="offering")
+    @post(
+        "{id}/learning-outcomes",
+        url_name="learning-outcomes",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("syllabus.draft", scope_field="offering"),
+        ],
+    )
     @validate_payload(LearningOutcomeSerializer)
     def create_learning_outcome(self, request, pk=None, payload=None):
         """Add draft LO row for this syllabus version."""
@@ -115,8 +145,14 @@ class SyllabusController(
         outcome = self.service.add_learning_outcome(syllabus=syllabus, **payload)
         return Response(LearningOutcomeSerializer(outcome).data, status=status.HTTP_201_CREATED)
 
-    @patch(r"{id}/learning-outcomes/(?P<child_pk>[^/.]+)", url_name="learning-outcome-detail")
-    @require_permission("syllabus.draft", scope_field="offering")
+    @patch(
+        r"{id}/learning-outcomes/(?P<child_pk>[^/.]+)",
+        url_name="learning-outcome-detail",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("syllabus.draft", scope_field="offering"),
+        ],
+    )
     @validate_payload(LearningOutcomeSerializer, partial=True)
     def update_learning_outcome(self, request, pk=None, child_pk=None, payload=None):
         """Edit one draft LO, scoped through its owning syllabus version."""
@@ -127,8 +163,14 @@ class SyllabusController(
         updated = self.service.update_learning_outcome(instance=outcome, **payload)
         return Response(LearningOutcomeSerializer(updated).data)
 
-    @delete(r"{id}/learning-outcomes/(?P<child_pk>[^/.]+)", url_name="learning-outcome-detail")
-    @require_permission("syllabus.draft", scope_field="offering")
+    @delete(
+        r"{id}/learning-outcomes/(?P<child_pk>[^/.]+)",
+        url_name="learning-outcome-detail",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("syllabus.draft", scope_field="offering"),
+        ],
+    )
     def delete_learning_outcome(self, request, pk=None, child_pk=None):
         """Remove one draft LO, scoped through its owning syllabus version."""
         syllabus = self.get_object()
@@ -145,8 +187,14 @@ class SyllabusController(
         queryset = syllabus.assessments.order_by("order", "created_at")
         return Response(SyllabusAssessmentSerializer(queryset, many=True).data)
 
-    @post("{id}/assessments", url_name="assessments")
-    @require_permission("syllabus.draft", scope_field="offering")
+    @post(
+        "{id}/assessments",
+        url_name="assessments",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("syllabus.draft", scope_field="offering"),
+        ],
+    )
     @validate_payload(SyllabusAssessmentSerializer)
     def create_assessment(self, request, pk=None, payload=None):
         """Add draft assessment row for this syllabus version."""
@@ -156,8 +204,14 @@ class SyllabusController(
             SyllabusAssessmentSerializer(assessment).data, status=status.HTTP_201_CREATED
         )
 
-    @patch(r"{id}/assessments/(?P<child_pk>[^/.]+)", url_name="assessment-detail")
-    @require_permission("syllabus.draft", scope_field="offering")
+    @patch(
+        r"{id}/assessments/(?P<child_pk>[^/.]+)",
+        url_name="assessment-detail",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("syllabus.draft", scope_field="offering"),
+        ],
+    )
     @validate_payload(SyllabusAssessmentSerializer, partial=True)
     def update_assessment(self, request, pk=None, child_pk=None, payload=None):
         """Edit one draft assessment, scoped through its owning syllabus version."""
@@ -168,8 +222,14 @@ class SyllabusController(
         updated = self.service.update_assessment(instance=assessment, **payload)
         return Response(SyllabusAssessmentSerializer(updated).data)
 
-    @delete(r"{id}/assessments/(?P<child_pk>[^/.]+)", url_name="assessment-detail")
-    @require_permission("syllabus.draft", scope_field="offering")
+    @delete(
+        r"{id}/assessments/(?P<child_pk>[^/.]+)",
+        url_name="assessment-detail",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("syllabus.draft", scope_field="offering"),
+        ],
+    )
     def delete_assessment(self, request, pk=None, child_pk=None):
         """Remove one draft assessment, scoped through its owning syllabus version."""
         syllabus = self.get_object()
@@ -186,8 +246,14 @@ class SyllabusController(
         queryset = self.service.list_po_contributions(syllabus=syllabus)
         return Response(CoursePOContributionSerializer(queryset, many=True).data)
 
-    @post("{id}/po-contributions", url_name="po-contributions")
-    @require_permission("syllabus.approve", scope_field="offering.program")
+    @post(
+        "{id}/po-contributions",
+        url_name="po-contributions",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("syllabus.approve", scope_field="offering.program"),
+        ],
+    )
     @validate_payload(CoursePOContributionSerializer)
     def create_po_contribution(self, request, pk=None, payload=None):
         """Assign or update a course-to-PO contribution weight (integer 1-5) on a draft syllabus."""
@@ -201,8 +267,14 @@ class SyllabusController(
             CoursePOContributionSerializer(contribution).data, status=status.HTTP_201_CREATED
         )
 
-    @patch(r"{id}/po-contributions/(?P<child_pk>[^/.]+)", url_name="po-contribution-detail")
-    @require_permission("syllabus.approve", scope_field="offering.program")
+    @patch(
+        r"{id}/po-contributions/(?P<child_pk>[^/.]+)",
+        url_name="po-contribution-detail",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("syllabus.approve", scope_field="offering.program"),
+        ],
+    )
     @validate_payload(CoursePOContributionSerializer, partial=True)
     def update_po_contribution(self, request, pk=None, child_pk=None, payload=None):
         """Update one course-to-PO contribution weight on a draft syllabus."""
@@ -219,8 +291,14 @@ class SyllabusController(
         )
         return Response(CoursePOContributionSerializer(updated).data)
 
-    @delete(r"{id}/po-contributions/(?P<child_pk>[^/.]+)", url_name="po-contribution-detail")
-    @require_permission("syllabus.approve", scope_field="offering.program")
+    @delete(
+        r"{id}/po-contributions/(?P<child_pk>[^/.]+)",
+        url_name="po-contribution-detail",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("syllabus.approve", scope_field="offering.program"),
+        ],
+    )
     def delete_po_contribution(self, request, pk=None, child_pk=None):
         """Remove one course-to-PO contribution weight from a draft syllabus."""
         syllabus = self.get_object()
@@ -239,8 +317,14 @@ class SyllabusController(
         )
         return Response(AssessmentLOMappingSerializer(queryset, many=True).data)
 
-    @post("{id}/assessment-lo-mappings", url_name="assessment-lo-mappings")
-    @require_permission("syllabus.draft", scope_field="offering")
+    @post(
+        "{id}/assessment-lo-mappings",
+        url_name="assessment-lo-mappings",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("syllabus.draft", scope_field="offering"),
+        ],
+    )
     @validate_payload(AssessmentLOMatrixReplaceSerializer)
     def replace_assessment_lo_mappings(self, request, pk=None, payload=None):
         """Atomically replace the A->LO mapping matrix with optimistic locking."""
@@ -271,8 +355,14 @@ class SyllabusController(
         )
         return Response(LOPOMappingSerializer(queryset, many=True).data)
 
-    @post("{id}/lo-po-mappings", url_name="lo-po-mappings")
-    @require_permission("syllabus.draft", scope_field="offering")
+    @post(
+        "{id}/lo-po-mappings",
+        url_name="lo-po-mappings",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("syllabus.draft", scope_field="offering"),
+        ],
+    )
     @validate_payload(LOPOMatrixReplaceSerializer)
     def replace_lo_po_mappings(self, request, pk=None, payload=None):
         """Atomically replace the LO->PO mapping matrix with optimistic locking."""

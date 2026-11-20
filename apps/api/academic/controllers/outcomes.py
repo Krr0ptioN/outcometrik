@@ -7,7 +7,7 @@ from ..decorators import (
     get,
     patch,
     post,
-    require_permission,
+    scoped_permission,
     validate_payload,
 )
 from ..models import ProgramOutcomeSet
@@ -68,8 +68,12 @@ class ProgramOutcomeSetController(
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
-    @post()
-    @require_permission("program.manage", scope_field="program")
+    @post(
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("program.manage", scope_field="program"),
+        ]
+    )
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
 
@@ -79,8 +83,13 @@ class ProgramOutcomeSetController(
     def partial_update(self, request, *args, **kwargs):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
-    @post("{id}/activate")
-    @require_permission("program.manage", scope_field="program")
+    @post(
+        "{id}/activate",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("program.manage", scope_field="program"),
+        ],
+    )
     @validate_payload(ProgramOutcomeSetActivateSerializer)
     def activate(self, request, pk=None, payload=None):
         instance = self.service.activate(
@@ -97,8 +106,13 @@ class ProgramOutcomeSetController(
             ProgramOutcomeSerializer(po_set.outcomes.order_by("ordering"), many=True).data
         )
 
-    @post("{id}/outcomes")
-    @require_permission("program.manage", scope_field="program")
+    @post(
+        "{id}/outcomes",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("program.manage", scope_field="program"),
+        ],
+    )
     @validate_payload(
         ProgramOutcomeSerializer,
         merge_data=lambda self, request, pk=None: {"outcome_set": str(self.get_object().pk)},
@@ -107,8 +121,13 @@ class ProgramOutcomeSetController(
         outcome = self.outcome_service.create(**payload)
         return Response(ProgramOutcomeSerializer(outcome).data, status=status.HTTP_201_CREATED)
 
-    @patch(r"{id}/outcomes/(?P<child_pk>[^/.]+)")
-    @require_permission("program.manage", scope_field="program")
+    @patch(
+        r"{id}/outcomes/(?P<child_pk>[^/.]+)",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("program.manage", scope_field="program"),
+        ],
+    )
     @validate_payload(ProgramOutcomeSerializer, partial=True)
     def update_outcome(self, request, pk=None, child_pk=None, payload=None):
         po_set = self.get_object()
@@ -157,13 +176,22 @@ class ProgramOutcomeController(
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
-    @post()
-    @require_permission("program.manage", scope_field="outcome_set.program")
+    @post(
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("program.manage", scope_field="outcome_set.program"),
+        ]
+    )
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
 
-    @patch("{id}")
-    @require_permission("program.manage", scope_field="outcome_set.program")
+    @patch(
+        "{id}",
+        permission_classes=[
+            IsAuthenticated,
+            scoped_permission("program.manage", scope_field="outcome_set.program"),
+        ],
+    )
     def partial_update(self, request, *args, **kwargs):
         return super().partial_update(request, *args, **kwargs)
 
