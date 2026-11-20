@@ -1,44 +1,223 @@
 @import 'tailwindcss';
 @source '../../../libs/ui/core/src';
 @source '../../../libs/ui/modules/access/src';
-@custom-variant dark (&:is(.dark *));
+@source '../../../libs/ui/modules/academic/src';
+@source '../../../libs/ui/modules/reports/src';
+@source '../../../libs/ui/modules/system/src';
+@custom-variant dark (&:is(.dark *, [data-theme='dark'] *));
+
+/* ==========================================================================
+   OUTCOMETRIK — Institutional Navy & Gold Design System
+   OKLCH Hue 254° Cool-Navy Neutrals + Subordinate Hue 78° Academic Gold
+   Synced with .ui-craft/tokens.md
+   ========================================================================== */
 
 :root {
   color-scheme: light;
-  --background: #f7f8f4;
-  --foreground: #203630;
-  --card: #ffffff;
-  --card-foreground: #203630;
-  --popover: #ffffff;
-  --popover-foreground: #203630;
-  --primary: #24583f;
-  --primary-foreground: #ffffff;
-  --secondary: #edf1e7;
-  --secondary-foreground: #3d593d;
-  --muted: #f1f3ed;
-  --muted-foreground: #63725e;
-  --accent: #e8edde;
-  --accent-foreground: #2f4933;
-  --destructive: #b34236;
-  --border: #e2e7db;
-  --input: #d8dfd2;
-  --ring: #7b945f;
-  --radius: 0.625rem;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #2a4135;
-  --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: var(--secondary);
-  --sidebar-accent-foreground: var(--secondary-foreground);
-  --sidebar-border: var(--border);
-  --sidebar-ring: var(--ring);
-  --ink: var(--foreground);
-  --paper: var(--background);
-  --line: var(--border);
-  --accent-soft: var(--secondary);
+
+  /* Typography */
+  --font-sans:
+    var(--font-plus-jakarta-sans), 'Plus Jakarta Sans', system-ui,
+    -apple-system, sans-serif;
+  --font-display:
+    var(--font-plus-jakarta-sans), 'Plus Jakarta Sans', system-ui,
+    -apple-system, sans-serif;
+  --font-mono:
+    var(--font-ibm-plex-mono), 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* Varied Radii by Element Class */
+  --radius-tag: 4px;
+  --radius-input: 6px;
+  --radius-card: 10px;
+  --radius-modal: 14px;
+  --radius: var(--radius-card);
+
+  /* Light Surface Stack (OKLCH Hue 254° Cool-Navy Neutrals) */
+  --surface-canvas: #f6f8fb;
+  --surface-canvas: oklch(97.8% 0.006 254);
+  --surface-sidebar: #eef2f8;
+  --surface-sidebar: oklch(95.6% 0.01 254);
+  --surface-raised: #ffffff;
+  --surface-raised: oklch(99.6% 0.002 254);
+  --surface-subtle: #e9eef6;
+  --surface-subtle: oklch(94.4% 0.011 254);
+  --surface-hover: #edf2fa;
+  --surface-hover: oklch(95.8% 0.012 254);
+
+  /* Ink & Hairlines */
+  --text-primary: #0f213d;
+  --text-primary: oklch(22.5% 0.045 254);
+  --text-secondary: #3b4e6b;
+  --text-secondary: oklch(40.5% 0.032 254);
+  --text-muted: #5d6e85;
+  --text-muted: oklch(52% 0.025 254);
+
+  --border-hairline: color-mix(in oklch, var(--text-primary) 9%, transparent);
+  --border-strong: color-mix(in oklch, var(--text-primary) 18%, transparent);
+
+  /* Primary Accent (Oxford Navy) + Subordinate Brand Crest Gold */
+  --accent-primary: #1a3a6c;
+  --accent-primary: oklch(34.5% 0.095 254);
+  --accent-hover: #122a50;
+  --accent-hover: oklch(28% 0.09 254);
+  --accent-contrast: #ffffff;
+  --accent-contrast: oklch(99.6% 0.002 254);
+  --accent-soft: #e9f0fa;
+  --accent-soft: oklch(94.5% 0.022 254);
+  --accent-border: #b9cce8;
+  --accent-border: oklch(82% 0.045 254);
+
+  --brand-gold: #d99b1e;
+  --brand-gold: oklch(74.5% 0.145 78);
+  --brand-mark-bg: #0f213d;
+  --brand-mark-bg: oklch(22.5% 0.045 254);
+  --brand-mark-fg: #dfa226;
+  --brand-mark-fg: oklch(76.5% 0.145 78);
+
+  /* Semantic Status (Always paired with dot/icon + text label) */
+  --status-success-bg: #ecfdf5;
+  --status-success-bg: oklch(96% 0.025 152);
+  --status-success-fg: #166534;
+  --status-success-fg: oklch(42% 0.12 152);
+  --status-success-border: #a7f3d0;
+  --status-success-border: oklch(84% 0.06 152);
+
+  --status-warn-bg: #fffbeb;
+  --status-warn-bg: oklch(96.5% 0.03 78);
+  --status-warn-fg: #854d0e;
+  --status-warn-fg: oklch(45% 0.125 68);
+  --status-warn-border: #fde68a;
+  --status-warn-border: oklch(85% 0.08 78);
+
+  --status-danger-bg: #fef2f2;
+  --status-danger-bg: oklch(96% 0.025 22);
+  --status-danger-fg: #991b1b;
+  --status-danger-fg: oklch(48% 0.165 24);
+  --status-danger-border: #fecaca;
+  --status-danger-border: oklch(84% 0.075 22);
+
+  --status-info-bg: #eff6ff;
+  --status-info-bg: oklch(95.5% 0.022 238);
+  --status-info-fg: #1e40af;
+  --status-info-fg: oklch(42% 0.105 240);
+  --status-info-border: #bfdbfe;
+  --status-info-border: oklch(82% 0.055 240);
+
+  /* Layered Ambient + Direct Light Shadows */
+  --shadow-sm:
+    0 1px 2px oklch(22% 0.04 254 / 0.06), 0 4px 12px oklch(22% 0.04 254 / 0.04);
+  --shadow-lg:
+    0 4px 12px oklch(22% 0.04 254 / 0.1), 0 20px 40px oklch(22% 0.04 254 / 0.16);
+
+  /* Semantic Mapping for shadcn / @outcometrik/ui Primitives */
+  --background: var(--surface-canvas);
+  --foreground: var(--text-primary);
+  --card: var(--surface-raised);
+  --card-foreground: var(--text-primary);
+  --popover: var(--surface-raised);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--accent-primary);
+  --primary-foreground: var(--accent-contrast);
+  --secondary: var(--surface-subtle);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--surface-subtle);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--accent-soft);
+  --accent-foreground: var(--accent-primary);
+  --destructive: var(--status-danger-fg);
+  --destructive-foreground: #ffffff;
+  --border: var(--border-hairline);
+  --input: var(--border-strong);
+  --ring: var(--accent-primary);
+
+  --sidebar: var(--surface-sidebar);
+  --sidebar-foreground: var(--text-secondary);
+  --sidebar-primary: var(--accent-primary);
+  --sidebar-primary-foreground: var(--accent-contrast);
+  --sidebar-accent: var(--accent-soft);
+  --sidebar-accent-foreground: var(--accent-primary);
+  --sidebar-border: var(--border-hairline);
+  --sidebar-ring: var(--accent-primary);
+
+  /* Legacy alias support for root landing shell */
+  --ink: var(--text-primary);
+  --paper: var(--surface-canvas);
+  --line: var(--border-hairline);
+}
+
+@media (color-gamut: p3) {
+  :root {
+    --accent-primary: oklch(34.5% 0.115 254);
+  }
+}
+
+/* Intentional Dark Mode (Hue 254° Deep Navy + Academic Gold Focal Accent) */
+.dark,
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --surface-canvas: #0a111d;
+  --surface-canvas: oklch(14.5% 0.022 254);
+  --surface-sidebar: #070d17;
+  --surface-sidebar: oklch(12.2% 0.02 254);
+  --surface-raised: #101a2b;
+  --surface-raised: oklch(18.5% 0.024 254);
+  --surface-subtle: rgba(255, 255, 255, 0.05);
+  --surface-hover: rgba(255, 255, 255, 0.07);
+
+  --text-primary: #f1f5f9;
+  --text-primary: oklch(95.5% 0.008 254);
+  --text-secondary: #a9bad1;
+  --text-secondary: oklch(77% 0.02 254);
+  --text-muted: #8296b2;
+  --text-muted: oklch(65% 0.022 254);
+
+  --border-hairline: rgba(255, 255, 255, 0.09);
+  --border-strong: rgba(255, 255, 255, 0.17);
+
+  --accent-primary: #eab338;
+  --accent-primary: oklch(79.5% 0.14 80);
+  --accent-hover: #f5c95d;
+  --accent-hover: oklch(85% 0.13 82);
+  --accent-contrast: #0a1526;
+  --accent-contrast: oklch(16% 0.03 254);
+  --accent-soft: rgba(234, 179, 56, 0.11);
+  --accent-border: rgba(234, 179, 56, 0.32);
+
+  --brand-mark-bg: #eab338;
+  --brand-mark-bg: oklch(79.5% 0.14 80);
+  --brand-mark-fg: #0a1526;
+  --brand-mark-fg: oklch(16% 0.03 254);
+
+  --status-success-bg: rgba(16, 185, 129, 0.12);
+  --status-success-fg: #34d399;
+  --status-success-fg: oklch(78% 0.13 155);
+  --status-success-border: rgba(16, 185, 129, 0.3);
+
+  --status-warn-bg: rgba(245, 158, 11, 0.14);
+  --status-warn-fg: #fbbf24;
+  --status-warn-fg: oklch(82% 0.14 82);
+  --status-warn-border: rgba(245, 158, 11, 0.32);
+
+  --status-danger-bg: rgba(239, 68, 68, 0.14);
+  --status-danger-fg: #f87171;
+  --status-danger-fg: oklch(74% 0.16 22);
+  --status-danger-border: rgba(239, 68, 68, 0.34);
+
+  --status-info-bg: rgba(56, 189, 248, 0.12);
+  --status-info-fg: #38bdf8;
+  --status-info-fg: oklch(76% 0.12 235);
+  --status-info-border: rgba(56, 189, 248, 0.3);
+
+  --shadow-sm: none;
+  --shadow-lg: 0 20px 44px rgba(0, 0, 0, 0.55);
+
+  --destructive-foreground: oklch(16% 0.03 254);
 }
 
 @theme inline {
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -54,6 +233,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -65,157 +245,240 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --color-brand-gold: var(--brand-gold);
+  --color-surface-canvas: var(--surface-canvas);
+  --color-surface-sidebar: var(--surface-sidebar);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-surface-hover: var(--surface-hover);
+  --color-status-success-bg: var(--status-success-bg);
+  --color-status-success-fg: var(--status-success-fg);
+  --color-status-success-border: var(--status-success-border);
+  --color-status-warn-bg: var(--status-warn-bg);
+  --color-status-warn-fg: var(--status-warn-fg);
+  --color-status-warn-border: var(--status-warn-border);
+  --color-status-danger-bg: var(--status-danger-bg);
+  --color-status-danger-fg: var(--status-danger-fg);
+  --color-status-danger-border: var(--status-danger-border);
+  --color-status-info-bg: var(--status-info-bg);
+  --color-status-info-fg: var(--status-info-fg);
+  --color-status-info-border: var(--status-info-border);
+  --radius-tag: var(--radius-tag);
+  --radius-sm: var(--radius-tag);
+  --radius-md: var(--radius-input);
+  --radius-lg: var(--radius-card);
+  --radius-xl: var(--radius-modal);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-lg: var(--shadow-lg);
 }
 
 @layer base {
-  * {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
     @apply border-border;
   }
+
+  html {
+    scroll-behavior: smooth;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    margin: 0;
+    background-color: var(--surface-canvas);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    transition:
+      background-color 180ms ease-out,
+      color 180ms ease-out;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.18;
+    text-wrap: balance;
+    color: var(--text-primary);
+  }
+
+  code,
+  pre,
+  kbd,
+  samp {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums slashed-zero;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
   }
 }
 
-* {
-  box-sizing: border-box;
+/* Tabular Monospace Utility */
+.tabular-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums slashed-zero;
 }
-html {
-  scroll-behavior: smooth;
+
+/* Layout-Matched Skeleton Shimmer */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
-body {
-  margin: 0;
-  background: var(--paper);
-  color: var(--ink);
-  font-family: Arial, sans-serif;
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--surface-subtle) 25%,
+    var(--surface-hover) 50%,
+    var(--surface-subtle) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
 }
-.shell a {
-  color: inherit;
+
+/* Accessible Skip Link */
+.skip-link {
+  @apply sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-md focus:bg-card focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground focus:shadow-lg;
 }
+
+/* Root Landing Shell (Backward-compatible with Institutional Navy tokens) */
 .shell {
   width: min(100% - 2rem, 72rem);
   margin: 0 auto;
   padding: 1.5rem 0 5rem;
 }
+
+.shell a {
+  color: inherit;
+}
+
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--border-hairline);
   padding-bottom: 1rem;
 }
+
 .brand {
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: -0.02em;
   text-decoration: none;
+  color: var(--text-primary);
 }
+
 .shell nav {
   display: flex;
+  align-items: center;
   gap: 1rem;
-  font-size: 0.9rem;
-  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
 }
-nav a:focus-visible,
-.brand:focus-visible,
-button:focus-visible {
-  outline: 3px solid #e6a72e;
-  outline-offset: 3px;
-}
+
 .hero {
-  padding: clamp(4rem, 12vw, 9rem) 0 4rem;
-  max-width: 48rem;
+  padding: clamp(3rem, 8vw, 5.5rem) 0 3rem;
+  max-width: 44rem;
 }
+
 .eyebrow {
-  color: var(--primary);
+  color: var(--accent-primary);
   font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
+
 .shell h1 {
-  font-size: clamp(2.7rem, 7vw, 5.4rem);
-  letter-spacing: -0.06em;
-  line-height: 0.98;
-  margin: 1rem 0;
+  font-size: clamp(2rem, 4.5vw, 3rem);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.12;
+  margin: 0.6rem 0 0.75rem;
 }
+
 .shell h2 {
-  font-size: clamp(1.4rem, 3vw, 2rem);
+  font-size: clamp(1.25rem, 2.5vw, 1.5rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
   margin: 0.35rem 0 0;
 }
+
 .lede,
 .workspace p {
-  color: var(--muted-foreground);
-  font-size: 1.1rem;
-  line-height: 1.6;
-  max-width: 38rem;
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  max-width: 58ch;
 }
+
 .status-card,
 .workspace {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 1rem;
-  padding: 1.5rem;
-  box-shadow: 0 1rem 2rem #1733240b;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-card);
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--shadow-sm);
 }
+
 .status-card {
   display: grid;
   gap: 1rem;
   grid-template-columns: 1fr auto;
   align-items: center;
 }
+
 .status-card > :first-child {
   grid-column: 1 / -1;
 }
-.state {
-  border-radius: 999px;
-  padding: 0.55rem 0.8rem;
-  font-size: 0.9rem;
-  font-weight: 700;
-}
-.success {
-  background: var(--accent-soft);
-  color: var(--primary);
-}
-.warning {
-  background: #fff3d7;
-  color: #7b5100;
-}
-.secondary {
-  border: 1px solid var(--line);
-  background: transparent;
-  border-radius: 0.5rem;
-  color: var(--ink);
-  cursor: pointer;
-  padding: 0.65rem 0.85rem;
-}
+
 .workspace {
   margin-top: 1rem;
 }
+
 @media (max-width: 40rem) {
   .topbar {
     align-items: flex-start;
     flex-direction: column;
   }
+
   .status-card {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
   }
+
   .shell nav {
     flex-wrap: wrap;
   }
 }
 
-.skip-link {
-  @apply sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:bg-white focus:p-3;
-}
-
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }
