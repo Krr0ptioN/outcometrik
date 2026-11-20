@@ -137,6 +137,36 @@ class AcademicRouter(SimpleRouter):
 academic_router = AcademicRouter()
 
 
+def _install_action_permissions(cls: type) -> None:
+    """Wire method-level `_drf_permission_classes` into DRF's native `get_permissions()`.
+
+    Ensures DRF's standard `APIView.check_permissions()` and
+    `GenericAPIView.check_object_permissions()` (inside `get_object()`) execute
+    action-scoped `BasePermission` classes without custom method wrappers or
+    duplicate object lookups.
+    """
+    if not hasattr(cls, "get_permissions") or getattr(cls, "_action_permissions_installed", False):
+        return
+
+    original_get_permissions = cls.get_permissions
+
+    def get_permissions(self):
+        perms = list(original_get_permissions(self))
+        action_name = getattr(self, "action", None)
+        if not action_name:
+            req = getattr(self, "request", None)
+            action_name = getattr(req, "method", "").lower() if req is not None else None
+        handler = getattr(type(self), action_name, None) if action_name else None
+        extra_classes = getattr(handler, "_drf_permission_classes", ()) if handler else ()
+        if extra_classes:
+            self._drf_action_permissions_enforced = True
+            perms.extend(perm_cls() for perm_cls in extra_classes)
+        return perms
+
+    cls.get_permissions = get_permissions
+    cls._action_permissions_installed = True
+
+
 def controller(
     prefix: str,
     *,
@@ -145,11 +175,12 @@ def controller(
 ) -> Callable[[type], type]:
     """Class decorator that registers a controller with the routing system.
 
-    Analogous to NestJS `@Controller('path')`.
-    Registers DRF ViewSets with the router, or APIViews as standalone endpoints.
+    Registers DRF ViewSets with the router, or APIViews as standalone endpoints,
+    and wires any per-action DRF permission classes into `get_permissions()`.
     """
 
     def decorator(cls: type) -> type:
+        _install_action_permissions(cls)
         target_router = router or academic_router
         target_router.register_controller(prefix, cls, basename=basename)
         cls._controller_prefix = prefix
