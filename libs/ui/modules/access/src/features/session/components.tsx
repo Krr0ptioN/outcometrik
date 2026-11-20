@@ -18,6 +18,7 @@ import {
   Input,
   Separator,
   Skeleton,
+  ThemeToggle,
 } from '@outcometrik/ui';
 import { errorMessage, getSession, signIn, signOut, type Session } from './api';
 
@@ -40,15 +41,23 @@ export function SessionMenu() {
     },
   });
   if (session.isPending)
-    return <Skeleton className="h-8 w-24" aria-label="Checking session" />;
+    return (
+      <div className="flex items-center gap-2">
+        <ThemeToggle />
+        <Skeleton className="h-8 w-24" aria-label="Checking session" />
+      </div>
+    );
   if (!session.data?.user)
     return (
-      <Button asChild variant="ghost" size="sm">
-        <a href="/login">
-          Sign in
-          <ArrowRightIcon data-icon="inline-end" />
-        </a>
-      </Button>
+      <div className="flex items-center gap-2">
+        <ThemeToggle />
+        <Button asChild variant="ghost" size="sm">
+          <a href="/login">
+            Sign in
+            <ArrowRightIcon data-icon="inline-end" />
+          </a>
+        </Button>
+      </div>
     );
   return (
     <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -79,6 +88,7 @@ export function SessionMenu() {
           <a href="/student">Student dashboard</a>
         </Button>
       )}
+      <ThemeToggle />
       <Button
         variant="ghost"
         size="sm"
