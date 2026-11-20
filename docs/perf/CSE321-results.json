@@ -1,0 +1,1036 @@
+{
+  "meta": {
+    "measured_at": "2026-11-20T12:32:38+00:00",
+    "seed_version": "perf-cse321-v1",
+    "seed_meta": "{   \"seed_version\": \"perf-cse321-v1\",   \"params\": {     \"students\": 150,     \"terms\": 4,     \"courses_per_term\": 3,     \"los\": 6,     \"assessments\": 12,     \"pos\": 11,     \"rng_seed\": 321   },   \"published\": true,   \"seeded_at\": \"2026-11-20T12:32:19.594815+00:00\",   \"python\": \"3.14.4\",   \"django\": \"5.2.17\",   \"institution_id\": \"5fdc6e49-2024-4fa1-a414-da4f468482ff\",   \"program_id\": \"3ef905e6-fadc-4df9-b8cb-a86ef6b17ca8\" }",
+    "git_commit": "ff33bf0",
+    "postgres": "16.15",
+    "postgres_host": "127.0.0.1",
+    "client_machine": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43, 32 CPUs",
+    "machine_note": "HP OMEN laptop, Ryzen 9 8940HX 16C/32T, 32GB DDR5-5600, NVMe SSD, Windows 11 Home, Postgres 16 in Docker (WSL2), Performance mode, no other heavy apps",
+    "iterations": 30,
+    "warmup": 3,
+    "concurrency": 8,
+    "pg_settings": {
+      "default_statistics_target": "100",
+      "effective_cache_size": "5242888kB",
+      "jit": "on",
+      "log_lock_waits": "off",
+      "maintenance_work_mem": "65536kB",
+      "max_connections": "100",
+      "random_page_cost": "4",
+      "shared_buffers": "163848kB",
+      "synchronous_commit": "on",
+      "track_io_timing": "off",
+      "work_mem": "4096kB"
+    }
+  },
+  "latency": [
+    {
+      "name": "crud_offerings_staff",
+      "family": "scoped_crud",
+      "state": "draft",
+      "filters": "coordinator, page=25",
+      "concurrency": 1,
+      "cache": "warm: 3 warmup calls; first_ms is the first call in this process",
+      "queries": 16,
+      "first_ms": 15.25,
+      "n": 30,
+      "min": 10.83,
+      "p50": 11.26,
+      "p95": 12.48,
+      "max": 12.49,
+      "mean": 11.43,
+      "p95_reliable": true
+    },
+    {
+      "name": "crud_offerings_student",
+      "family": "scoped_crud",
+      "state": "draft",
+      "filters": "student, page=25",
+      "concurrency": 1,
+      "cache": "warm: 3 warmup calls; first_ms is the first call in this process",
+      "queries": 11,
+      "first_ms": 9.45,
+      "n": 30,
+      "min": 9.03,
+      "p50": 9.32,
+      "p95": 9.72,
+      "max": 10.0,
+      "mean": 9.35,
+      "p95_reliable": true
+    },
+    {
+      "name": "crud_enrollments_student",
+      "family": "scoped_crud",
+      "state": "draft",
+      "filters": "student, page=50",
+      "concurrency": 1,
+      "cache": "warm: 3 warmup calls; first_ms is the first call in this process",
+      "queries": 9,
+      "first_ms": 7.2,
+      "n": 30,
+      "min": 6.96,
+      "p50": 7.22,
+      "p95": 7.5,
+      "max": 7.54,
+      "mean": 7.24,
+      "p95_reliable": true
+    },
+    {
+      "name": "crud_roster_offering",
+      "family": "scoped_crud",
+      "state": "draft",
+      "filters": "eligible roster, one offering",
+      "concurrency": 1,
+      "cache": "warm: 3 warmup calls; first_ms is the first call in this process",
+      "queries": 1,
+      "first_ms": 2.66,
+      "n": 30,
+      "min": 2.51,
+      "p50": 2.57,
+      "p95": 2.85,
+      "max": 2.89,
+      "mean": 2.61,
+      "p95_reliable": true
+    },
+    {
+      "name": "gradebook_full",
+      "family": "gradebook",
+      "state": "draft",
+      "filters": "one offering, all grades",
+      "concurrency": 1,
+      "cache": "warm: 3 warmup calls; first_ms is the first call in this process",
+      "queries": 1,
+      "first_ms": 77.87,
+      "n": 30,
+      "min": 67.45,
+      "p50": 72.37,
+      "p95": 81.04,
+      "max": 98.58,
+      "mean": 74.68,
+      "p95_reliable": true
+    },
+    {
+      "name": "gradebook_page_200",
+      "family": "gradebook",
+      "state": "draft",
+      "filters": "one offering, page=200",
+      "concurrency": 1,
+      "cache": "warm: 3 warmup calls; first_ms is the first call in this process",
+      "queries": 1,
+      "first_ms": 10.97,
+      "n": 30,
+      "min": 9.67,
+      "p50": 10.02,
+      "p95": 17.92,
+      "max": 19.29,
+      "mean": 10.7,
+      "p95_reliable": true
+    },
+    {
+      "name": "evidence_student_drilldown",
+      "family": "evidence",
+      "state": "published",
+      "filters": "student audience, own scores",
+      "concurrency": 1,
+      "cache": "warm: 3 warmup calls; first_ms is the first call in this process",
+      "queries": 18,
+      "first_ms": 23.92,
+      "n": 30,
+      "min": 14.37,
+      "p50": 15.17,
+      "p95": 15.81,
+      "max": 16.06,
+      "mean": 15.18,
+      "p95_reliable": true
+    },
+    {
+      "name": "evidence_staff_drilldown",
+      "family": "evidence",
+      "state": "published",
+      "filters": "faculty audience, one student",
+      "concurrency": 1,
+      "cache": "warm: 3 warmup calls; first_ms is the first call in this process",
+      "queries": 26,
+      "first_ms": 25.29,
+      "n": 30,
+      "min": 17.92,
+      "p50": 18.23,
+      "p95": 19.04,
+      "max": 19.23,
+      "mean": 18.39,
+      "p95_reliable": true
+    },
+    {
+      "name": "publication_list_staff",
+      "family": "publication",
+      "state": "published",
+      "filters": "coordinator, page=25",
+      "concurrency": 1,
+      "cache": "warm: 3 warmup calls; first_ms is the first call in this process",
+      "queries": 26,
+      "first_ms": 22.63,
+      "n": 30,
+      "min": 20.79,
+      "p50": 21.57,
+      "p95": 22.64,
+      "max": 22.76,
+      "mean": 21.69,
+      "p95_reliable": true
+    },
+    {
+      "name": "publication_list_student",
+      "family": "publication",
+      "state": "published",
+      "filters": "student, page=25",
+      "concurrency": 1,
+      "cache": "warm: 3 warmup calls; first_ms is the first call in this process",
+      "queries": 19,
+      "first_ms": 19.34,
+      "n": 30,
+      "min": 17.29,
+      "p50": 18.28,
+      "p95": 19.71,
+      "max": 20.25,
+      "mean": 18.36,
+      "p95_reliable": true
+    },
+    {
+      "name": "publication_is_stale_offering",
+      "family": "publication",
+      "state": "published",
+      "filters": "offering publication",
+      "concurrency": 1,
+      "cache": "warm: 3 warmup calls; first_ms is the first call in this process",
+      "queries": 16,
+      "first_ms": 67.62,
+      "n": 30,
+      "min": 60.69,
+      "p50": 62.33,
+      "p95": 76.53,
+      "max": 76.8,
+      "mean": 64.63,
+      "p95_reliable": true
+    },
+    {
+      "name": "publication_is_stale_program",
+      "family": "publication",
+      "state": "published",
+      "filters": "program publication",
+      "concurrency": 1,
+      "cache": "warm: 3 warmup calls; first_ms is the first call in this process",
+      "queries": 126,
+      "first_ms": 781.7,
+      "n": 30,
+      "min": 762.33,
+      "p50": 788.81,
+      "p95": 823.15,
+      "max": 853.88,
+      "mean": 792.75,
+      "p95_reliable": true
+    },
+    {
+      "name": "analytics_cohort_offering",
+      "family": "analytics",
+      "state": "published",
+      "filters": "offering publication",
+      "concurrency": 1,
+      "cache": "warm: 3 warmup calls; first_ms is the first call in this process",
+      "queries": 19,
+      "first_ms": 151.88,
+      "n": 30,
+      "min": 134.46,
+      "p50": 140.25,
+      "p95": 154.66,
+      "max": 156.43,
+      "mean": 142.44,
+      "p95_reliable": true
+    },
+    {
+      "name": "analytics_cohort_program",
+      "family": "analytics",
+      "state": "published",
+      "filters": "program publication",
+      "concurrency": 1,
+      "cache": "warm: 3 warmup calls; first_ms is the first call in this process",
+      "queries": 130,
+      "first_ms": 1630.4,
+      "n": 30,
+      "min": 1447.02,
+      "p50": 1480.46,
+      "p95": 1516.61,
+      "max": 1518.93,
+      "mean": 1482.91,
+      "p95_reliable": true
+    },
+    {
+      "name": "analytics_trends",
+      "family": "analytics",
+      "state": "published",
+      "filters": "4 term publications",
+      "concurrency": 1,
+      "cache": "warm: 3 warmup calls; first_ms is the first call in this process",
+      "queries": 77,
+      "first_ms": 598.13,
+      "n": 30,
+      "min": 581.8,
+      "p50": 602.81,
+      "p95": 629.23,
+      "max": 637.9,
+      "mean": 605.01,
+      "p95_reliable": true
+    },
+    {
+      "name": "export_cohort_csv",
+      "family": "export",
+      "state": "published",
+      "filters": "cohort, csv",
+      "concurrency": 1,
+      "cache": "warm: 3 warmup calls; first_ms is the first call in this process",
+      "queries": 32,
+      "first_ms": 168.4,
+      "n": 30,
+      "min": 152.9,
+      "p50": 158.64,
+      "p95": 172.84,
+      "max": 173.36,
+      "mean": 160.48,
+      "p95_reliable": true
+    },
+    {
+      "name": "export_cohort_pdf",
+      "family": "export",
+      "state": "published",
+      "filters": "cohort, pdf",
+      "concurrency": 1,
+      "cache": "warm: 3 warmup calls; first_ms is the first call in this process",
+      "queries": 32,
+      "first_ms": 173.62,
+      "n": 30,
+      "min": 161.39,
+      "p50": 168.58,
+      "p95": 177.42,
+      "max": 183.36,
+      "mean": 168.53,
+      "p95_reliable": true
+    },
+    {
+      "name": "export_student_csv",
+      "family": "export",
+      "state": "published",
+      "filters": "student, csv",
+      "concurrency": 1,
+      "cache": "warm: 3 warmup calls; first_ms is the first call in this process",
+      "queries": 27,
+      "first_ms": 95.47,
+      "n": 30,
+      "min": 80.92,
+      "p50": 83.98,
+      "p95": 95.55,
+      "max": 96.86,
+      "mean": 86.66,
+      "p95_reliable": true
+    },
+    {
+      "name": "export_student_pdf",
+      "family": "export",
+      "state": "published",
+      "filters": "student, pdf",
+      "concurrency": 1,
+      "cache": "warm: 3 warmup calls; first_ms is the first call in this process",
+      "queries": 27,
+      "first_ms": 97.84,
+      "n": 30,
+      "min": 97.35,
+      "p50": 103.63,
+      "p95": 115.17,
+      "max": 115.76,
+      "mean": 104.42,
+      "p95_reliable": true
+    },
+    {
+      "name": "gradebook_full",
+      "family": "gradebook",
+      "state": "draft",
+      "filters": "one offering, all grades",
+      "concurrency": 8,
+      "throughput_per_s": 12.5,
+      "max_waiting_locks": 0,
+      "max_backends_seen": 10,
+      "n": 240,
+      "min": 182.18,
+      "p50": 639.91,
+      "p95": 708.86,
+      "max": 782.67,
+      "mean": 632.86,
+      "p95_reliable": true
+    },
+    {
+      "name": "publication_list_staff",
+      "family": "publication",
+      "state": "published",
+      "filters": "coordinator, page=25",
+      "concurrency": 8,
+      "throughput_per_s": 54.7,
+      "max_waiting_locks": 0,
+      "max_backends_seen": 10,
+      "n": 240,
+      "min": 76.9,
+      "p50": 145.8,
+      "p95": 158.49,
+      "max": 170.52,
+      "mean": 145.2,
+      "p95_reliable": true
+    },
+    {
+      "name": "publication_list_student",
+      "family": "publication",
+      "state": "published",
+      "filters": "student, page=25",
+      "concurrency": 8,
+      "throughput_per_s": 65.4,
+      "max_waiting_locks": 0,
+      "max_backends_seen": 10,
+      "n": 240,
+      "min": 101.32,
+      "p50": 121.18,
+      "p95": 135.9,
+      "max": 150.6,
+      "mean": 121.7,
+      "p95_reliable": true
+    },
+    {
+      "name": "publication_is_stale_offering",
+      "family": "publication",
+      "state": "published",
+      "filters": "offering publication",
+      "concurrency": 8,
+      "throughput_per_s": 14.2,
+      "max_waiting_locks": 0,
+      "max_backends_seen": 10,
+      "n": 240,
+      "min": 358.09,
+      "p50": 559.92,
+      "p95": 629.98,
+      "max": 877.96,
+      "mean": 558.26,
+      "p95_reliable": true
+    },
+    {
+      "name": "analytics_cohort_offering",
+      "family": "analytics",
+      "state": "published",
+      "filters": "offering publication",
+      "concurrency": 8,
+      "throughput_per_s": 6.9,
+      "max_waiting_locks": 0,
+      "max_backends_seen": 10,
+      "n": 240,
+      "min": 572.66,
+      "p50": 1143.36,
+      "p95": 1323.54,
+      "max": 1448.14,
+      "mean": 1144.86,
+      "p95_reliable": true
+    },
+    {
+      "name": "publication_is_stale_after_input_change",
+      "family": "publication",
+      "state": "published (stale)",
+      "filters": "offering publication, 1 changed grade",
+      "concurrency": 1,
+      "cache": "warm: 3 warmup calls; first_ms is the first call in this process",
+      "queries": 14,
+      "first_ms": 68.88,
+      "n": 30,
+      "min": 66.89,
+      "p50": 69.52,
+      "p95": 90.03,
+      "max": 90.46,
+      "mean": 73.09,
+      "p95_reliable": true
+    }
+  ],
+  "plans": [
+    {
+      "name": "crud_offerings_staff",
+      "state": "draft",
+      "planning_ms": 0.444,
+      "execution_ms": 0.166,
+      "seq_scans": [
+        "academic_academicterm",
+        "academic_course",
+        "academic_courseoffering"
+      ],
+      "shared_hit": 3,
+      "shared_read": 0,
+      "text": "Limit  (cost=8.97..9.10 rows=13 width=237) (actual time=0.056..0.060 rows=13 loops=1)\n  Buffers: shared hit=3\n  ->  HashAggregate  (cost=8.97..9.10 rows=13 width=237) (actual time=0.055..0.058 rows=13 loops=1)\n        Group Key: academic_courseoffering.id, academic_courseoffering.created_at, academic_courseoffering.updated_at, academic_courseoffering.program_id, academic_courseoffering.course_id, academic_courseoffering.term_id, academic_courseoffering.section, academic_courseoffering.status, academic_courseoffering.input_revision, academic_course.created_at, academic_course.updated_at, academic_course.home_department_id, academic_course.code, academic_course.title, academic_course.ects, academic_course.credits, academic_course.active, academic_academicterm.created_at, academic_academicterm.updated_at, academic_academicterm.institution_id, academic_academicterm.year, academic_academicterm.season, academic_academicterm.starts_at, academic_academicterm.ends_at\n        Batches: 1  Memory Usage: 48kB\n        Buffers: shared hit=3\n        ->  Hash Join  (cost=6.85..8.19 rows=13 width=237) (actual time=0.041..0.047 rows=13 loops=1)\n              Hash Cond: (academic_courseoffering.term_id = academic_academicterm.id)\n              Buffers: shared hit=3\n              ->  Hash Join  (cost=5.76..7.03 rows=13 width=173) (actual time=0.022..0.026 rows=13 loops=1)\n                    Hash Cond: (academic_courseoffering.course_id = academic_course.id)\n                    Buffers: shared hit=2\n                    ->  Seq Scan on academic_courseoffering  (cost=4.56..5.79 rows=13 width=94) (actual time=0.004..0.005 rows=13 loops=1)\n                          Filter: ((id = ANY ('{c90c8a3e-9a7a-4424-a0a1-6405b5632489,464783db-cfb2-4bf1-b0c3-7e4f5106afa1,55421496-807d-4fb0-859d-7031f27038a9,7faa04cf-9470-443a-95f6-f32ea94ee8b0,ff5d0cb2-dbe5-4408-a145-500dbcb84002,0f3bb70f-1a2a-45b6-93b9-7e577bbecf8f,6cff4ea4-5091-408c-a84d-6b19ddefeac8,28132f0d-36cf-43f5-beb9-9af032679159,c52a65c0-c43f-4126-895e-d3bb8e6b1832,5f2da15e-6f43-4bef-8724-d9851e2982a4,d405d08c-7f12-42c1-95a2-d898cab8c1f7,4719407f-8b23-44d3-8bae-dc5eaa7fa98d,19fba4ce-d5dc-456c-b14d-069c6c43eeb3}'::uuid[])) OR (hashed SubPlan 1))\n                          Buffers: shared hit=1\n                          SubPlan 1\n                            ->  Index Only Scan using unique_active_role on access_roleassignment u0  (cost=0.28..4.50 rows=11 width=16) (never executed)\n                                  Index Cond: ((user_id = 1) AND (role_id = 'student'::text))\n                                  Heap Fetches: 0\n                    ->  Hash  (cost=1.09..1.09 rows=9 width=79) (actual time=0.010..0.011 rows=9 loops=1)\n                          Buckets: 1024  Batches: 1  Memory Usage: 9kB\n                          Buffers: shared hit=1\n                          ->  Seq Scan on academic_course  (cost=0.00..1.09 rows=9 width=79) (actual time=0.002..0.002 rows=9 loops=1)\n                                Buffers: shared hit=1\n              ->  Hash  (cost=1.04..1.04 rows=4 width=64) (actual time=0.009..0.010 rows=4 loops=1)\n                    Buckets: 1024  Batches: 1  Memory Usage: 9kB\n                    Buffers: shared hit=1\n                    ->  Seq Scan on academic_academicterm  (cost=0.00..1.04 rows=4 width=64) (actual time=0.002..0.003 rows=4 loops=1)\n                          Buffers: shared hit=1\nPlanning:\n  Buffers: shared hit=12\nPlanning Time: 0.444 ms\nExecution Time: 0.166 ms"
+    },
+    {
+      "name": "crud_offerings_student",
+      "state": "draft",
+      "planning_ms": 0.443,
+      "execution_ms": 0.205,
+      "seq_scans": [
+        "academic_academicterm",
+        "academic_course",
+        "academic_courseoffering"
+      ],
+      "shared_hit": 6,
+      "shared_read": 0,
+      "text": "Limit  (cost=9.23..9.35 rows=12 width=237) (actual time=0.082..0.085 rows=12 loops=1)\n  Buffers: shared hit=6\n  ->  HashAggregate  (cost=9.23..9.35 rows=12 width=237) (actual time=0.081..0.084 rows=12 loops=1)\n        Group Key: academic_courseoffering.id, academic_courseoffering.created_at, academic_courseoffering.updated_at, academic_courseoffering.program_id, academic_courseoffering.course_id, academic_courseoffering.term_id, academic_courseoffering.section, academic_courseoffering.status, academic_courseoffering.input_revision, academic_course.created_at, academic_course.updated_at, academic_course.home_department_id, academic_course.code, academic_course.title, academic_course.ects, academic_course.credits, academic_course.active, academic_academicterm.created_at, academic_academicterm.updated_at, academic_academicterm.institution_id, academic_academicterm.year, academic_academicterm.season, academic_academicterm.starts_at, academic_academicterm.ends_at\n        Batches: 1  Memory Usage: 48kB\n        Buffers: shared hit=6\n        ->  Merge Semi Join  (cost=4.05..8.51 rows=12 width=237) (actual time=0.069..0.074 rows=12 loops=1)\n              Merge Cond: (academic_courseoffering.id = u0.scope_id)\n              Buffers: shared hit=6\n              ->  Sort  (cost=3.78..3.81 rows=13 width=237) (actual time=0.052..0.053 rows=13 loops=1)\n                    Sort Key: academic_courseoffering.id\n                    Sort Method: quicksort  Memory: 28kB\n                    Buffers: shared hit=3\n                    ->  Hash Join  (cost=2.29..3.54 rows=13 width=237) (actual time=0.033..0.038 rows=13 loops=1)\n                          Hash Cond: (academic_courseoffering.term_id = academic_academicterm.id)\n                          Buffers: shared hit=3\n                          ->  Hash Join  (cost=1.20..2.38 rows=13 width=173) (actual time=0.016..0.019 rows=13 loops=1)\n                                Hash Cond: (academic_courseoffering.course_id = academic_course.id)\n                                Buffers: shared hit=2\n                                ->  Seq Scan on academic_courseoffering  (cost=0.00..1.13 rows=13 width=94) (actual time=0.001..0.002 rows=13 loops=1)\n                                      Buffers: shared hit=1\n                                ->  Hash  (cost=1.09..1.09 rows=9 width=79) (actual time=0.008..0.008 rows=9 loops=1)\n                                      Buckets: 1024  Batches: 1  Memory Usage: 9kB\n                                      Buffers: shared hit=1\n                                      ->  Seq Scan on academic_course  (cost=0.00..1.09 rows=9 width=79) (actual time=0.001..0.002 rows=9 loops=1)\n                                            Buffers: shared hit=1\n                          ->  Hash  (cost=1.04..1.04 rows=4 width=64) (actual time=0.009..0.009 rows=4 loops=1)\n                                Buckets: 1024  Batches: 1  Memory Usage: 9kB\n                                Buffers: shared hit=1\n                                ->  Seq Scan on academic_academicterm  (cost=0.00..1.04 rows=4 width=64) (actual time=0.002..0.003 rows=4 loops=1)\n                                      Buffers: shared hit=1\n              ->  Index Only Scan using unique_active_role on access_roleassignment u0  (cost=0.28..4.52 rows=12 width=16) (actual time=0.016..0.016 rows=12 loops=1)\n                    Index Cond: ((user_id = 3) AND (role_id = 'student'::text))\n                    Heap Fetches: 0\n                    Buffers: shared hit=3\nPlanning:\n  Buffers: shared hit=12\nPlanning Time: 0.443 ms\nExecution Time: 0.205 ms"
+    },
+    {
+      "name": "crud_enrollments_student",
+      "state": "draft",
+      "planning_ms": 0.202,
+      "execution_ms": 0.144,
+      "seq_scans": [],
+      "shared_hit": 18,
+      "shared_read": 0,
+      "text": "Limit  (cost=32.29..32.56 rows=12 width=76) (actual time=0.079..0.084 rows=12 loops=1)\n  Buffers: shared hit=18\n  ->  Unique  (cost=32.29..32.56 rows=12 width=76) (actual time=0.079..0.083 rows=12 loops=1)\n        Buffers: shared hit=18\n        ->  Sort  (cost=32.29..32.32 rows=12 width=76) (actual time=0.079..0.080 rows=12 loops=1)\n              Sort Key: academic_enrollment.id, academic_enrollment.created_at, academic_enrollment.updated_at, academic_enrollment.offering_id, academic_enrollment.status, academic_enrollment.attempt_number, academic_enrollment.eligible_for_outcomes, academic_enrollment.eligibility_policy_version\n              Sort Method: quicksort  Memory: 26kB\n              Buffers: shared hit=18\n              ->  Hash Semi Join  (cost=9.05..32.08 rows=12 width=76) (actual time=0.044..0.061 rows=12 loops=1)\n                    Hash Cond: (academic_enrollment.offering_id = u0.scope_id)\n                    Buffers: shared hit=18\n                    ->  Bitmap Heap Scan on academic_enrollment  (cost=4.38..27.08 rows=13 width=76) (actual time=0.017..0.032 rows=13 loops=1)\n                          Recheck Cond: (student_id = 3)\n                          Heap Blocks: exact=13\n                          Buffers: shared hit=15\n                          ->  Bitmap Index Scan on academic_enrollment_student_id_6cb548a3  (cost=0.00..4.38 rows=13 width=0) (actual time=0.013..0.013 rows=13 loops=1)\n                                Index Cond: (student_id = 3)\n                                Buffers: shared hit=2\n                    ->  Hash  (cost=4.52..4.52 rows=12 width=16) (actual time=0.017..0.017 rows=12 loops=1)\n                          Buckets: 1024  Batches: 1  Memory Usage: 9kB\n                          Buffers: shared hit=3\n                          ->  Index Only Scan using unique_active_role on access_roleassignment u0  (cost=0.28..4.52 rows=12 width=16) (actual time=0.011..0.011 rows=12 loops=1)\n                                Index Cond: ((user_id = 3) AND (role_id = 'student'::text))\n                                Heap Fetches: 0\n                                Buffers: shared hit=3\nPlanning:\n  Buffers: shared hit=7\nPlanning Time: 0.202 ms\nExecution Time: 0.144 ms"
+    },
+    {
+      "name": "crud_roster_offering",
+      "state": "draft",
+      "planning_ms": 0.408,
+      "execution_ms": 0.206,
+      "seq_scans": [
+        "auth_user"
+      ],
+      "shared_hit": 7,
+      "shared_read": 0,
+      "text": "Sort  (cost=45.47..45.84 rows=148 width=192) (actual time=0.134..0.138 rows=147 loops=1)\n  Sort Key: academic_enrollment.student_id\n  Sort Method: quicksort  Memory: 57kB\n  Buffers: shared hit=7\n  ->  Hash Join  (cost=11.86..40.13 rows=148 width=192) (actual time=0.055..0.084 rows=147 loops=1)\n        Hash Cond: (academic_enrollment.student_id = auth_user.id)\n        Buffers: shared hit=7\n        ->  Bitmap Heap Scan on academic_enrollment  (cost=5.44..33.31 rows=148 width=76) (actual time=0.015..0.023 rows=147 loops=1)\n              Recheck Cond: (offering_id = '28132f0d-36cf-43f5-beb9-9af032679159'::uuid)\n              Filter: eligible_for_outcomes\n              Rows Removed by Filter: 3\n              Heap Blocks: exact=2\n              Buffers: shared hit=4\n              ->  Bitmap Index Scan on academic_enrollment_offering_id_8d904162  (cost=0.00..5.40 rows=150 width=0) (actual time=0.012..0.012 rows=150 loops=1)\n                    Index Cond: (offering_id = '28132f0d-36cf-43f5-beb9-9af032679159'::uuid)\n                    Buffers: shared hit=2\n        ->  Hash  (cost=4.52..4.52 rows=152 width=116) (actual time=0.031..0.031 rows=152 loops=1)\n              Buckets: 1024  Batches: 1  Memory Usage: 31kB\n              Buffers: shared hit=3\n              ->  Seq Scan on auth_user  (cost=0.00..4.52 rows=152 width=116) (actual time=0.004..0.011 rows=152 loops=1)\n                    Buffers: shared hit=3\nPlanning:\n  Buffers: shared hit=48\nPlanning Time: 0.408 ms\nExecution Time: 0.206 ms"
+    },
+    {
+      "name": "gradebook_full",
+      "state": "draft",
+      "planning_ms": 0.621,
+      "execution_ms": 3.768,
+      "seq_scans": [
+        "academic_assessment",
+        "academic_enrollment",
+        "academic_gradebatch",
+        "auth_user"
+      ],
+      "shared_hit": 68,
+      "shared_read": 0,
+      "text": "Sort  (cost=632.63..637.04 rows=1764 width=447) (actual time=3.444..3.489 rows=1764 loops=1)\n  Sort Key: academic_grade.enrollment_id, academic_grade.assessment_id\n  Sort Method: quicksort  Memory: 903kB\n  Buffers: shared hit=68\n  ->  Hash Join  (cost=109.03..537.51 rows=1764 width=447) (actual time=0.579..2.090 rows=1764 loops=1)\n        Hash Cond: (academic_grade.batch_id = academic_gradebatch.id)\n        Buffers: shared hit=68\n        ->  Hash Join  (cost=107.76..529.97 rows=1764 width=376) (actual time=0.554..1.743 rows=1764 loops=1)\n              Hash Cond: (academic_grade.assessment_id = academic_assessment.id)\n              Buffers: shared hit=67\n              ->  Hash Join  (cost=102.25..519.71 rows=1764 width=310) (actual time=0.507..1.365 rows=1764 loops=1)\n                    Hash Cond: (academic_enrollment.student_id = auth_user.id)\n                    Buffers: shared hit=65\n                    ->  Hash Join  (cost=95.83..508.53 rows=1764 width=194) (actual time=0.466..0.980 rows=1764 loops=1)\n                          Hash Cond: (academic_grade.enrollment_id = academic_enrollment.id)\n                          Buffers: shared hit=62\n                          ->  Bitmap Heap Scan on academic_grade  (cost=25.96..434.01 rows=1764 width=118) (actual time=0.035..0.197 rows=1764 loops=1)\n                                Recheck Cond: (offering_id = '28132f0d-36cf-43f5-beb9-9af032679159'::uuid)\n                                Heap Blocks: exact=33\n                                Buffers: shared hit=36\n                                ->  Bitmap Index Scan on academic_grade_offering_id_8845c790  (cost=0.00..25.52 rows=1764 width=0) (actual time=0.031..0.031 rows=1764 loops=1)\n                                      Index Cond: (offering_id = '28132f0d-36cf-43f5-beb9-9af032679159'::uuid)\n                                      Buffers: shared hit=3\n                          ->  Hash  (cost=45.50..45.50 rows=1950 width=76) (actual time=0.418..0.419 rows=1950 loops=1)\n                                Buckets: 2048  Batches: 1  Memory Usage: 224kB\n                                Buffers: shared hit=26\n                                ->  Seq Scan on academic_enrollment  (cost=0.00..45.50 rows=1950 width=76) (actual time=0.002..0.120 rows=1950 loops=1)\n                                      Buffers: shared hit=26\n                    ->  Hash  (cost=4.52..4.52 rows=152 width=116) (actual time=0.035..0.035 rows=152 loops=1)\n                          Buckets: 1024  Batches: 1  Memory Usage: 31kB\n                          Buffers: shared hit=3\n                          ->  Seq Scan on auth_user  (cost=0.00..4.52 rows=152 width=116) (actual time=0.001..0.007 rows=152 loops=1)\n                                Buffers: shared hit=3\n              ->  Hash  (cost=3.56..3.56 rows=156 width=66) (actual time=0.035..0.038 rows=156 loops=1)\n                    Buckets: 1024  Batches: 1  Memory Usage: 23kB\n                    Buffers: shared hit=2\n                    ->  Seq Scan on academic_assessment  (cost=0.00..3.56 rows=156 width=66) (actual time=0.002..0.011 rows=156 loops=1)\n                          Buffers: shared hit=2\n        ->  Hash  (cost=1.12..1.12 rows=12 width=71) (actual time=0.014..0.015 rows=12 loops=1)\n              Buckets: 1024  Batches: 1  Memory Usage: 10kB\n              Buffers: shared hit=1\n              ->  Seq Scan on academic_gradebatch  (cost=0.00..1.12 rows=12 width=71) (actual time=0.004..0.005 rows=12 loops=1)\n                    Buffers: shared hit=1\nPlanning:\n  Buffers: shared hit=34\nPlanning Time: 0.621 ms\nExecution Time: 3.768 ms"
+    },
+    {
+      "name": "gradebook_page_200",
+      "state": "draft",
+      "planning_ms": 1.145,
+      "execution_ms": 1.052,
+      "seq_scans": [],
+      "shared_hit": 570,
+      "shared_read": 0,
+      "text": "Limit  (cost=3.17..287.16 rows=200 width=447) (actual time=0.174..0.916 rows=200 loops=1)\n  Buffers: shared hit=570\n  ->  Incremental Sort  (cost=3.17..2508.00 rows=1764 width=447) (actual time=0.174..0.907 rows=200 loops=1)\n        Sort Key: academic_grade.enrollment_id, academic_grade.assessment_id\n        Presorted Key: academic_grade.enrollment_id\n        Full-sort Groups: 6  Sort Method: quicksort  Average Memory: 43kB  Peak Memory: 43kB\n        Buffers: shared hit=570\n        ->  Nested Loop  (cost=1.02..2450.32 rows=1764 width=447) (actual time=0.066..0.794 rows=205 loops=1)\n              Buffers: shared hit=570\n              ->  Nested Loop  (cost=0.88..2406.04 rows=1764 width=376) (actual time=0.058..0.731 rows=205 loops=1)\n                    Buffers: shared hit=568\n                    ->  Nested Loop  (cost=0.72..2337.27 rows=1764 width=310) (actual time=0.049..0.639 rows=205 loops=1)\n                          Buffers: shared hit=544\n                          ->  Merge Join  (cost=0.56..2267.31 rows=1764 width=194) (actual time=0.035..0.551 rows=205 loops=1)\n                                Merge Cond: (academic_grade.enrollment_id = academic_enrollment.id)\n                                Buffers: shared hit=508\n                                ->  Index Scan using academic_grade_enrollment_id_bece3738 on academic_grade  (cost=0.29..2062.89 rows=1764 width=118) (actual time=0.023..0.438 rows=205 loops=1)\n                                      Filter: (offering_id = '28132f0d-36cf-43f5-beb9-9af032679159'::uuid)\n                                      Rows Removed by Filter: 2472\n                                      Buffers: shared hit=266\n                                ->  Index Scan using academic_enrollment_pkey on academic_enrollment  (cost=0.28..177.49 rows=1950 width=76) (actual time=0.008..0.073 rows=247 loops=1)\n                                      Buffers: shared hit=242\n                          ->  Memoize  (cost=0.15..0.18 rows=1 width=116) (actual time=0.000..0.000 rows=1 loops=205)\n                                Cache Key: academic_enrollment.student_id\n                                Cache Mode: logical\n                                Hits: 187  Misses: 18  Evictions: 0  Overflows: 0  Memory Usage: 4kB\n                                Buffers: shared hit=36\n                                ->  Index Scan using auth_user_pkey on auth_user  (cost=0.14..0.17 rows=1 width=116) (actual time=0.001..0.001 rows=1 loops=18)\n                                      Index Cond: (id = academic_enrollment.student_id)\n                                      Buffers: shared hit=36\n                    ->  Memoize  (cost=0.15..0.18 rows=1 width=66) (actual time=0.000..0.000 rows=1 loops=205)\n                          Cache Key: academic_grade.assessment_id\n                          Cache Mode: logical\n                          Hits: 193  Misses: 12  Evictions: 0  Overflows: 0  Memory Usage: 3kB\n                          Buffers: shared hit=24\n                          ->  Index Scan using academic_assessment_pkey on academic_assessment  (cost=0.14..0.17 rows=1 width=66) (actual time=0.001..0.001 rows=1 loops=12)\n                                Index Cond: (id = academic_grade.assessment_id)\n                                Buffers: shared hit=24\n              ->  Memoize  (cost=0.15..0.17 rows=1 width=71) (actual time=0.000..0.000 rows=1 loops=205)\n                    Cache Key: academic_grade.batch_id\n                    Cache Mode: logical\n                    Hits: 204  Misses: 1  Evictions: 0  Overflows: 0  Memory Usage: 1kB\n                    Buffers: shared hit=2\n                    ->  Index Scan using academic_gradebatch_pkey on academic_gradebatch  (cost=0.14..0.16 rows=1 width=71) (actual time=0.007..0.007 rows=1 loops=1)\n                          Index Cond: (id = academic_grade.batch_id)\n                          Buffers: shared hit=2\nPlanning:\n  Buffers: shared hit=34\nPlanning Time: 1.145 ms\nExecution Time: 1.052 ms"
+    },
+    {
+      "name": "evidence_student_drilldown",
+      "state": "published",
+      "planning_ms": 0.506,
+      "execution_ms": 0.336,
+      "seq_scans": [
+        "academic_courseoffering",
+        "academic_learningoutcome",
+        "academic_programoutcome",
+        "auth_user"
+      ],
+      "shared_hit": 15,
+      "shared_read": 0,
+      "text": "Sort  (cost=116.62..116.67 rows=18 width=1336) (actual time=0.206..0.208 rows=17 loops=1)\n  Sort Key: academic_outcomescore.level, academic_outcomescore.outcome_code, academic_outcomescore.id\n  Sort Method: quicksort  Memory: 46kB\n  Buffers: shared hit=15\n  ->  Hash Left Join  (cost=42.47..116.25 rows=18 width=1336) (actual time=0.150..0.172 rows=17 loops=1)\n        Hash Cond: (academic_outcomescore.program_outcome_id = academic_programoutcome.id)\n        Buffers: shared hit=15\n        ->  Hash Left Join  (cost=41.22..114.94 rows=18 width=1209) (actual time=0.136..0.155 rows=17 loops=1)\n              Hash Cond: (academic_outcomescore.learning_outcome_id = academic_learningoutcome.id)\n              Buffers: shared hit=14\n              ->  Hash Left Join  (cost=38.60..112.28 rows=18 width=1145) (actual time=0.111..0.127 rows=17 loops=1)\n                    Hash Cond: (academic_outcomescore.offering_id = academic_courseoffering.id)\n                    Buffers: shared hit=13\n                    ->  Nested Loop  (cost=37.31..110.93 rows=18 width=1051) (actual time=0.093..0.104 rows=17 loops=1)\n                          Buffers: shared hit=12\n                          ->  Seq Scan on auth_user  (cost=0.00..4.90 rows=1 width=116) (actual time=0.003..0.006 rows=1 loops=1)\n                                Filter: (id = 3)\n                                Rows Removed by Filter: 151\n                                Buffers: shared hit=3\n                          ->  Bitmap Heap Scan on academic_outcomescore  (cost=37.31..105.85 rows=18 width=935) (actual time=0.088..0.092 rows=17 loops=1)\n                                Recheck Cond: ((student_id = 3) AND (run_id = 'c2d4184d-c0aa-403f-9c58-7a196fe650fd'::uuid))\n                                Heap Blocks: exact=4\n                                Buffers: shared hit=9\n                                ->  BitmapAnd  (cost=37.31..37.31 rows=18 width=0) (actual time=0.085..0.085 rows=0 loops=1)\n                                      Buffers: shared hit=5\n                                      ->  Bitmap Index Scan on academic_outcomescore_student_id_9cd20ec6  (cost=0.00..5.95 rows=222 width=0) (actual time=0.013..0.013 rows=215 loops=1)\n                                            Index Cond: (student_id = 3)\n                                            Buffers: shared hit=2\n                                      ->  Bitmap Index Scan on academic_outcomescore_run_id_fbd5cee6  (cost=0.00..31.10 rows=2508 width=0) (actual time=0.065..0.065 rows=2499 loops=1)\n                                            Index Cond: (run_id = 'c2d4184d-c0aa-403f-9c58-7a196fe650fd'::uuid)\n                                            Buffers: shared hit=3\n                    ->  Hash  (cost=1.13..1.13 rows=13 width=94) (actual time=0.009..0.009 rows=13 loops=1)\n                          Buckets: 1024  Batches: 1  Memory Usage: 10kB\n                          Buffers: shared hit=1\n                          ->  Seq Scan on academic_courseoffering  (cost=0.00..1.13 rows=13 width=94) (actual time=0.002..0.003 rows=13 loops=1)\n                                Buffers: shared hit=1\n              ->  Hash  (cost=1.72..1.72 rows=72 width=64) (actual time=0.018..0.018 rows=72 loops=1)\n                    Buckets: 1024  Batches: 1  Memory Usage: 15kB\n                    Buffers: shared hit=1\n                    ->  Seq Scan on academic_learningoutcome  (cost=0.00..1.72 rows=72 width=64) (actual time=0.003..0.006 rows=72 loops=1)\n                          Buffers: shared hit=1\n        ->  Hash  (cost=1.11..1.11 rows=11 width=127) (actual time=0.008..0.008 rows=11 loops=1)\n              Buckets: 1024  Batches: 1  Memory Usage: 10kB\n              Buffers: shared hit=1\n              ->  Seq Scan on academic_programoutcome  (cost=0.00..1.11 rows=11 width=127) (actual time=0.001..0.002 rows=11 loops=1)\n                    Buffers: shared hit=1\nPlanning:\n  Buffers: shared hit=12\nPlanning Time: 0.506 ms\nExecution Time: 0.336 ms"
+    },
+    {
+      "name": "evidence_staff_drilldown",
+      "state": "published",
+      "planning_ms": 0.474,
+      "execution_ms": 0.333,
+      "seq_scans": [
+        "academic_courseoffering",
+        "academic_learningoutcome",
+        "academic_programoutcome",
+        "auth_user"
+      ],
+      "shared_hit": 15,
+      "shared_read": 0,
+      "text": "Sort  (cost=116.62..116.67 rows=18 width=1336) (actual time=0.197..0.200 rows=17 loops=1)\n  Sort Key: academic_outcomescore.level, academic_outcomescore.outcome_code, academic_outcomescore.id\n  Sort Method: quicksort  Memory: 46kB\n  Buffers: shared hit=15\n  ->  Hash Left Join  (cost=42.47..116.25 rows=18 width=1336) (actual time=0.144..0.166 rows=17 loops=1)\n        Hash Cond: (academic_outcomescore.program_outcome_id = academic_programoutcome.id)\n        Buffers: shared hit=15\n        ->  Hash Left Join  (cost=41.22..114.94 rows=18 width=1209) (actual time=0.129..0.148 rows=17 loops=1)\n              Hash Cond: (academic_outcomescore.learning_outcome_id = academic_learningoutcome.id)\n              Buffers: shared hit=14\n              ->  Hash Left Join  (cost=38.60..112.28 rows=18 width=1145) (actual time=0.104..0.120 rows=17 loops=1)\n                    Hash Cond: (academic_outcomescore.offering_id = academic_courseoffering.id)\n                    Buffers: shared hit=13\n                    ->  Nested Loop  (cost=37.31..110.93 rows=18 width=1051) (actual time=0.081..0.092 rows=17 loops=1)\n                          Buffers: shared hit=12\n                          ->  Seq Scan on auth_user  (cost=0.00..4.90 rows=1 width=116) (actual time=0.002..0.006 rows=1 loops=1)\n                                Filter: (id = 3)\n                                Rows Removed by Filter: 151\n                                Buffers: shared hit=3\n                          ->  Bitmap Heap Scan on academic_outcomescore  (cost=37.31..105.85 rows=18 width=935) (actual time=0.077..0.080 rows=17 loops=1)\n                                Recheck Cond: ((student_id = 3) AND (run_id = 'c2d4184d-c0aa-403f-9c58-7a196fe650fd'::uuid))\n                                Heap Blocks: exact=4\n                                Buffers: shared hit=9\n                                ->  BitmapAnd  (cost=37.31..37.31 rows=18 width=0) (actual time=0.076..0.076 rows=0 loops=1)\n                                      Buffers: shared hit=5\n                                      ->  Bitmap Index Scan on academic_outcomescore_student_id_9cd20ec6  (cost=0.00..5.95 rows=222 width=0) (actual time=0.012..0.012 rows=215 loops=1)\n                                            Index Cond: (student_id = 3)\n                                            Buffers: shared hit=2\n                                      ->  Bitmap Index Scan on academic_outcomescore_run_id_fbd5cee6  (cost=0.00..31.10 rows=2508 width=0) (actual time=0.057..0.057 rows=2499 loops=1)\n                                            Index Cond: (run_id = 'c2d4184d-c0aa-403f-9c58-7a196fe650fd'::uuid)\n                                            Buffers: shared hit=3\n                    ->  Hash  (cost=1.13..1.13 rows=13 width=94) (actual time=0.013..0.015 rows=13 loops=1)\n                          Buckets: 1024  Batches: 1  Memory Usage: 10kB\n                          Buffers: shared hit=1\n                          ->  Seq Scan on academic_courseoffering  (cost=0.00..1.13 rows=13 width=94) (actual time=0.006..0.007 rows=13 loops=1)\n                                Buffers: shared hit=1\n              ->  Hash  (cost=1.72..1.72 rows=72 width=64) (actual time=0.018..0.018 rows=72 loops=1)\n                    Buckets: 1024  Batches: 1  Memory Usage: 15kB\n                    Buffers: shared hit=1\n                    ->  Seq Scan on academic_learningoutcome  (cost=0.00..1.72 rows=72 width=64) (actual time=0.002..0.005 rows=72 loops=1)\n                          Buffers: shared hit=1\n        ->  Hash  (cost=1.11..1.11 rows=11 width=127) (actual time=0.009..0.009 rows=11 loops=1)\n              Buckets: 1024  Batches: 1  Memory Usage: 10kB\n              Buffers: shared hit=1\n              ->  Seq Scan on academic_programoutcome  (cost=0.00..1.11 rows=11 width=127) (actual time=0.001..0.002 rows=11 loops=1)\n                    Buffers: shared hit=1\nPlanning:\n  Buffers: shared hit=12\nPlanning Time: 0.474 ms\nExecution Time: 0.333 ms"
+    },
+    {
+      "name": "publication_list_staff",
+      "state": "published",
+      "planning_ms": 2.154,
+      "execution_ms": 0.382,
+      "seq_scans": [
+        "academic_academicterm",
+        "academic_calculationrun",
+        "academic_course",
+        "academic_courseoffering",
+        "academic_program",
+        "academic_publication"
+      ],
+      "shared_hit": 8,
+      "shared_read": 0,
+      "text": "Limit  (cost=9.98..10.05 rows=25 width=870) (actual time=0.200..0.205 rows=25 loops=1)\n  Buffers: shared hit=8\n  ->  Sort  (cost=9.98..10.05 rows=26 width=870) (actual time=0.200..0.203 rows=25 loops=1)\n        Sort Key: academic_publication.published_at DESC, academic_publication.series_version DESC, academic_publication.id\n        Sort Method: quicksort  Memory: 51kB\n        Buffers: shared hit=8\n        ->  Hash Join  (cost=7.12..9.37 rows=26 width=870) (actual time=0.134..0.166 rows=26 loops=1)\n              Hash Cond: (academic_publication.run_id = academic_calculationrun.id)\n              Buffers: shared hit=8\n              ->  Hash Left Join  (cost=5.83..7.99 rows=26 width=688) (actual time=0.108..0.134 rows=26 loops=1)\n                    Hash Cond: (academic_publication.term_id = academic_academicterm.id)\n                    Buffers: shared hit=7\n                    ->  Hash Left Join  (cost=4.74..6.77 rows=26 width=624) (actual time=0.083..0.102 rows=26 loops=1)\n                          Hash Cond: (academic_courseoffering.course_id = academic_course.id)\n                          Buffers: shared hit=6\n                          ->  Hash Left Join  (cost=3.54..5.46 rows=26 width=545) (actual time=0.061..0.075 rows=26 loops=1)\n                                Hash Cond: (academic_publication.offering_id = academic_courseoffering.id)\n                                Buffers: shared hit=5\n                                ->  Nested Loop  (cost=2.24..4.08 rows=26 width=451) (actual time=0.038..0.048 rows=26 loops=1)\n                                      Join Filter: (academic_program.id = academic_publication.program_id)\n                                      Buffers: shared hit=4\n                                      ->  Seq Scan on academic_program  (cost=0.00..1.01 rows=1 width=96) (actual time=0.002..0.002 rows=1 loops=1)\n                                            Buffers: shared hit=1\n                                      ->  Merge Join  (cost=2.24..2.74 rows=26 width=355) (actual time=0.035..0.040 rows=26 loops=1)\n                                            Merge Cond: (auth_user.id = academic_publication.published_by_id)\n                                            Buffers: shared hit=3\n                                            ->  Index Scan using auth_user_pkey on auth_user  (cost=0.14..16.43 rows=152 width=116) (actual time=0.008..0.009 rows=2 loops=1)\n                                                  Buffers: shared hit=2\n                                            ->  Sort  (cost=2.10..2.16 rows=26 width=239) (actual time=0.025..0.026 rows=26 loops=1)\n                                                  Sort Key: academic_publication.published_by_id\n                                                  Sort Method: quicksort  Memory: 31kB\n                                                  Buffers: shared hit=1\n                                                  ->  Seq Scan on academic_publication  (cost=0.03..1.49 rows=26 width=239) (actual time=0.004..0.009 rows=26 loops=1)\n                                                        Filter: ((program_id = '3ef905e6-fadc-4df9-b8cb-a86ef6b17ca8'::uuid) OR (offering_id = ANY ('{c90c8a3e-9a7a-4424-a0a1-6405b5632489,464783db-cfb2-4bf1-b0c3-7e4f5106afa1,55421496-807d-4fb0-859d-7031f27038a9,7faa04cf-9470-443a-95f6-f32ea94ee8b0,ff5d0cb2-dbe5-4408-a145-500dbcb84002,0f3bb70f-1a2a-45b6-93b9-7e577bbecf8f,6cff4ea4-5091-408c-a84d-6b19ddefeac8,28132f0d-36cf-43f5-beb9-9af032679159,c52a65c0-c43f-4126-895e-d3bb8e6b1832,5f2da15e-6f43-4bef-8724-d9851e2982a4,d405d08c-7f12-42c1-95a2-d898cab8c1f7,4719407f-8b23-44d3-8bae-dc5eaa7fa98d,19fba4ce-d5dc-456c-b14d-069c6c43eeb3}'::uuid[])))\n                                                        Buffers: shared hit=1\n                                ->  Hash  (cost=1.13..1.13 rows=13 width=94) (actual time=0.010..0.010 rows=13 loops=1)\n                                      Buckets: 1024  Batches: 1  Memory Usage: 10kB\n                                      Buffers: shared hit=1\n                                      ->  Seq Scan on academic_courseoffering  (cost=0.00..1.13 rows=13 width=94) (actual time=0.001..0.002 rows=13 loops=1)\n                                            Buffers: shared hit=1\n                          ->  Hash  (cost=1.09..1.09 rows=9 width=79) (actual time=0.009..0.009 rows=9 loops=1)\n                                Buckets: 1024  Batches: 1  Memory Usage: 9kB\n                                Buffers: shared hit=1\n                                ->  Seq Scan on academic_course  (cost=0.00..1.09 rows=9 width=79) (actual time=0.001..0.002 rows=9 loops=1)\n                                      Buffers: shared hit=1\n                    ->  Hash  (cost=1.04..1.04 rows=4 width=64) (actual time=0.007..0.008 rows=4 loops=1)\n                          Buckets: 1024  Batches: 1  Memory Usage: 9kB\n                          Buffers: shared hit=1\n                          ->  Seq Scan on academic_academicterm  (cost=0.00..1.04 rows=4 width=64) (actual time=0.001..0.002 rows=4 loops=1)\n                                Buffers: shared hit=1\n              ->  Hash  (cost=1.13..1.13 rows=13 width=182) (actual time=0.015..0.015 rows=13 loops=1)\n                    Buckets: 1024  Batches: 1  Memory Usage: 11kB\n                    Buffers: shared hit=1\n                    ->  Seq Scan on academic_calculationrun  (cost=0.00..1.13 rows=13 width=182) (actual time=0.004..0.006 rows=13 loops=1)\n                          Buffers: shared hit=1\nPlanning:\n  Buffers: shared hit=28\nPlanning Time: 2.154 ms\nExecution Time: 0.382 ms"
+    },
+    {
+      "name": "publication_list_student",
+      "state": "published",
+      "planning_ms": 2.077,
+      "execution_ms": 0.389,
+      "seq_scans": [
+        "academic_academicterm",
+        "academic_calculationrun",
+        "academic_course",
+        "academic_courseoffering",
+        "academic_program"
+      ],
+      "shared_hit": 36,
+      "shared_read": 0,
+      "text": "Limit  (cost=63.94..63.95 rows=6 width=870) (actual time=0.205..0.207 rows=13 loops=1)\n  Buffers: shared hit=36\n  ->  Sort  (cost=63.94..63.95 rows=6 width=870) (actual time=0.204..0.206 rows=13 loops=1)\n        Sort Key: academic_publication.published_at DESC, academic_publication.series_version DESC, academic_publication.id\n        Sort Method: quicksort  Memory: 38kB\n        Buffers: shared hit=36\n        ->  Nested Loop Left Join  (cost=58.32..63.86 rows=6 width=870) (actual time=0.161..0.186 rows=13 loops=1)\n              Join Filter: (academic_publication.term_id = academic_academicterm.id)\n              Rows Removed by Join Filter: 22\n              Buffers: shared hit=36\n              ->  Nested Loop Left Join  (cost=58.32..62.49 rows=6 width=806) (actual time=0.154..0.174 rows=13 loops=1)\n                    Join Filter: (academic_courseoffering.course_id = academic_course.id)\n                    Rows Removed by Join Filter: 45\n                    Buffers: shared hit=35\n                    ->  Nested Loop  (cost=58.32..60.67 rows=6 width=727) (actual time=0.147..0.158 rows=13 loops=1)\n                          Join Filter: (academic_program.id = academic_publication.program_id)\n                          Buffers: shared hit=34\n                          ->  Seq Scan on academic_program  (cost=0.00..1.01 rows=1 width=96) (actual time=0.002..0.003 rows=1 loops=1)\n                                Buffers: shared hit=1\n                          ->  Hash Join  (cost=58.32..59.59 rows=6 width=631) (actual time=0.144..0.152 rows=13 loops=1)\n                                Hash Cond: (academic_publication.run_id = academic_calculationrun.id)\n                                Buffers: shared hit=33\n                                ->  Hash Right Join  (cost=57.03..58.28 rows=6 width=449) (actual time=0.118..0.123 rows=13 loops=1)\n                                      Hash Cond: (academic_courseoffering.id = academic_publication.offering_id)\n                                      Buffers: shared hit=32\n                                      ->  Seq Scan on academic_courseoffering  (cost=0.00..1.13 rows=13 width=94) (actual time=0.001..0.002 rows=13 loops=1)\n                                            Buffers: shared hit=1\n                                      ->  Hash  (cost=56.95..56.95 rows=6 width=355) (actual time=0.108..0.108 rows=13 loops=1)\n                                            Buckets: 1024  Batches: 1  Memory Usage: 13kB\n                                            Buffers: shared hit=31\n                                            ->  Merge Join  (cost=56.75..56.95 rows=6 width=355) (actual time=0.094..0.097 rows=13 loops=1)\n                                                  Merge Cond: (auth_user.id = academic_publication.published_by_id)\n                                                  Buffers: shared hit=31\n                                                  ->  Index Scan using auth_user_pkey on auth_user  (cost=0.14..16.43 rows=152 width=116) (actual time=0.008..0.008 rows=2 loops=1)\n                                                        Buffers: shared hit=2\n                                                  ->  Sort  (cost=56.61..56.62 rows=6 width=239) (actual time=0.085..0.085 rows=13 loops=1)\n                                                        Sort Key: academic_publication.published_by_id\n                                                        Sort Method: quicksort  Memory: 28kB\n                                                        Buffers: shared hit=29\n                                                        ->  Index Scan using pub_series_lookup_idx on academic_publication  (cost=0.17..56.53 rows=6 width=239) (actual time=0.040..0.073 rows=13 loops=1)\n                                                              Index Cond: ((audience)::text = 'student'::text)\n                                                              Filter: (((offering_id = ANY ('{464783db-cfb2-4bf1-b0c3-7e4f5106afa1,c90c8a3e-9a7a-4424-a0a1-6405b5632489,55421496-807d-4fb0-859d-7031f27038a9,7faa04cf-9470-443a-95f6-f32ea94ee8b0,ff5d0cb2-dbe5-4408-a145-500dbcb84002,0f3bb70f-1a2a-45b6-93b9-7e577bbecf8f,6cff4ea4-5091-408c-a84d-6b19ddefeac8,28132f0d-36cf-43f5-beb9-9af032679159,c52a65c0-c43f-4126-895e-d3bb8e6b1832,5f2da15e-6f43-4bef-8724-d9851e2982a4,4719407f-8b23-44d3-8bae-dc5eaa7fa98d,19fba4ce-d5dc-456c-b14d-069c6c43eeb3}'::uuid[])) OR ((offering_id IS NULL) AND (program_id = '3ef905e6-fadc-4df9-b8cb-a86ef6b17ca8'::uuid))) AND (SubPlan 1))\n                                                              Buffers: shared hit=29\n                                                              SubPlan 1\n                                                                ->  Index Only Scan using outcome_score_run_lvl_stu_idx on academic_outcomescore u0  (cost=0.29..52.86 rows=17 width=0) (actual time=0.004..0.004 rows=1 loops=13)\n                                                                      Index Cond: ((run_id = academic_publication.run_id) AND (student_id = 3))\n                                                                      Heap Fetches: 0\n                                                                      Buffers: shared hit=27\n                                ->  Hash  (cost=1.13..1.13 rows=13 width=182) (actual time=0.017..0.018 rows=13 loops=1)\n                                      Buckets: 1024  Batches: 1  Memory Usage: 11kB\n                                      Buffers: shared hit=1\n                                      ->  Seq Scan on academic_calculationrun  (cost=0.00..1.13 rows=13 width=182) (actual time=0.006..0.008 rows=13 loops=1)\n                                            Buffers: shared hit=1\n                    ->  Materialize  (cost=0.00..1.14 rows=9 width=79) (actual time=0.000..0.001 rows=4 loops=13)\n                          Buffers: shared hit=1\n                          ->  Seq Scan on academic_course  (cost=0.00..1.09 rows=9 width=79) (actual time=0.001..0.002 rows=9 loops=1)\n                                Buffers: shared hit=1\n              ->  Materialize  (cost=0.00..1.06 rows=4 width=64) (actual time=0.000..0.000 rows=3 loops=13)\n                    Buffers: shared hit=1\n                    ->  Seq Scan on academic_academicterm  (cost=0.00..1.04 rows=4 width=64) (actual time=0.001..0.001 rows=4 loops=1)\n                          Buffers: shared hit=1\nPlanning:\n  Buffers: shared hit=28\nPlanning Time: 2.077 ms\nExecution Time: 0.389 ms"
+    },
+    {
+      "name": "analytics_cohort_offering",
+      "state": "published",
+      "planning_ms": 0.171,
+      "execution_ms": 3.103,
+      "seq_scans": [
+        "academic_courseoffering",
+        "academic_programoutcome"
+      ],
+      "shared_hit": 325,
+      "shared_read": 0,
+      "text": "Sort  (cost=3027.77..3031.62 rows=1539 width=1156) (actual time=2.856..2.893 rows=1617 loops=1)\n  Sort Key: academic_outcomescore.outcome_code, academic_outcomescore.id\n  Sort Method: quicksort  Memory: 1621kB\n  Buffers: shared hit=325\n  ->  Hash Left Join  (cost=34.60..2946.30 rows=1539 width=1156) (actual time=0.117..1.213 rows=1617 loops=1)\n        Hash Cond: (academic_outcomescore.program_outcome_id = academic_programoutcome.id)\n        Buffers: shared hit=325\n        ->  Hash Left Join  (cost=33.35..2939.97 rows=1539 width=1029) (actual time=0.096..0.956 rows=1617 loops=1)\n              Hash Cond: (academic_outcomescore.offering_id = academic_courseoffering.id)\n              Buffers: shared hit=324\n              ->  Bitmap Heap Scan on academic_outcomescore  (cost=32.06..2933.39 rows=1539 width=935) (actual time=0.076..0.453 rows=1617 loops=1)\n                    Recheck Cond: ((run_id = 'c2d4184d-c0aa-403f-9c58-7a196fe650fd'::uuid) AND ((level)::text = 'course_po'::text))\n                    Heap Blocks: exact=317\n                    Buffers: shared hit=323\n                    ->  Bitmap Index Scan on outcome_score_run_lvl_stu_idx  (cost=0.00..31.68 rows=1539 width=0) (actual time=0.059..0.059 rows=1617 loops=1)\n                          Index Cond: ((run_id = 'c2d4184d-c0aa-403f-9c58-7a196fe650fd'::uuid) AND ((level)::text = 'course_po'::text))\n                          Buffers: shared hit=6\n              ->  Hash  (cost=1.13..1.13 rows=13 width=94) (actual time=0.010..0.010 rows=13 loops=1)\n                    Buckets: 1024  Batches: 1  Memory Usage: 10kB\n                    Buffers: shared hit=1\n                    ->  Seq Scan on academic_courseoffering  (cost=0.00..1.13 rows=13 width=94) (actual time=0.002..0.003 rows=13 loops=1)\n                          Buffers: shared hit=1\n        ->  Hash  (cost=1.11..1.11 rows=11 width=127) (actual time=0.012..0.013 rows=11 loops=1)\n              Buckets: 1024  Batches: 1  Memory Usage: 10kB\n              Buffers: shared hit=1\n              ->  Seq Scan on academic_programoutcome  (cost=0.00..1.11 rows=11 width=127) (actual time=0.006..0.007 rows=11 loops=1)\n                    Buffers: shared hit=1\nPlanning:\n  Buffers: shared hit=8\nPlanning Time: 0.171 ms\nExecution Time: 3.103 ms"
+    }
+  ],
+  "tables_before": [
+    {
+      "table": "access_scope",
+      "rows": 15,
+      "heap_bytes": 8192,
+      "toast_bytes": 0,
+      "index_bytes": 32768,
+      "total_bytes": 40960
+    },
+    {
+      "table": "access_roleassignment",
+      "rows": 1782,
+      "heap_bytes": 155648,
+      "toast_bytes": 0,
+      "index_bytes": 532480,
+      "total_bytes": 712704
+    },
+    {
+      "table": "access_auditevent",
+      "rows": 26,
+      "heap_bytes": 16384,
+      "toast_bytes": 8192,
+      "index_bytes": 65536,
+      "total_bytes": 114688
+    },
+    {
+      "table": "academic_programmembership",
+      "rows": 150,
+      "heap_bytes": 24576,
+      "toast_bytes": 0,
+      "index_bytes": 98304,
+      "total_bytes": 147456
+    },
+    {
+      "table": "academic_courseoffering",
+      "rows": 13,
+      "heap_bytes": 8192,
+      "toast_bytes": 0,
+      "index_bytes": 81920,
+      "total_bytes": 90112
+    },
+    {
+      "table": "academic_enrollment",
+      "rows": 1950,
+      "heap_bytes": 212992,
+      "toast_bytes": 0,
+      "index_bytes": 606208,
+      "total_bytes": 843776
+    },
+    {
+      "table": "academic_assessment",
+      "rows": 156,
+      "heap_bytes": 16384,
+      "toast_bytes": 0,
+      "index_bytes": 32768,
+      "total_bytes": 73728
+    },
+    {
+      "table": "academic_gradebatch",
+      "rows": 12,
+      "heap_bytes": 8192,
+      "toast_bytes": 0,
+      "index_bytes": 65536,
+      "total_bytes": 73728
+    },
+    {
+      "table": "academic_grade",
+      "rows": 21228,
+      "heap_bytes": 3162112,
+      "toast_bytes": 0,
+      "index_bytes": 3760128,
+      "total_bytes": 6946816
+    },
+    {
+      "table": "academic_gradehistory",
+      "rows": 21228,
+      "heap_bytes": 2670592,
+      "toast_bytes": 0,
+      "index_bytes": 3162112,
+      "total_bytes": 5857280
+    },
+    {
+      "table": "academic_gradeimportrecord",
+      "rows": 0,
+      "heap_bytes": 0,
+      "toast_bytes": 8192,
+      "index_bytes": 40960,
+      "total_bytes": 49152
+    },
+    {
+      "table": "academic_syllabus",
+      "rows": 12,
+      "heap_bytes": 8192,
+      "toast_bytes": 0,
+      "index_bytes": 90112,
+      "total_bytes": 98304
+    },
+    {
+      "table": "academic_learningoutcome",
+      "rows": 72,
+      "heap_bytes": 8192,
+      "toast_bytes": 8192,
+      "index_bytes": 65536,
+      "total_bytes": 81920
+    },
+    {
+      "table": "academic_syllabusassessment",
+      "rows": 144,
+      "heap_bytes": 16384,
+      "toast_bytes": 0,
+      "index_bytes": 65536,
+      "total_bytes": 106496
+    },
+    {
+      "table": "academic_assessmentlomapping",
+      "rows": 288,
+      "heap_bytes": 40960,
+      "toast_bytes": 0,
+      "index_bytes": 106496,
+      "total_bytes": 172032
+    },
+    {
+      "table": "academic_lopomapping",
+      "rows": 144,
+      "heap_bytes": 24576,
+      "toast_bytes": 0,
+      "index_bytes": 98304,
+      "total_bytes": 147456
+    },
+    {
+      "table": "academic_coursepocontribution",
+      "rows": 84,
+      "heap_bytes": 16384,
+      "toast_bytes": 0,
+      "index_bytes": 65536,
+      "total_bytes": 106496
+    },
+    {
+      "table": "academic_programoutcome",
+      "rows": 11,
+      "heap_bytes": 8192,
+      "toast_bytes": 8192,
+      "index_bytes": 65536,
+      "total_bytes": 81920
+    },
+    {
+      "table": "academic_calculationrun",
+      "rows": 13,
+      "heap_bytes": 8192,
+      "toast_bytes": 4554752,
+      "index_bytes": 131072,
+      "total_bytes": 4694016
+    },
+    {
+      "table": "academic_outcomescore",
+      "rows": 31723,
+      "heap_bytes": 30842880,
+      "toast_bytes": 16850944,
+      "index_bytes": 3719168,
+      "total_bytes": 51437568
+    },
+    {
+      "table": "academic_publication",
+      "rows": 26,
+      "heap_bytes": 8192,
+      "toast_bytes": 0,
+      "index_bytes": 196608,
+      "total_bytes": 204800
+    }
+  ],
+  "payload": {
+    "student drill-down rows / evidence bytes": "17 / 14039",
+    "offering run (published)": {
+      "outcome_score_rows": 2499,
+      "evidence_bytes_total (stored)": 2118304,
+      "evidence_bytes_max_row (stored)": 1516,
+      "manifest_bytes (stored/raw JSON)": "182329 / 709695"
+    },
+    "program run (published)": {
+      "outcome_score_rows": 1650,
+      "evidence_bytes_total (stored)": 15953043,
+      "evidence_bytes_max_row (stored)": 17518,
+      "manifest_bytes (stored/raw JSON)": "2165660 / 8525678"
+    }
+  },
+  "scoring": {
+    "offering": "CSE321-01 2027-spring",
+    "iterations": 5,
+    "real_recalculations": 5,
+    "total_ms": {
+      "n": 5,
+      "min": 438.4,
+      "p50": 460.94,
+      "p95": 481.12,
+      "max": 481.12,
+      "mean": 459.35,
+      "p95_reliable": false
+    },
+    "manifest_capture_ms (last iter)": 84.57,
+    "compute_ms (last iter)": 38.35,
+    "persist_and_run_insert_ms (derived: total - manifest - compute)": {
+      "n": 5,
+      "min": 330.53,
+      "p50": 338.03,
+      "p95": 352.14,
+      "max": 352.14,
+      "mean": 338.98,
+      "p95_reliable": false
+    },
+    "queries_per_run": 22.0,
+    "note": "Grades changed via queryset update (no version bump/history): benchmark DB only.",
+    "outcome_score_rows": 2499,
+    "evidence_bytes_total (stored)": 2118763,
+    "evidence_bytes_max_row (stored)": 1516,
+    "manifest_bytes (stored/raw JSON)": "182335 / 709695"
+  },
+  "import": {
+    "dry_run_ms": 15.1,
+    "dry_run_rows_per_s": 119395.7,
+    "dry_run_queries": 5,
+    "apply_create_ms": 1548.4,
+    "apply_create_rows_per_s": 1162.5,
+    "apply_create_queries": 3620,
+    "apply_update_ms": 1798.3,
+    "apply_update_rows_per_s": 1000.9,
+    "apply_update_queries": 3618,
+    "apply_replay_ms": 3.1,
+    "apply_replay_rows_per_s": 585931.4,
+    "apply_replay_queries": 4,
+    "csv_rows": 1800,
+    "csv_bytes": 59457,
+    "batch_released": "no (unreleased batch: no input-revision bump)"
+  },
+  "contention": {
+    "scenario": "8 workers x3 calls of run_offering, same offering, unchanged inputs",
+    "wall_ms": 2379.0,
+    "latency_ms": {
+      "n": 24,
+      "min": 112.29,
+      "p50": 783.52,
+      "p95": 797.17,
+      "max": 800.63,
+      "mean": 676.53,
+      "p95_reliable": true
+    },
+    "lock_samples": 91,
+    "samples_with_waiting_locks": 86,
+    "max_waiting_locks": 7,
+    "max_backends_seen": 10,
+    "db_commits": 778,
+    "db_rollbacks": 0,
+    "db_blks_read": 39,
+    "db_blks_hit": 672783,
+    "db_deadlocks": 0,
+    "db_temp_files": 5,
+    "db_temp_bytes": 15491754,
+    "db_cache_hit_ratio": 0.9999
+  },
+  "tables_after": [
+    {
+      "table": "access_scope",
+      "rows": 15,
+      "heap_bytes": 8192,
+      "toast_bytes": 0,
+      "index_bytes": 32768,
+      "total_bytes": 40960
+    },
+    {
+      "table": "access_roleassignment",
+      "rows": 1782,
+      "heap_bytes": 155648,
+      "toast_bytes": 0,
+      "index_bytes": 532480,
+      "total_bytes": 720896
+    },
+    {
+      "table": "access_auditevent",
+      "rows": 164,
+      "heap_bytes": 65536,
+      "toast_bytes": 8192,
+      "index_bytes": 65536,
+      "total_bytes": 163840
+    },
+    {
+      "table": "academic_programmembership",
+      "rows": 150,
+      "heap_bytes": 24576,
+      "toast_bytes": 0,
+      "index_bytes": 98304,
+      "total_bytes": 147456
+    },
+    {
+      "table": "academic_courseoffering",
+      "rows": 13,
+      "heap_bytes": 8192,
+      "toast_bytes": 0,
+      "index_bytes": 81920,
+      "total_bytes": 90112
+    },
+    {
+      "table": "academic_enrollment",
+      "rows": 1950,
+      "heap_bytes": 212992,
+      "toast_bytes": 0,
+      "index_bytes": 606208,
+      "total_bytes": 851968
+    },
+    {
+      "table": "academic_assessment",
+      "rows": 156,
+      "heap_bytes": 16384,
+      "toast_bytes": 0,
+      "index_bytes": 32768,
+      "total_bytes": 73728
+    },
+    {
+      "table": "academic_gradebatch",
+      "rows": 13,
+      "heap_bytes": 8192,
+      "toast_bytes": 0,
+      "index_bytes": 65536,
+      "total_bytes": 73728
+    },
+    {
+      "table": "academic_grade",
+      "rows": 23028,
+      "heap_bytes": 3702784,
+      "toast_bytes": 0,
+      "index_bytes": 4186112,
+      "total_bytes": 7921664
+    },
+    {
+      "table": "academic_gradehistory",
+      "rows": 24828,
+      "heap_bytes": 3112960,
+      "toast_bytes": 0,
+      "index_bytes": 3612672,
+      "total_bytes": 6758400
+    },
+    {
+      "table": "academic_gradeimportrecord",
+      "rows": 2,
+      "heap_bytes": 8192,
+      "toast_bytes": 8192,
+      "index_bytes": 81920,
+      "total_bytes": 98304
+    },
+    {
+      "table": "academic_syllabus",
+      "rows": 12,
+      "heap_bytes": 8192,
+      "toast_bytes": 0,
+      "index_bytes": 90112,
+      "total_bytes": 98304
+    },
+    {
+      "table": "academic_learningoutcome",
+      "rows": 72,
+      "heap_bytes": 8192,
+      "toast_bytes": 8192,
+      "index_bytes": 65536,
+      "total_bytes": 81920
+    },
+    {
+      "table": "academic_syllabusassessment",
+      "rows": 144,
+      "heap_bytes": 16384,
+      "toast_bytes": 0,
+      "index_bytes": 65536,
+      "total_bytes": 106496
+    },
+    {
+      "table": "academic_assessmentlomapping",
+      "rows": 288,
+      "heap_bytes": 40960,
+      "toast_bytes": 0,
+      "index_bytes": 106496,
+      "total_bytes": 172032
+    },
+    {
+      "table": "academic_lopomapping",
+      "rows": 144,
+      "heap_bytes": 24576,
+      "toast_bytes": 0,
+      "index_bytes": 98304,
+      "total_bytes": 147456
+    },
+    {
+      "table": "academic_coursepocontribution",
+      "rows": 84,
+      "heap_bytes": 16384,
+      "toast_bytes": 0,
+      "index_bytes": 65536,
+      "total_bytes": 106496
+    },
+    {
+      "table": "academic_programoutcome",
+      "rows": 11,
+      "heap_bytes": 8192,
+      "toast_bytes": 8192,
+      "index_bytes": 65536,
+      "total_bytes": 81920
+    },
+    {
+      "table": "academic_calculationrun",
+      "rows": 18,
+      "heap_bytes": 8192,
+      "toast_bytes": 5521408,
+      "index_bytes": 131072,
+      "total_bytes": 5660672
+    },
+    {
+      "table": "academic_outcomescore",
+      "rows": 44218,
+      "heap_bytes": 43769856,
+      "toast_bytes": 16859136,
+      "index_bytes": 5283840,
+      "total_bytes": 65953792
+    },
+    {
+      "table": "academic_publication",
+      "rows": 26,
+      "heap_bytes": 8192,
+      "toast_bytes": 0,
+      "index_bytes": 196608,
+      "total_bytes": 204800
+    }
+  ]
+}
