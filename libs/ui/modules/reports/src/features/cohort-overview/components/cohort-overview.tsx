@@ -1,13 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useId, useMemo, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import { ApiError } from '@outcometrik/api';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
   Empty,
   EmptyDescription,
   EmptyHeader,
@@ -35,12 +37,12 @@ import {
   formatExclusionParts,
   totalExclusionsCount,
 } from './cohort-formatters';
+import { CohortHeroStrip } from './cohort-hero-strip';
 import {
   CohortOverviewProvider,
   type CohortOverviewContextValue,
 } from './cohort-overview-context';
 import { CohortSummaryTable } from './cohort-summary-table';
-import { CohortTraceabilityHeader } from './cohort-traceability-header';
 import { CohortTrendsPanel } from './cohort-trends-panel';
 import { PoAttainmentBarChart } from './po-attainment-chart';
 
@@ -98,6 +100,8 @@ export interface CohortOverviewProps {
   onFiltersChange?: (filters: CohortFilterValues) => void;
   /** Notified whenever the active tab changes. */
   onTabChange?: (tab: CohortOverviewTab) => void;
+  /** Optional right-rail content (e.g. ExportPanel) placed beside the main analytics canvas on wide screens. */
+  sidebarSlot?: ReactNode;
   /** Notified whenever the active program or publication changes. */
   onSelectionChange?: (selection: CohortSelection) => void;
 }
@@ -118,6 +122,7 @@ export function CohortOverview({
   defaultShowTrends = false,
   onFiltersChange,
   onTabChange,
+  sidebarSlot,
   onSelectionChange,
 }: CohortOverviewProps) {
   const overviewTabId = useId();
@@ -317,25 +322,23 @@ export function CohortOverview({
 
   return (
     <CohortOverviewProvider value={contextValue}>
-      <Card className="border-border bg-card shadow-[var(--shadow-sm)]">
-      <CardHeader className="border-b border-border/70 pb-4">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="space-y-1">
-            <CardTitle>
-              <h2 className="text-lg font-semibold tracking-tight">
-                Cohort outcome overview
-              </h2>
-            </CardTitle>
-            <CardDescription>
+      <div className="space-y-6">
+        {/* Top Command Bar: Title + Segmented View Switcher */}
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/80 pb-4">
+          <div className="space-y-0.5">
+            <h2 className="text-base font-semibold tracking-tight text-foreground">
+              Cohort outcome overview
+            </h2>
+            <p className="text-xs text-muted-foreground">
               Published PO1–PO11 attainment, 4-band distributions, measurement
               coverage, and PO-set-safe chronological trends.
-            </CardDescription>
+            </p>
           </div>
 
           <div
             role="tablist"
             aria-label="Cohort analytics views"
-            className="inline-flex items-center rounded-[var(--radius-input,6px)] border border-border bg-muted/50 p-0.5"
+            className="inline-flex items-center rounded-[var(--radius-input,6px)] border border-border bg-[var(--surface-subtle)]/70 p-0.5"
           >
             <button
               id={overviewTabId}
@@ -370,9 +373,8 @@ export function CohortOverview({
             </button>
           </div>
         </div>
-      </CardHeader>
 
-      <CardContent className="space-y-6 pt-5">
+        {/* URL-Synced Filter Bar */}
         <CohortQuery
           query={programsQuery}
           fallbackData={providedPrograms}
@@ -406,111 +408,134 @@ export function CohortOverview({
           <CohortQuery.Error title="Unable to load published snapshots" />
         </CohortQuery>
 
-        {activeTab === 'overview' && activeProgramId && (
-          <div
-            id={overviewPanelId}
-            role="tabpanel"
-            aria-labelledby={overviewTabId}
-            className="space-y-6"
-          >
-            <CohortQuery
-              query={analyticsQuery}
-              isEmpty={(data) => data.outcomes.length === 0}
-              treatErrorAsEmpty={isNotFoundApiError}
-            >
-              <CohortQuery.Loading>
-                <div className="space-y-3" role="status">
-                  <p className="text-sm text-muted-foreground">
-                    Loading cohort analytics…
-                  </p>
-                  <Skeleton className="h-20 w-full" />
-                  <Skeleton className="h-56 w-full" />
-                </div>
-              </CohortQuery.Loading>
-              <CohortQuery.Error title="Unable to load cohort analytics" />
-              <CohortQuery.Empty>
-                <Empty>
-                  <EmptyHeader>
-                    <EmptyTitle>
-                      No published cohort analytics available
-                    </EmptyTitle>
-                    <EmptyDescription>
-                      Publish a calculation run for this program to inspect
-                      cohort distributions and coverage.
-                    </EmptyDescription>
-                  </EmptyHeader>
-                </Empty>
-              </CohortQuery.Empty>
-              <CohortQuery.Ready>
-                {(data: CohortAnalyticsResponse) => (
-                  <>
-                    <CohortTraceabilityHeader analytics={data} />
-
-                    <section
-                      aria-labelledby="po-distribution-chart-title"
-                      className="space-y-4"
-                    >
-                      <div className="flex flex-wrap items-end justify-between gap-3">
-                        <div>
-                          <h3
-                            id="po-distribution-chart-title"
-                            className="text-base font-semibold tracking-tight"
-                          >
-                            PO1–PO11 attainment &amp; 4-band distribution (0–100
-                            scale)
-                          </h3>
-                          <p className="text-xs text-muted-foreground">
-                            Measured zeros (0.0) are counted in the &lt;50 band;
-                            unassessed or excluded students are reported
-                            separately and never coerced to zero.
-                          </p>
-                        </div>
-
-                        <div
-                          aria-label="4-band single-hue legend"
-                          className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground"
-                        >
-                          {BUCKET_META.map((bucket) => (
-                            <span
-                              key={bucket.key}
-                              className="inline-flex items-center gap-1.5"
-                            >
-                              <span
-                                className={`size-2.5 rounded-[2px] ${bucket.swatchClass}`}
-                                aria-hidden="true"
-                              />
-                              <span className="tabular-mono">
-                                {bucket.label}
-                              </span>
-                            </span>
-                          ))}
-                        </div>
+        {/* Primary Asymmetric Analytics Workspace */}
+        <div
+          className={
+            sidebarSlot
+              ? 'grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]'
+              : 'space-y-6'
+          }
+        >
+          <div className="min-w-0 space-y-6">
+            {activeTab === 'overview' && activeProgramId && (
+              <div
+                id={overviewPanelId}
+                role="tabpanel"
+                aria-labelledby={overviewTabId}
+                className="space-y-6"
+              >
+                <CohortQuery
+                  query={analyticsQuery}
+                  isEmpty={(data) => data.outcomes.length === 0}
+                  treatErrorAsEmpty={isNotFoundApiError}
+                >
+                  <CohortQuery.Loading>
+                    <div className="space-y-4" role="status">
+                      <p className="text-sm text-muted-foreground">
+                        Loading cohort analytics…
+                      </p>
+                      <div className="grid gap-4 lg:grid-cols-12">
+                        <Skeleton className="h-28 lg:col-span-5" />
+                        <Skeleton className="h-28 lg:col-span-3" />
+                        <Skeleton className="h-28 lg:col-span-4" />
                       </div>
+                      <Skeleton className="h-72 w-full" />
+                    </div>
+                  </CohortQuery.Loading>
+                  <CohortQuery.Error title="Unable to load cohort analytics" />
+                  <CohortQuery.Empty>
+                    <Empty>
+                      <EmptyHeader>
+                        <EmptyTitle>
+                          No published cohort analytics available
+                        </EmptyTitle>
+                        <EmptyDescription>
+                          Publish a calculation run for this program to inspect
+                          cohort distributions and coverage.
+                        </EmptyDescription>
+                      </EmptyHeader>
+                    </Empty>
+                  </CohortQuery.Empty>
+                  <CohortQuery.Ready>
+                    {(data: CohortAnalyticsResponse) => (
+                      <>
+                        <CohortHeroStrip analytics={data} />
 
-                      <PoAttainmentBarChart outcomes={data.outcomes} />
-                    </section>
+                        <section
+                          aria-labelledby="po-distribution-chart-title"
+                          className="space-y-3"
+                        >
+                          <div className="flex flex-wrap items-end justify-between gap-3">
+                            <div>
+                              <h3
+                                id="po-distribution-chart-title"
+                                className="text-base font-semibold tracking-tight"
+                              >
+                                PO1–PO11 attainment &amp; 4-band distribution
+                                (0–100 scale)
+                              </h3>
+                              <p className="text-xs text-muted-foreground">
+                                Measured zeros (0.0) are counted in the &lt;50
+                                band; unassessed or excluded students are
+                                reported separately and never coerced to zero.
+                              </p>
+                            </div>
 
-                    <CohortSummaryTable
-                      publicationId={data.publication_id}
-                      poSetVersion={data.po_set_version}
-                      outcomes={data.outcomes}
-                    />
-                  </>
-                )}
-              </CohortQuery.Ready>
-            </CohortQuery>
+                            <div
+                              aria-label="4-band single-hue legend"
+                              className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground"
+                            >
+                              {BUCKET_META.map((bucket) => (
+                                <span
+                                  key={bucket.key}
+                                  className="inline-flex items-center gap-1.5"
+                                >
+                                  <span
+                                    className={`size-2.5 rounded-[2px] ${bucket.swatchClass}`}
+                                    aria-hidden="true"
+                                  />
+                                  <span className="tabular-mono">
+                                    {bucket.label}
+                                  </span>
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+
+                          <PoAttainmentBarChart outcomes={data.outcomes} />
+                        </section>
+
+                        <CohortSummaryTable
+                          publicationId={data.publication_id}
+                          poSetVersion={data.po_set_version}
+                          outcomes={data.outcomes}
+                        />
+                      </>
+                    )}
+                  </CohortQuery.Ready>
+                </CohortQuery>
+              </div>
+            )}
+
+            {activeTab === 'trends' && activeProgramId && (
+              <CohortTrendsPanel
+                key={activeProgramId}
+                panelId={trendsPanelId}
+                tabId={trendsTabId}
+              />
+            )}
           </div>
-        )}
 
-        {activeTab === 'trends' && activeProgramId && (
-          <CohortTrendsPanel
-            key={activeProgramId}
-            panelId={trendsPanelId}
-            tabId={trendsTabId}
-          />
-        )}
-      </CardContent>
-    </Card>
+          {sidebarSlot && (
+            <aside
+              aria-label="Exports and governance actions"
+              className="space-y-4 xl:sticky xl:top-6"
+            >
+              {sidebarSlot}
+            </aside>
+          )}
+        </div>
+      </div>
     </CohortOverviewProvider>
   );
 }

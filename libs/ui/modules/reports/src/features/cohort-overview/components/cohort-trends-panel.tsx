@@ -2,8 +2,19 @@
 
 import { memo, useCallback, useId, useMemo, useState } from 'react';
 import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ReferenceLine,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import {
   Badge,
   Button,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
   NativeSelect,
   NativeSelectOption,
   NotAssessedText,
@@ -18,6 +29,7 @@ import {
   TableHeader,
   TableRow,
   createQueryState,
+  type ChartConfig,
 } from '@outcometrik/ui';
 import { cohortErrorMessage, formatCoveragePercent, shortRef } from '../api';
 import { useCohortTrendsQuery } from '../hooks/use-cohort-overview';
@@ -29,7 +41,13 @@ import { parseNumericScore } from './cohort-formatters';
 import { useCohortOverviewContext } from './cohort-overview-context';
 
 const CohortQuery = createQueryState({ formatError: cohortErrorMessage });
-const GRID_TICKS = [0, 25, 50, 70, 85, 100] as const;
+
+const TREND_CHART_CONFIG = {
+  mean: {
+    label: 'Cohort mean',
+    color: 'var(--accent-primary)',
+  },
+} satisfies ChartConfig;
 
 const TrendAreaChart = memo(function TrendAreaChart({
   points,
@@ -39,59 +57,27 @@ const TrendAreaChart = memo(function TrendAreaChart({
   selectedCode: string;
 }) {
   const gradientId = useId();
-  const width = 640;
-  const height = 220;
-  const padLeft = 40;
-  const padRight = 24;
-  const padTop = 20;
-  const padBottom = 38;
-  const innerW = width - padLeft - padRight;
-  const innerH = height - padTop - padBottom;
 
-  const series = useMemo(
+  const chartData = useMemo(
     () =>
-      points.map((point, index) => {
+      points.map((point) => {
         const match = point.outcomes.find((o) => o.code === selectedCode);
         const val = match && match.n > 0 ? parseNumericScore(match.mean) : null;
-        const x =
-          points.length === 1
-            ? padLeft + innerW / 2
-            : padLeft + (index / (points.length - 1)) * innerW;
-        const y = val === null ? null : padTop + innerH - (val / 100) * innerH;
-        const label = point.term?.label ?? `Series v${point.series_version}`;
         return {
           id: point.publication_id,
-          label,
-          value: val,
-          rawMean: match?.mean ?? null,
-          x,
-          y,
+          label: point.term?.label ?? `Series v${point.series_version}`,
+          mean: val,
+          rawMean: match?.mean ?? '—',
+          n: match?.n ?? 0,
         };
       }),
-    [points, selectedCode, innerW, innerH],
+    [points, selectedCode],
   );
 
-  const validPoints = series.filter(
-    (pt): pt is typeof pt & { y: number; value: number } => pt.y !== null,
-  );
-
-  const linePath =
-    validPoints.length > 0
-      ? validPoints
-          .map(
-            (pt, i) =>
-              `${i === 0 ? 'M' : 'L'} ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`,
-          )
-          .join(' ')
-      : '';
-
-  const areaPath =
-    validPoints.length > 1
-      ? `${linePath} L ${validPoints[validPoints.length - 1].x.toFixed(1)} ${(padTop + innerH).toFixed(1)} L ${validPoints[0].x.toFixed(1)} ${(padTop + innerH).toFixed(1)} Z`
-      : '';
+  const hasValidPoints = chartData.some((pt) => pt.mean !== null);
 
   return (
-    <div className="rounded-[var(--radius-card,10px)] border bg-card p-4">
+    <div className="rounded-[var(--radius-card,10px)] border border-border bg-card p-4">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <div>
           <h4 className="text-sm font-semibold text-foreground">
@@ -104,120 +90,92 @@ const TrendAreaChart = memo(function TrendAreaChart({
         </div>
       </div>
 
-      {validPoints.length === 0 ? (
+      {!hasValidPoints ? (
         <div className="flex h-36 items-center justify-center rounded-md border border-dashed bg-muted/30">
           <NotAssessedText label="— Not assessed across selected snapshots" />
         </div>
       ) : (
-        <svg
-          viewBox={`0 0 ${width} ${height}`}
-          className="h-56 w-full overflow-visible"
-          role="img"
-          aria-label={`${selectedCode} chronological trend chart across ${points.length} publications`}
-        >
-          <defs>
-            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop
-                offset="0%"
-                stopColor="var(--accent-primary)"
-                stopOpacity="0.16"
-              />
-              <stop
-                offset="100%"
-                stopColor="var(--accent-primary)"
-                stopOpacity="0"
-              />
-            </linearGradient>
-          </defs>
-
-          {GRID_TICKS.map((tick) => {
-            const y = padTop + innerH - (tick / 100) * innerH;
-            const isTarget = tick === 70;
-            return (
-              <g key={tick}>
-                <line
-                  x1={padLeft}
-                  y1={y}
-                  x2={width - padRight}
-                  y2={y}
-                  stroke={
-                    isTarget
-                      ? 'var(--accent-primary)'
-                      : 'var(--border-hairline)'
-                  }
-                  strokeOpacity={isTarget ? 0.45 : 1}
-                  strokeDasharray={isTarget ? '4 4' : undefined}
-                  strokeWidth={1}
-                />
-                <text
-                  x={padLeft - 8}
-                  y={y + 4}
-                  textAnchor="end"
-                  className="fill-muted-foreground text-[10px]"
-                  style={{ fontFamily: 'var(--font-mono)' }}
-                >
-                  {tick}
-                </text>
-              </g>
-            );
-          })}
-
-          {areaPath && <path d={areaPath} fill={`url(#${gradientId})`} />}
-
-          {linePath && (
-            <path
-              d={linePath}
-              fill="none"
-              stroke="var(--accent-primary)"
-              strokeWidth={2.25}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
-          )}
-
-          {series.map((pt) => (
-            <g key={pt.id}>
-              <text
-                x={pt.x}
-                y={height - 10}
-                textAnchor="middle"
-                className="fill-muted-foreground text-[11px]"
-              >
-                {pt.label}
-              </text>
-              {pt.y !== null && pt.value !== null ? (
-                <>
-                  <circle
-                    cx={pt.x}
-                    cy={pt.y}
-                    r={4.5}
-                    fill="var(--surface-raised)"
-                    stroke="var(--accent-primary)"
-                    strokeWidth={2.25}
+        <>
+          <ChartContainer config={TREND_CHART_CONFIG} className="h-56 w-full">
+            <AreaChart
+              accessibilityLayer
+              data={chartData}
+              margin={{ left: 0, right: 16, top: 12, bottom: 4 }}
+            >
+              <defs>
+                <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                  <stop
+                    offset="5%"
+                    stopColor="var(--color-mean)"
+                    stopOpacity={0.18}
                   />
-                  <text
-                    x={pt.x}
-                    y={Math.max(12, pt.y - 10)}
-                    textAnchor="middle"
-                    className="fill-foreground text-[11px] font-semibold"
-                    style={{ fontFamily: 'var(--font-mono)' }}
-                  >
-                    {pt.rawMean ?? pt.value.toFixed(1)}
-                  </text>
-                </>
-              ) : (
-                <text
-                  x={pt.x}
-                  y={padTop + innerH - 8}
-                  textAnchor="middle"
-                  className="fill-muted-foreground text-[10px]"
-                >
-                  —
-                </text>
-              )}
-            </g>
-          ))}
-        </svg>
+                  <stop
+                    offset="95%"
+                    stopColor="var(--color-mean)"
+                    stopOpacity={0}
+                  />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                vertical={false}
+                stroke="var(--border-hairline)"
+                strokeDasharray="3 3"
+              />
+              <XAxis
+                dataKey="label"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+              />
+              <YAxis
+                domain={[0, 100]}
+                ticks={[0, 25, 50, 70, 85, 100]}
+                tickLine={false}
+                axisLine={false}
+                width={32}
+              />
+              <ReferenceLine
+                y={70}
+                stroke="var(--accent-primary)"
+                strokeOpacity={0.45}
+                strokeDasharray="4 4"
+              />
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent indicator="line" />}
+              />
+              <Area
+                dataKey="mean"
+                type="monotone"
+                fill={`url(#${gradientId})`}
+                stroke="var(--color-mean)"
+                strokeWidth={2.25}
+                dot={{
+                  r: 4,
+                  fill: 'var(--surface-raised)',
+                  stroke: 'var(--color-mean)',
+                  strokeWidth: 2,
+                }}
+                activeDot={{ r: 5 }}
+                connectNulls
+              />
+            </AreaChart>
+          </ChartContainer>
+          {/* Accessible SSR & screen-reader summary of plotted trend points */}
+          <svg
+            aria-hidden="true"
+            className="sr-only"
+            width="1"
+            height="1"
+          />
+          <ul className="sr-only">
+            {chartData.map((pt) => (
+              <li key={pt.id}>
+                {pt.label}: {pt.rawMean}
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </div>
   );

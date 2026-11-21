@@ -79,24 +79,24 @@ function CoordinatorAnalyticsContent() {
   }, []);
 
   return (
-    <div className="space-y-6">
-      <CohortOverview
-        programId={programId}
-        publicationId={publicationId}
-        termId={termId}
-        courseId={courseId}
-        activeTab={activeTab}
-        onFiltersChange={handleFiltersChange}
-        onTabChange={handleTabChange}
-        onSelectionChange={handleSelectionChange}
-      />
-      <ExportPanel
-        scope="cohort"
-        programId={selection.programId}
-        publicationId={selection.publicationId}
-        title="Scoped cohort export (CSV & PDF)"
-      />
-    </div>
+    <CohortOverview
+      programId={programId}
+      publicationId={publicationId}
+      termId={termId}
+      courseId={courseId}
+      activeTab={activeTab}
+      onFiltersChange={handleFiltersChange}
+      onTabChange={handleTabChange}
+      onSelectionChange={handleSelectionChange}
+      sidebarSlot={
+        <ExportPanel
+          scope="cohort"
+          programId={selection.programId}
+          publicationId={selection.publicationId}
+          title="Scoped cohort export"
+        />
+      }
+    />
   );
 }
 
