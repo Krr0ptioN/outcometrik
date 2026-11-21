@@ -1,8 +1,8 @@
 'use client';
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useId, useMemo, useState, type FormEvent } from 'react';
-import { CheckCircle2, Lock, Pencil, Plus, ShieldCheck } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { useCallback, useId, useMemo, useState } from 'react';
+import { Lock, Plus, ShieldCheck } from 'lucide-react';
 import { errorMessage } from '@outcometrik/access';
 import {
   Alert,
@@ -15,40 +15,30 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   Empty,
   EmptyDescription,
   EmptyHeader,
   EmptyTitle,
   Field,
-  FieldGroup,
   FieldLabel,
-  Input,
   NativeSelect,
   NativeSelectOption,
   Skeleton,
   StatusDot,
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
 } from '@outcometrik/ui';
 import { getCoordinatorWorkspace } from '../workspace/api';
 import {
-  changeProgramOutcomeSet,
   getProgramOutcomeSets,
   getProgramOutcomes,
   type ProgramOutcome,
   type ProgramOutcomeSet,
 } from './api';
+import {
+  ActivatePoSetDialog,
+  CreateDraftPoSetDialog,
+  EditOutcomeDialog,
+} from './po-sets/po-set-dialogs';
+import { PoSetLedgerTable } from './po-sets/po-set-ledger-table';
 
 export type PoSetLifecycleState = 'active' | 'archived' | 'draft';
 
@@ -72,7 +62,6 @@ function PoSetStatusBadge({ poSet }: { poSet: ProgramOutcomeSet }) {
 }
 
 export function CoordinatorPOSetManager() {
-  const queryClient = useQueryClient();
   const programSelectId = useId();
 
   const workspaceQuery = useQuery({
@@ -121,98 +110,19 @@ export function CoordinatorPOSetManager() {
 
   const [createDraftOpen, setCreateDraftOpen] = useState(false);
   const [activateDialogOpen, setActivateDialogOpen] = useState(false);
-  const [activateEffectiveDate, setActivateEffectiveDate] = useState<string>(
-    new Date().toISOString().slice(0, 10),
-  );
   const [editingOutcome, setEditingOutcome] = useState<ProgramOutcome | null>(
     null,
   );
   const [addingOutcomeOpen, setAddingOutcomeOpen] = useState(false);
 
-  const createDraftMutation = useMutation({
-    mutationFn: (payload: {
-      program: string;
-      effective_date: string;
-      source_reference: string;
-    }) => changeProgramOutcomeSet('', payload, 'POST'),
-    onSuccess: async () => {
-      setCreateDraftOpen(false);
-      await queryClient.invalidateQueries({
-        queryKey: ['academic', 'po-sets', activeProgramId],
-      });
-    },
-  });
+  const handleEditOutcome = useCallback((outcome: ProgramOutcome) => {
+    setEditingOutcome(outcome);
+  }, []);
 
-  const activateMutation = useMutation({
-    mutationFn: (args: { id: string; effective_date?: string }) =>
-      changeProgramOutcomeSet(
-        `${args.id}/activate/`,
-        args.effective_date ? { effective_date: args.effective_date } : {},
-        'POST',
-      ),
-    onSuccess: async () => {
-      setActivateDialogOpen(false);
-      await queryClient.invalidateQueries({
-        queryKey: ['academic', 'po-sets', activeProgramId],
-      });
-    },
-  });
-
-  const saveOutcomeMutation = useMutation({
-    mutationFn: (args: {
-      poSetId: string;
-      outcomeId?: string;
-      body: {
-        code: string;
-        label: string;
-        description: string;
-        source_reference: string;
-        order: number;
-      };
-    }) =>
-      args.outcomeId
-        ? changeProgramOutcomeSet(
-            `${args.poSetId}/outcomes/${args.outcomeId}/`,
-            args.body,
-            'PATCH',
-          )
-        : changeProgramOutcomeSet(`${args.poSetId}/outcomes/`, args.body, 'POST'),
-    onSuccess: async () => {
-      setEditingOutcome(null);
-      setAddingOutcomeOpen(false);
-      await queryClient.invalidateQueries({
-        queryKey: ['academic', 'po-set-outcomes', activeSet?.id ?? null],
-      });
-    },
-  });
-
-  function handleCreateDraftSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!activeProgramId) return;
-    const data = new FormData(event.currentTarget);
-    createDraftMutation.mutate({
-      program: activeProgramId,
-      effective_date: String(data.get('effective_date') ?? '').trim(),
-      source_reference: String(data.get('source_reference') ?? '').trim(),
-    });
-  }
-
-  function handleSaveOutcomeSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!activeSet) return;
-    const data = new FormData(event.currentTarget);
-    saveOutcomeMutation.mutate({
-      poSetId: activeSet.id,
-      outcomeId: editingOutcome?.id,
-      body: {
-        code: String(data.get('code') ?? '').trim(),
-        label: String(data.get('label') ?? '').trim(),
-        description: String(data.get('description') ?? '').trim(),
-        source_reference: String(data.get('source_reference') ?? '').trim(),
-        order: Number(data.get('order') ?? outcomes.length + 1),
-      },
-    });
-  }
+  const handleCloseOutcomeDialog = useCallback(() => {
+    setEditingOutcome(null);
+    setAddingOutcomeOpen(false);
+  }, []);
 
   if (workspaceQuery.isPending) {
     return (
@@ -253,7 +163,6 @@ export function CoordinatorPOSetManager() {
 
   return (
     <div className="space-y-6">
-      {/* Program Scope & Primary Action */}
       <div className="flex flex-wrap items-end justify-between gap-4 rounded-[var(--radius-card,10px)] border border-border bg-card p-4 shadow-[var(--shadow-sm)]">
         <Field className="min-w-[260px] max-w-md flex-1">
           <FieldLabel htmlFor={programSelectId}>Program scope</FieldLabel>
@@ -279,14 +188,13 @@ export function CoordinatorPOSetManager() {
         </Button>
       </div>
 
-      {poSetsQuery.isError && (
+      {poSetsQuery.isError ? (
         <Alert variant="destructive">
           <AlertTitle>Unable to load program outcome sets</AlertTitle>
           <AlertDescription>{errorMessage(poSetsQuery.error)}</AlertDescription>
         </Alert>
-      )}
+      ) : null}
 
-      {/* Version Strip */}
       {poSetsQuery.isPending ? (
         <Skeleton className="h-28 w-full" />
       ) : poSets.length === 0 ? (
@@ -300,7 +208,11 @@ export function CoordinatorPOSetManager() {
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className="grid gap-3 md:grid-cols-3" role="listbox" aria-label="PO set versions">
+        <div
+          className="grid gap-3 md:grid-cols-3"
+          role="listbox"
+          aria-label="PO set versions"
+        >
           {poSets.map((set) => {
             const isSelected = activeSet?.id === set.id;
             return (
@@ -337,8 +249,7 @@ export function CoordinatorPOSetManager() {
         </div>
       )}
 
-      {/* Active Selected PO Set Ledger */}
-      {activeSet && (
+      {activeSet && lifecycle ? (
         <Card className="border-border bg-card shadow-[var(--shadow-sm)]">
           <CardHeader className="border-b border-border/70 pb-4">
             <div className="flex flex-wrap items-start justify-between gap-4">
@@ -375,13 +286,7 @@ export function CoordinatorPOSetManager() {
                     </Button>
                     <Button
                       type="button"
-                      onClick={() => {
-                        setActivateEffectiveDate(
-                          activeSet.effective_date ??
-                            new Date().toISOString().slice(0, 10),
-                        );
-                        setActivateDialogOpen(true);
-                      }}
+                      onClick={() => setActivateDialogOpen(true)}
                       disabled={outcomes.length === 0}
                     >
                       <ShieldCheck className="size-4" aria-hidden="true" />
@@ -403,15 +308,6 @@ export function CoordinatorPOSetManager() {
           </CardHeader>
 
           <CardContent className="space-y-4 pt-5">
-            {activateMutation.isError && (
-              <Alert variant="destructive">
-                <AlertTitle>Activation failed</AlertTitle>
-                <AlertDescription>
-                  {errorMessage(activateMutation.error)}
-                </AlertDescription>
-              </Alert>
-            )}
-
             {outcomesQuery.isPending ? (
               <div className="space-y-2" role="status">
                 <Skeleton className="h-10 w-full" />
@@ -435,284 +331,41 @@ export function CoordinatorPOSetManager() {
                 </EmptyHeader>
               </Empty>
             ) : (
-              <div className="overflow-x-auto rounded-[var(--radius-card,10px)] border border-border">
-                <Table>
-                  <TableCaption className="pb-3">
-                    Authoritative Program Outcomes for PO-Set v
-                    {activeSet.version} ({lifecycle}).
-                  </TableCaption>
-                  <TableHeader className="bg-[var(--surface-subtle)]">
-                    <TableRow>
-                      <TableHead scope="col">Code</TableHead>
-                      <TableHead scope="col">Label</TableHead>
-                      <TableHead scope="col">Authoritative description</TableHead>
-                      <TableHead scope="col">Source reference</TableHead>
-                      {isDraft && (
-                        <TableHead scope="col" className="text-right">
-                          Action
-                        </TableHead>
-                      )}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {outcomes.map((outcome) => (
-                      <TableRow key={outcome.id}>
-                        <th
-                          scope="row"
-                          className="tabular-mono p-2.5 text-left align-top font-semibold whitespace-nowrap"
-                        >
-                          {outcome.code}
-                        </th>
-                        <TableCell className="align-top font-medium">
-                          {outcome.label}
-                        </TableCell>
-                        <TableCell className="max-w-xl align-top text-sm text-muted-foreground">
-                          {outcome.description}
-                        </TableCell>
-                        <TableCell className="align-top text-xs text-muted-foreground">
-                          {outcome.source_reference || '—'}
-                        </TableCell>
-                        {isDraft && (
-                          <TableCell className="align-top text-right">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setEditingOutcome(outcome)}
-                            >
-                              <Pencil className="size-3.5" aria-hidden="true" />
-                              Edit
-                            </Button>
-                          </TableCell>
-                        )}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              <PoSetLedgerTable
+                version={activeSet.version}
+                lifecycle={lifecycle}
+                outcomes={outcomes}
+                isDraft={isDraft}
+                onEditOutcome={handleEditOutcome}
+              />
             )}
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
-      {/* Create New Draft PO Set Dialog */}
-      <Dialog open={createDraftOpen} onOpenChange={setCreateDraftOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create new draft PO set</DialogTitle>
-            <DialogDescription>
-              Draft PO sets can be edited freely until activation. Activating a
-              new version archives the currently active PO set without modifying
-              historical publications.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleCreateDraftSubmit} className="space-y-4">
-            <FieldGroup>
-              <Field>
-                <FieldLabel>
-                  Planned effective date
-                  <Input
-                    name="effective_date"
-                    type="date"
-                    required
-                    defaultValue={new Date().toISOString().slice(0, 10)}
-                  />
-                </FieldLabel>
-              </Field>
-              <Field>
-                <FieldLabel>
-                  Source reference
-                  <Input
-                    name="source_reference"
-                    required
-                    placeholder="e.g. MÜDEK / ABET 2026-2027 Senate Decision"
-                  />
-                </FieldLabel>
-              </Field>
-            </FieldGroup>
-            {createDraftMutation.isError && (
-              <Alert variant="destructive">
-                <AlertDescription>
-                  {errorMessage(createDraftMutation.error)}
-                </AlertDescription>
-              </Alert>
-            )}
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setCreateDraftOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={createDraftMutation.isPending}>
-                {createDraftMutation.isPending ? 'Creating…' : 'Create draft'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <CreateDraftPoSetDialog
+        open={createDraftOpen}
+        onOpenChange={setCreateDraftOpen}
+        programId={activeProgramId}
+      />
 
-      {/* Add / Edit Outcome Dialog (Draft Only) */}
-      <Dialog
+      <EditOutcomeDialog
+        key={editingOutcome?.id ?? 'new'}
         open={Boolean(editingOutcome) || addingOutcomeOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            setEditingOutcome(null);
-            setAddingOutcomeOpen(false);
-          }
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {editingOutcome
-                ? `Edit ${editingOutcome.code}`
-                : 'Add program outcome'}
-            </DialogTitle>
-            <DialogDescription>
-              Authoritative text is frozen upon PO-set activation and quoted in
-              student profiles and accreditation exports.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSaveOutcomeSubmit} className="space-y-4">
-            <FieldGroup>
-              <Field>
-                <FieldLabel>
-                  Code
-                  <Input
-                    name="code"
-                    required
-                    defaultValue={editingOutcome?.code ?? `PO${outcomes.length + 1}`}
-                  />
-                </FieldLabel>
-              </Field>
-              <Field>
-                <FieldLabel>
-                  Short label
-                  <Input
-                    name="label"
-                    required
-                    defaultValue={editingOutcome?.label ?? ''}
-                  />
-                </FieldLabel>
-              </Field>
-              <Field>
-                <FieldLabel>
-                  Authoritative description
-                  <Input
-                    name="description"
-                    required
-                    defaultValue={editingOutcome?.description ?? ''}
-                  />
-                </FieldLabel>
-              </Field>
-              <Field>
-                <FieldLabel>
-                  Source reference
-                  <Input
-                    name="source_reference"
-                    defaultValue={
-                      editingOutcome?.source_reference ??
-                      activeSet?.source_reference ??
-                      ''
-                    }
-                  />
-                </FieldLabel>
-              </Field>
-              <Field>
-                <FieldLabel>
-                  Order
-                  <Input
-                    name="order"
-                    type="number"
-                    min="1"
-                    required
-                    defaultValue={editingOutcome?.order ?? outcomes.length + 1}
-                  />
-                </FieldLabel>
-              </Field>
-            </FieldGroup>
-            {saveOutcomeMutation.isError && (
-              <Alert variant="destructive">
-                <AlertDescription>
-                  {errorMessage(saveOutcomeMutation.error)}
-                </AlertDescription>
-              </Alert>
-            )}
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setEditingOutcome(null);
-                  setAddingOutcomeOpen(false);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={saveOutcomeMutation.isPending}>
-                {saveOutcomeMutation.isPending ? 'Saving…' : 'Save outcome'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+        onClose={handleCloseOutcomeDialog}
+        poSet={activeSet}
+        editingOutcome={editingOutcome}
+        nextOrder={outcomes.length + 1}
+      />
 
-      {/* Activate Immutability Confirmation Dialog */}
-      <Dialog open={activateDialogOpen} onOpenChange={setActivateDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              Activate PO-Set v{activeSet?.version} permanently?
-            </DialogTitle>
-            <DialogDescription>
-              Activating this PO set permanently locks all {outcomes.length}{' '}
-              outcome descriptions and archives the previously active set.
-              Publications created under different PO-Set versions can never be
-              blended in trend comparisons.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <Field>
-              <FieldLabel>
-                Effective date
-                <Input
-                  type="date"
-                  value={activateEffectiveDate}
-                  onChange={(e) => setActivateEffectiveDate(e.target.value)}
-                />
-              </FieldLabel>
-            </Field>
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setActivateDialogOpen(false)}
-              disabled={activateMutation.isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              disabled={!activeSet || activateMutation.isPending}
-              onClick={() =>
-                activeSet &&
-                activateMutation.mutate({
-                  id: activeSet.id,
-                  effective_date: activateEffectiveDate || undefined,
-                })
-              }
-            >
-              <CheckCircle2 className="size-4" aria-hidden="true" />
-              {activateMutation.isPending
-                ? 'Activating…'
-                : `Confirm activate v${activeSet?.version}`}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ActivatePoSetDialog
+        key={activeSet?.id ?? 'none'}
+        open={activateDialogOpen}
+        onOpenChange={setActivateDialogOpen}
+        programId={activeProgramId}
+        poSet={activeSet}
+        outcomeCount={outcomes.length}
+      />
     </div>
   );
 }
