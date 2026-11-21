@@ -18,6 +18,16 @@ Read and follow [the code style guide](docs/CODE_STYLE.md) before changing appli
 - For a new module, register its workspace package, Nx targets, dependencies, TypeScript paths, and Next.js transpilation where needed. Update the lockfile and relevant documentation.
 - Run affected tests, lint, and type checks; run the web build when changing module resolution or client/server boundaries. Report any checks blocked by the environment.
 
+## React Compound Architecture skill (complex & organism components)
+
+The `react-compound-architecture` skill is installed at `.gemini/skills/react-compound-architecture/SKILL.md`.
+
+- **When to use it**: ALWAYS load and follow this skill when creating or refactoring any **complex or organism-level React component** (dashboards, analytics views, approval queues, editable matrices, multi-dialog managers, or any component orchestrating TanStack Query async states).
+- **How to use it**:
+  1. Decompose organisms into a thin composition orchestrator + isolated, single-responsibility subcomponents (`React.memo` for pure leaves, local state co-located in owning panels, pure helpers in `.ts` files).
+  2. Handle async query states using `QueryState` / `createQueryState` from `@outcometrik/ui` (Adapter + Compound Components + Factory Method) instead of repeating `isPending` / `isError` / `empty` JSX conditionals or building prop-heavy wrapper components.
+  3. Follow the conditional rendering rules in `docs/CODE_STYLE.md` (`{cond && <Comp />}` for single-branch boolean/truthy guards; explicit `items.length > 0 && ...` for numeric counts; ternaries only for genuine two-branch renders).
+
 ## Git and pull request workflow (strict subtask rules)
 
 - **Dedicated branch per subtask**: Every subtask or issue must be implemented on its own dedicated branch (e.g. `feat/<issue-slug>`).

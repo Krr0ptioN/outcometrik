@@ -356,7 +356,13 @@ export function InstructorDashboard() {
     </SidebarProvider>
   );
 }
-export function CoordinatorAcademicOverview({ children }: { children?: ReactNode }) {
+export function CoordinatorAcademicOverview({
+  children,
+  embedded = false,
+}: {
+  children?: ReactNode;
+  embedded?: boolean;
+}) {
   const session = useSession();
   const allowed = hasRole(session, 'program-coordinator');
   const workspace = useQuery({
@@ -367,25 +373,37 @@ export function CoordinatorAcademicOverview({ children }: { children?: ReactNode
   if (!allowed) return null;
   if (workspace.isPending)
     return (
-      <p className="mx-auto max-w-5xl p-8" role="status">
+      <p
+        className={embedded ? 'text-sm text-muted-foreground' : 'mx-auto max-w-5xl p-8'}
+        role="status"
+      >
         Loading program roster…
       </p>
     );
   if (workspace.isError)
     return (
-      <p className="mx-auto max-w-5xl p-8" role="alert">
+      <p
+        className={embedded ? 'text-sm text-destructive' : 'mx-auto max-w-5xl p-8'}
+        role="alert"
+      >
         {errorMessage(workspace.error)}
       </p>
     );
   return (
     <section
-      className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-8 pt-8"
+      className={
+        embedded
+          ? 'flex w-full flex-col gap-6'
+          : 'mx-auto flex w-full max-w-5xl flex-col gap-4 px-8 pt-8'
+      }
       aria-labelledby="program-roster-title"
     >
-      <h2 id="program-roster-title" className="text-xl font-semibold">
-        Academic roster
-      </h2>
-      <div className="grid gap-4 md:grid-cols-2">
+      {workspace.data.programs.length > 0 && (
+        <>
+          <h2 id="program-roster-title" className="text-lg font-semibold tracking-tight">
+            Academic roster
+          </h2>
+          <div className="grid gap-4 md:grid-cols-2">
         {workspace.data.programs.map((program) => (
           <Card key={program.id}>
             <CardHeader>
@@ -468,7 +486,9 @@ export function CoordinatorAcademicOverview({ children }: { children?: ReactNode
             </CardContent>
           </Card>
         ))}
-      </div>
+          </div>
+        </>
+      )}
       {children}
     </section>
   );

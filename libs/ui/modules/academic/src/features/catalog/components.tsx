@@ -448,11 +448,11 @@ function RecordForm({
                   required={!type.endsWith(':optional')}
                 />
               )}
-              {name === 'user' || name === 'student' ? (
+              {(name === 'user' || name === 'student') && (
                 <FieldDescription>
                   Use the account ID shown by the account creation response.
                 </FieldDescription>
-              ) : null}
+              )}
             </Field>
           );
         })}

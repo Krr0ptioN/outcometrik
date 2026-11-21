@@ -233,6 +233,40 @@ export async function getSyllabi(
     page += 1;
   }
 }
+export async function getAllSyllabi(
+  params?: { offering?: string; status?: 'draft' | 'approved' | 'retired' },
+  signal?: AbortSignal,
+): Promise<Syllabus[]> {
+  const results: Syllabus[] = [];
+  let page = 1;
+  for (;;) {
+    const query = new URLSearchParams({ page: String(page), page_size: '200' });
+    if (params?.offering) query.set('offering', params.offering);
+    if (params?.status) query.set('status', params.status);
+    const data: unknown = await request(`/api/v1/syllabi/?${query}`, {
+      signal,
+      cache: 'no-store',
+    });
+    if (
+      !record(data) ||
+      !Array.isArray(data.results) ||
+      !data.results.every(isSyllabus) ||
+      !(data.next === null || typeof data.next === 'string')
+    )
+      throw new ApiError('unexpected', 200);
+    results.push(...data.results);
+    if (data.next === null) return results;
+    page += 1;
+  }
+}
+export async function approveSyllabus(syllabusId: string): Promise<Syllabus> {
+  const data: unknown = await request(
+    `/api/v1/syllabi/${encodeURIComponent(syllabusId)}/approve/`,
+    { method: 'POST' },
+  );
+  if (!isSyllabus(data)) throw new ApiError('unexpected', 200);
+  return data;
+}
 export async function changeSyllabus(
   path: string,
   body?: unknown,
@@ -345,7 +379,7 @@ export interface ProgramOutcomeSet {
   version: number;
   active: boolean;
   activated_at: string | null;
-  effective_date: string;
+  effective_date: string | null;
   source_reference: string;
 }
 export async function getProgramOutcomeSets(
@@ -374,7 +408,10 @@ export async function getProgramOutcomeSets(
         !(
           item.activated_at === null || typeof item.activated_at === 'string'
         ) ||
-        typeof item.effective_date !== 'string' ||
+        !(
+          item.effective_date === null ||
+          typeof item.effective_date === 'string'
+        ) ||
         typeof item.source_reference !== 'string'
       )
         throw new ApiError('unexpected', 200);
