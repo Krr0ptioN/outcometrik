@@ -47,6 +47,18 @@ export {
 export { Button, buttonVariants } from './components/button';
 export { Alert, AlertTitle, AlertDescription } from './components/alert';
 export { ErrorBanner, type ErrorBannerProps } from './components/error-banner';
+export {
+  QueryState,
+  createQueryState,
+  type QueryLike,
+  type QueryPhase,
+  type QueryStateRootProps,
+  type QueryStateLoadingProps,
+  type QueryStateErrorProps,
+  type QueryStateEmptyProps,
+  type QueryStateReadyProps,
+  type CreateQueryStateOptions,
+} from './components/query-state';
 export { Separator } from './components/separator';
 export {
   Sidebar,
@@ -114,6 +126,16 @@ export {
   TableCell,
   TableCaption,
 } from './components/table';
+export {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+  ChartStyle,
+  type ChartConfig,
+  type TooltipPayloadItem,
+} from './components/chart';
 export { Badge, badgeVariants } from './components/badge';
 export {
   StatusDot,

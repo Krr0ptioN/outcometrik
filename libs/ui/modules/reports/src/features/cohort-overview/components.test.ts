@@ -334,4 +334,84 @@ describe('CohortOverview component', () => {
     expect(markup).toContain('Stale publication snapshot');
     expect(markup).toContain('role="alert"');
   });
+
+  it('shows conditional Reset filters button when term or course filter is active and uses single-hue navy bands', () => {
+    const unfilteredMarkup = renderToStaticMarkup(
+      createElement(CohortOverview, {
+        programs: PROGRAMS,
+        terms: TERMS,
+        courses: COURSES,
+      }),
+    );
+    expect(unfilteredMarkup).not.toContain('Reset filters');
+
+    const filteredMarkup = renderToStaticMarkup(
+      createElement(CohortOverview, {
+        programs: PROGRAMS,
+        terms: TERMS,
+        courses: COURSES,
+        termId: 'term-1',
+        courseId: 'course-1',
+      }),
+    );
+    expect(filteredMarkup).toContain('Reset filters');
+    expect(filteredMarkup).toContain('data-state-kind="measured-zero"');
+    expect(filteredMarkup).toContain('var(--status-danger-fg)');
+  });
+
+  it('renders chronological trends SVG area chart and comparison table for compatible PO-set snapshots', () => {
+    mockQueries.trends = {
+      data: {
+        program_id: PROGRAM_ID,
+        po_set_version: 2,
+        points: [
+          {
+            publication_id: PUBLICATION_ID,
+            run_id: RUN_ID,
+            term: { id: 'term-1', year: 2025, season: 'fall', label: '2025 Fall' },
+            term_id: 'term-1',
+            po_set_version: 2,
+            series_version: 1,
+            policy_version: 'policy-2026-v1',
+            publication_status: 'published',
+            published_at: '2026-01-20T10:00:00Z',
+            sample_size: 40,
+            population_size: 42,
+            coverage: '0.9524',
+            exclusions: { NOT_ASSESSED: 2, INCOMPLETE: 0, ALL_EXEMPT: 0, UNMAPPED: 0 },
+            outcomes: [
+              {
+                program_outcome_id: 'po-1',
+                code: 'PO1',
+                label: 'Engineering Fundamentals',
+                mean: '78.4',
+                median: '79.0',
+                n: 40,
+                population_size: 42,
+                coverage: '0.9524',
+                exclusions: { NOT_ASSESSED: 2, INCOMPLETE: 0, ALL_EXEMPT: 0, UNMAPPED: 0 },
+              },
+            ],
+          },
+        ],
+      },
+      isPending: false,
+      isError: false,
+      error: null,
+    };
+
+    const markup = renderToStaticMarkup(
+      createElement(CohortOverview, {
+        programs: PROGRAMS,
+        terms: TERMS,
+        courses: COURSES,
+        activeTab: 'trends',
+      }),
+    );
+
+    expect(markup).toContain('PO1 attainment trend (0–100 scale)');
+    expect(markup).toContain('<svg');
+    expect(markup).toContain('78.4');
+    expect(markup).toContain('2025 Fall');
+  });
 });
