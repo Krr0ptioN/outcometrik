@@ -38,7 +38,11 @@ type Data = {
 async function load(): Promise<Data> {
   return request('/api/access/coordinator/');
 }
-export function CoordinatorDashboard() {
+export function CoordinatorDashboard({
+  embedded = false,
+}: {
+  embedded?: boolean;
+} = {}) {
   const session = useSession();
   const allowed = Boolean(
     session.data?.roles.some((assignment) => assignment.role === 'program-coordinator'),
@@ -55,20 +59,28 @@ export function CoordinatorDashboard() {
     },
   });
   if (session.isPending || (allowed && query.isPending))
-    return (
+    return embedded ? (
+      <p className="text-sm text-muted-foreground" role="status">
+        Loading coordinator workspace…
+      </p>
+    ) : (
       <main className="p-8" role="status">
         Loading coordinator workspace…
       </main>
     );
   if (!session.data?.user || !allowed || query.isError)
-    return (
+    return embedded ? null : (
       <main className="p-8">
         <h1>Coordinator access required</h1>
         <a href="/login">Sign in</a>
       </main>
     );
   if (!query.data)
-    return (
+    return embedded ? (
+      <p className="text-sm text-muted-foreground" role="status">
+        Loading coordinator workspace…
+      </p>
+    ) : (
       <main className="p-8" role="status">
         Loading coordinator workspace…
       </main>
@@ -78,15 +90,26 @@ export function CoordinatorDashboard() {
   const offeringId = offerings.some((o) => o.id === offer)
     ? offer
     : (offerings[0]?.id ?? '');
-  return (
-    <main className="mx-auto flex max-w-5xl flex-col gap-6 p-8">
-      <header className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground">Program workspace</p>
-          <h1 className="text-3xl font-semibold">Coordinator dashboard</h1>
+  const content = (
+    <>
+      {!embedded ? (
+        <header className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground">Program workspace</p>
+            <h1 className="text-3xl font-semibold">Coordinator dashboard</h1>
+          </div>
+          <SessionMenu />
+        </header>
+      ) : (
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold tracking-tight">
+            Program scopes &amp; accounts
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Manage program offering personnel and provision pending accounts.
+          </p>
         </div>
-        <SessionMenu />
-      </header>
+      )}
       {data.programs.map((p) => (
         <Card key={p.id}>
           <CardHeader>
@@ -198,6 +221,12 @@ export function CoordinatorDashboard() {
           </form>
         </CardContent>
       </Card>
-    </main>
+    </>
+  );
+  if (embedded) {
+    return <section className="flex flex-col gap-6">{content}</section>;
+  }
+  return (
+    <main className="mx-auto flex max-w-5xl flex-col gap-6 p-8">{content}</main>
   );
 }
