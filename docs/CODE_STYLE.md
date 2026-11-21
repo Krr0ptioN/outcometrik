@@ -49,6 +49,11 @@ Domain-specific endpoint clients, query hooks, components, state, helpers, and t
 
 Use function components and typed props. Keep components focused on presentation and interaction; put reusable domain workflows and data access behind feature hooks or functions. Keep state local unless multiple consumers need it. Derive values from authoritative state instead of synchronizing duplicate state with effects.
 
+Use clean, efficient conditional rendering in JSX:
+- Prefer `{condition && <Component />}` over `{condition ? <Component /> : null}` whenever `condition` is a boolean or non-numeric truthy guard (e.g., `isReady && <Panel />`, `activeItem && <Detail />`).
+- Always guard numeric counts explicitly (`items.length > 0 && <List />`, `Boolean(count) && <Badge />`) so `0` is never leaked into rendered DOM output.
+- Reserve ternary expressions (`condition ? <A /> : <B />`) for genuine two-branch renders (e.g., loading vs loaded, empty vs populated).
+
 Use TanStack Query for server state, with keys that include the parameters affecting the response. Pass query cancellation signals through endpoint clients. Handle loading, error, empty, and success states explicitly. Root query providers and other application services belong in `apps/web/app/providers.tsx` or application setup.
 
 Keep Next.js route files focused on route concerns and module composition. Add `'use client'` at the boundary that requires hooks, browser APIs, or event handlers; do not mark every library file as a client component. Never expose server secrets through client modules.

@@ -159,9 +159,9 @@ const TrendAreaChart = memo(function TrendAreaChart({
             );
           })}
 
-          {areaPath ? <path d={areaPath} fill={`url(#${gradientId})`} /> : null}
+          {areaPath && <path d={areaPath} fill={`url(#${gradientId})`} />}
 
-          {linePath ? (
+          {linePath && (
             <path
               d={linePath}
               fill="none"
@@ -170,7 +170,7 @@ const TrendAreaChart = memo(function TrendAreaChart({
               strokeLinejoin="round"
               strokeLinecap="round"
             />
-          ) : null}
+          )}
 
           {series.map((pt) => (
             <g key={pt.id}>
@@ -340,7 +340,7 @@ export function CohortTrendsPanel({
             triggers the server compatibility guard.
           </p>
         </div>
-        {customTrendPubIds !== null ? (
+        {customTrendPubIds !== null && (
           <Button
             type="button"
             variant="ghost"
@@ -350,10 +350,10 @@ export function CohortTrendsPanel({
           >
             Reset to compatible PO-Set v{activePoSetVersion ?? '?'}
           </Button>
-        ) : null}
+        )}
       </div>
 
-      {publications.length > 0 ? (
+      {publications.length > 0 && (
         <fieldset className="space-y-2 rounded-[var(--radius-card,10px)] border border-border/80 bg-[var(--surface-subtle)]/40 p-3.5">
           <legend className="px-1 text-xs font-medium text-muted-foreground">
             Snapshots included in comparison
@@ -388,41 +388,41 @@ export function CohortTrendsPanel({
                   >
                     PO-Set v{pub.po_set_version}
                   </Badge>
-                  {pub.stale ? <StaleTag label="STALE" /> : null}
+                  {pub.stale && <StaleTag label="STALE" />}
                 </label>
               );
             })}
           </div>
-          {hasIncompatibleTrendSelection ? (
+          {hasIncompatibleTrendSelection && (
             <p className="text-xs text-[var(--status-warn-fg)]">
               Selected snapshots span multiple PO-Set versions; requesting
               comparison will be rejected by the server compatibility guard.
             </p>
-          ) : null}
+          )}
         </fieldset>
-      ) : null}
+      )}
 
-      {trendsQuery.isPending ? (
+      {trendsQuery.isPending && (
         <div className="space-y-3" role="status">
           <p className="text-sm text-muted-foreground">
             Loading compatible PO-set trends…
           </p>
           <Skeleton className="h-52 w-full" />
         </div>
-      ) : null}
+      )}
 
-      {trendsQuery.isError ? (
+      {trendsQuery.isError && (
         <Alert variant="destructive">
           <AlertTitle>Trend comparison unavailable</AlertTitle>
           <AlertDescription>
             {cohortErrorMessage(trendsQuery.error)}
           </AlertDescription>
         </Alert>
-      ) : null}
+      )}
 
-      {trendsQuery.data ? (
+      {trendsQuery.data && (
         <div className="space-y-4">
-          {availableTrendPoCodes.length > 0 ? (
+          {availableTrendPoCodes.length > 0 && (
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <label
@@ -450,14 +450,14 @@ export function CohortTrendsPanel({
                 {trendsQuery.data.points.length === 1 ? '' : 's'}
               </Badge>
             </div>
-          ) : null}
+          )}
 
-          {activeTrendPoCode && trendsQuery.data.points.length > 0 ? (
+          {activeTrendPoCode && trendsQuery.data.points.length > 0 && (
             <TrendAreaChart
               points={trendsQuery.data.points}
               selectedCode={activeTrendPoCode}
             />
-          ) : null}
+          )}
 
           <div className="overflow-x-auto rounded-[var(--radius-card,10px)] border border-border">
             <Table>
@@ -522,7 +522,7 @@ export function CohortTrendsPanel({
             </Table>
           </div>
         </div>
-      ) : null}
+      )}
     </section>
   );
 }

@@ -205,7 +205,7 @@ export function RunPublishCard({
           </Field>
         </FieldGroup>
 
-        {latestRun ? (
+        {latestRun && (
           <div className="rounded-[var(--radius-input,6px)] border border-border/80 bg-[var(--surface-subtle)]/50 p-3 text-xs">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="font-medium text-foreground">
@@ -221,7 +221,7 @@ export function RunPublishCard({
               {latestRun.engine_version} · Policy {latestRun.policy_version}
             </p>
           </div>
-        ) : null}
+        )}
 
         <div className="flex flex-wrap items-center gap-3">
           <Button
@@ -255,16 +255,16 @@ export function RunPublishCard({
           </Button>
         </div>
 
-        {statusMessage ? (
+        {statusMessage && (
           <p
             role="status"
             className="text-xs font-medium text-[var(--status-success-fg)]"
           >
             {statusMessage}
           </p>
-        ) : null}
+        )}
 
-        {conflictState ? (
+        {conflictState && (
           <Alert variant="destructive">
             <AlertTitle>Publication conflict ({conflictState.code})</AlertTitle>
             <AlertDescription className="space-y-2">
@@ -291,25 +291,25 @@ export function RunPublishCard({
               </Button>
             </AlertDescription>
           </Alert>
-        ) : null}
+        )}
 
-        {runCalculationMutation.isError ? (
+        {runCalculationMutation.isError && (
           <Alert variant="destructive">
             <AlertTitle>Calculation failed</AlertTitle>
             <AlertDescription>
               {errorMessage(runCalculationMutation.error)}
             </AlertDescription>
           </Alert>
-        ) : null}
+        )}
 
-        {runAndPublishMutation.isError && !conflictState ? (
+        {runAndPublishMutation.isError && !conflictState && (
           <Alert variant="destructive">
             <AlertTitle>Publication failed</AlertTitle>
             <AlertDescription>
               {parsePublicationConflict(runAndPublishMutation.error).message}
             </AlertDescription>
           </Alert>
-        ) : null}
+        )}
       </CardContent>
     </Card>
   );

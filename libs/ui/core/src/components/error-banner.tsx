@@ -35,29 +35,31 @@ export function ErrorBanner({
       <div className="flex min-w-0 flex-1 items-start gap-2.5">
         <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
         <div className="min-w-0 space-y-0.5">
-          {title ? <p className="font-semibold leading-5">{title}</p> : null}
+          {title && <p className="font-semibold leading-5">{title}</p>}
           <p className="leading-5">{message}</p>
-          {detail ? (
+          {detail && (
             <p className="font-mono text-xs opacity-90 [font-variant-numeric:tabular-nums_slashed-zero]">
               {detail}
             </p>
-          ) : null}
+          )}
         </div>
       </div>
       {action ? (
         <div className="shrink-0">{action}</div>
-      ) : onRetry ? (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={onRetry}
-          className="shrink-0 border-[var(--status-danger-border)] bg-transparent text-[var(--status-danger-fg)] hover:bg-[var(--status-danger-border)]/25"
-        >
-          <RefreshCw className="size-3.5" aria-hidden="true" />
-          {retryLabel}
-        </Button>
-      ) : null}
+      ) : (
+        onRetry && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onRetry}
+            className="shrink-0 border-[var(--status-danger-border)] bg-transparent text-[var(--status-danger-fg)] hover:bg-[var(--status-danger-border)]/25"
+          >
+            <RefreshCw className="size-3.5" aria-hidden="true" />
+            {retryLabel}
+          </Button>
+        )
+      )}
     </div>
   );
 }

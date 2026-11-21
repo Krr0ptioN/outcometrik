@@ -193,11 +193,11 @@ export function CoordinatorPublicationsManager() {
         </Field>
 
         <div className="flex flex-wrap items-center gap-2 text-xs">
-          {activePoSet ? (
+          {activePoSet && (
             <Badge variant="secondary" className="tabular-mono">
               Active PO-Set v{activePoSet.version}
             </Badge>
-          ) : null}
+          )}
         </div>
       </div>
 

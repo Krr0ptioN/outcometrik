@@ -170,11 +170,11 @@ export function CoordinatorApprovalsPanel() {
           <Badge variant="secondary" className="tabular-mono">
             {approvedCount} approved &amp; locked
           </Badge>
-          {activePoSet ? (
+          {activePoSet && (
             <Badge variant="outline" className="tabular-mono">
               Active PO-Set v{activePoSet.version}
             </Badge>
-          ) : null}
+          )}
         </div>
       </div>
 

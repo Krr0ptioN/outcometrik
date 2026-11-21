@@ -41,11 +41,11 @@ export const PoSetLedgerTable = memo(function PoSetLedgerTable({
             <TableHead scope="col">Label</TableHead>
             <TableHead scope="col">Authoritative description</TableHead>
             <TableHead scope="col">Source reference</TableHead>
-            {isDraft ? (
+            {isDraft && (
               <TableHead scope="col" className="text-right">
                 Action
               </TableHead>
-            ) : null}
+            )}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -66,7 +66,7 @@ export const PoSetLedgerTable = memo(function PoSetLedgerTable({
               <TableCell className="align-top text-xs text-muted-foreground">
                 {outcome.source_reference || '—'}
               </TableCell>
-              {isDraft ? (
+              {isDraft && (
                 <TableCell className="align-top text-right">
                   <Button
                     type="button"
@@ -78,7 +78,7 @@ export const PoSetLedgerTable = memo(function PoSetLedgerTable({
                     Edit
                   </Button>
                 </TableCell>
-              ) : null}
+              )}
             </TableRow>
           ))}
         </TableBody>

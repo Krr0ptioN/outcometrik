@@ -188,12 +188,12 @@ export function CoordinatorPOSetManager() {
         </Button>
       </div>
 
-      {poSetsQuery.isError ? (
+      {poSetsQuery.isError && (
         <Alert variant="destructive">
           <AlertTitle>Unable to load program outcome sets</AlertTitle>
           <AlertDescription>{errorMessage(poSetsQuery.error)}</AlertDescription>
         </Alert>
-      ) : null}
+      )}
 
       {poSetsQuery.isPending ? (
         <Skeleton className="h-28 w-full" />
@@ -249,7 +249,7 @@ export function CoordinatorPOSetManager() {
         </div>
       )}
 
-      {activeSet && lifecycle ? (
+      {activeSet && lifecycle && (
         <Card className="border-border bg-card shadow-[var(--shadow-sm)]">
           <CardHeader className="border-b border-border/70 pb-4">
             <div className="flex flex-wrap items-start justify-between gap-4">
@@ -341,7 +341,7 @@ export function CoordinatorPOSetManager() {
             )}
           </CardContent>
         </Card>
-      ) : null}
+      )}
 
       <CreateDraftPoSetDialog
         open={createDraftOpen}

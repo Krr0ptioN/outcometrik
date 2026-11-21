@@ -66,6 +66,7 @@ export interface CohortOverviewProps {
   terms?: CohortTermOption[];
   /** Optional course filter options; fetched from /api/v1/courses/ when omitted. */
   courses?: CohortCourseOption[];
+  // TODO: Move the following default<name> props to a separate interface
   /** Initial program selection (uncontrolled mode). */
   defaultProgramId?: string;
   /** Initial publication selection (uncontrolled mode). */
@@ -332,38 +333,38 @@ export function CohortOverview({
       </CardHeader>
 
       <CardContent className="space-y-6 pt-5">
-        {providedPrograms === undefined && programsQuery.isPending ? (
+        {providedPrograms === undefined && programsQuery.isPending && (
           <div className="space-y-2" role="status">
             <p className="text-sm text-muted-foreground">
               Loading authorized programs…
             </p>
             <Skeleton className="h-10 w-full" />
           </div>
-        ) : null}
+        )}
 
-        {providedPrograms === undefined && programsQuery.isError ? (
+        {providedPrograms === undefined && programsQuery.isError && (
           <Alert variant="destructive">
             <AlertTitle>Unable to load programs</AlertTitle>
             <AlertDescription>
               {cohortErrorMessage(programsQuery.error)}
             </AlertDescription>
           </Alert>
-        ) : null}
+        )}
 
         {programs.length === 0 &&
-        !programsQuery.isPending &&
-        !programsQuery.isError ? (
-          <Empty>
-            <EmptyHeader>
-              <EmptyTitle>No published cohort analytics available</EmptyTitle>
-              <EmptyDescription>
-                No authorized programs were found for your coordinator scope.
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        ) : null}
+          !programsQuery.isPending &&
+          !programsQuery.isError && (
+            <Empty>
+              <EmptyHeader>
+                <EmptyTitle>No published cohort analytics available</EmptyTitle>
+                <EmptyDescription>
+                  No authorized programs were found for your coordinator scope.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          )}
 
-        {programs.length > 0 ? (
+        {programs.length > 0 && (
           <CohortFilterBar
             programs={programs}
             publications={publications}
@@ -381,25 +382,25 @@ export function CohortOverview({
             onCourseChange={handleCourseChange}
             onResetFilters={handleResetFilters}
           />
-        ) : null}
+        )}
 
-        {publicationsQuery.isError ? (
+        {publicationsQuery.isError && (
           <Alert variant="destructive">
             <AlertTitle>Unable to load published snapshots</AlertTitle>
             <AlertDescription>
               {cohortErrorMessage(publicationsQuery.error)}
             </AlertDescription>
           </Alert>
-        ) : null}
+        )}
 
-        {activeTab === 'overview' ? (
+        {activeTab === 'overview' && (
           <div
             id={overviewPanelId}
             role="tabpanel"
             aria-labelledby={overviewTabId}
             className="space-y-6"
           >
-            {activeProgramId && analyticsQuery.isPending ? (
+            {activeProgramId && analyticsQuery.isPending && (
               <div className="space-y-3" role="status">
                 <p className="text-sm text-muted-foreground">
                   Loading cohort analytics…
@@ -407,34 +408,34 @@ export function CohortOverview({
                 <Skeleton className="h-20 w-full" />
                 <Skeleton className="h-56 w-full" />
               </div>
-            ) : null}
+            )}
 
-            {isFatalAnalyticsError ? (
+            {isFatalAnalyticsError && (
               <Alert variant="destructive">
                 <AlertTitle>Unable to load cohort analytics</AlertTitle>
                 <AlertDescription>
                   {cohortErrorMessage(analyticsQuery.error)}
                 </AlertDescription>
               </Alert>
-            ) : null}
+            )}
 
             {activeProgramId &&
-            !analyticsQuery.isPending &&
-            (isNotFound || (analytics && analytics.outcomes.length === 0)) ? (
-              <Empty>
-                <EmptyHeader>
-                  <EmptyTitle>
-                    No published cohort analytics available
-                  </EmptyTitle>
-                  <EmptyDescription>
-                    Publish a calculation run for this program to inspect cohort
-                    distributions and coverage.
-                  </EmptyDescription>
-                </EmptyHeader>
-              </Empty>
-            ) : null}
+              !analyticsQuery.isPending &&
+              (isNotFound || (analytics && analytics.outcomes.length === 0)) && (
+                <Empty>
+                  <EmptyHeader>
+                    <EmptyTitle>
+                      No published cohort analytics available
+                    </EmptyTitle>
+                    <EmptyDescription>
+                      Publish a calculation run for this program to inspect
+                      cohort distributions and coverage.
+                    </EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
+              )}
 
-            {analytics && analytics.outcomes.length > 0 ? (
+            {analytics && analytics.outcomes.length > 0 && (
               <>
                 <CohortTraceabilityHeader analytics={analytics} />
 
@@ -486,11 +487,11 @@ export function CohortOverview({
                   outcomes={analytics.outcomes}
                 />
               </>
-            ) : null}
+            )}
           </div>
-        ) : null}
+        )}
 
-        {activeTab === 'trends' && activeProgramId ? (
+        {activeTab === 'trends' && activeProgramId && (
           <CohortTrendsPanel
             key={activeProgramId}
             panelId={trendsPanelId}
@@ -499,7 +500,7 @@ export function CohortOverview({
             publications={publications}
             activePoSetVersion={activePoSetVersion}
           />
-        ) : null}
+        )}
       </CardContent>
     </Card>
   );

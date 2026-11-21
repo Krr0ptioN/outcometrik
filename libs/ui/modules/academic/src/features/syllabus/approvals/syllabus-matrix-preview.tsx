@@ -35,54 +35,59 @@ export const SyllabusMatrixPreview = memo(function SyllabusMatrixPreview({
     <div className="space-y-5">
       {validationPending ? (
         <Skeleton className="h-16 w-full" />
-      ) : validation ? (
-        <div
-          className={`rounded-[var(--radius-card,10px)] border p-3.5 text-sm ${
-            validation.is_valid_for_approval
-              ? 'border-[var(--status-success-border)] bg-[var(--status-success-bg)]/60'
-              : 'border-[var(--status-danger-border)] bg-[var(--status-danger-bg)]/60'
-          }`}
-        >
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="inline-flex items-center gap-2 font-medium">
-              {validation.is_valid_for_approval ? (
-                <>
-                  <CheckCircle2
-                    className="size-4 text-[var(--status-success-fg)]"
-                    aria-hidden="true"
-                  />
-                  Ready for approval — all mapping rules satisfied
-                </>
-              ) : (
-                <>
-                  <ShieldAlert
-                    className="size-4 text-[var(--status-danger-fg)]"
-                    aria-hidden="true"
-                  />
-                  Validation blockers must be resolved before locking
-                </>
-              )}
-            </span>
-            <span className="tabular-mono text-xs text-muted-foreground">
-              Mapped LOs:{' '}
-              {validation.lo_statuses.filter((l) => l.status === 'MAPPED').length}
-              /{validation.lo_statuses.length} · Assessed POs:{' '}
-              {
-                validation.po_statuses.filter((p) => p.status === 'ASSESSED')
-                  .length
-              }
-              /{validation.po_statuses.length}
-            </span>
+      ) : (
+        validation && (
+          <div
+            className={`rounded-[var(--radius-card,10px)] border p-3.5 text-sm ${
+              validation.is_valid_for_approval
+                ? 'border-[var(--status-success-border)] bg-[var(--status-success-bg)]/60'
+                : 'border-[var(--status-danger-border)] bg-[var(--status-danger-bg)]/60'
+            }`}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="inline-flex items-center gap-2 font-medium">
+                {validation.is_valid_for_approval ? (
+                  <>
+                    <CheckCircle2
+                      className="size-4 text-[var(--status-success-fg)]"
+                      aria-hidden="true"
+                    />
+                    Ready for approval — all mapping rules satisfied
+                  </>
+                ) : (
+                  <>
+                    <ShieldAlert
+                      className="size-4 text-[var(--status-danger-fg)]"
+                      aria-hidden="true"
+                    />
+                    Validation blockers must be resolved before locking
+                  </>
+                )}
+              </span>
+              <span className="tabular-mono text-xs text-muted-foreground">
+                Mapped LOs:{' '}
+                {
+                  validation.lo_statuses.filter((l) => l.status === 'MAPPED')
+                    .length
+                }
+                /{validation.lo_statuses.length} · Assessed POs:{' '}
+                {
+                  validation.po_statuses.filter((p) => p.status === 'ASSESSED')
+                    .length
+                }
+                /{validation.po_statuses.length}
+              </span>
+            </div>
+            {validation.errors.length > 0 && (
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-[var(--status-danger-fg)]">
+                {validation.errors.map((err, idx) => (
+                  <li key={idx}>{err}</li>
+                ))}
+              </ul>
+            )}
           </div>
-          {validation.errors.length > 0 ? (
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-[var(--status-danger-fg)]">
-              {validation.errors.map((err, idx) => (
-                <li key={idx}>{err}</li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-      ) : null}
+        )
+      )}
 
       {/* A×LO Matrix Preview */}
       <section className="space-y-2">

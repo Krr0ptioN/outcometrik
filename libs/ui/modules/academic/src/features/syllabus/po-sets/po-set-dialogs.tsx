@@ -95,13 +95,13 @@ export function CreateDraftPoSetDialog({
               </FieldLabel>
             </Field>
           </FieldGroup>
-          {createDraftMutation.isError ? (
+          {createDraftMutation.isError && (
             <Alert variant="destructive">
               <AlertDescription>
                 {errorMessage(createDraftMutation.error)}
               </AlertDescription>
             </Alert>
-          ) : null}
+          )}
           <DialogFooter>
             <Button
               type="button"
@@ -255,13 +255,13 @@ export function EditOutcomeDialog({
               </FieldLabel>
             </Field>
           </FieldGroup>
-          {saveOutcomeMutation.isError ? (
+          {saveOutcomeMutation.isError && (
             <Alert variant="destructive">
               <AlertDescription>
                 {errorMessage(saveOutcomeMutation.error)}
               </AlertDescription>
             </Alert>
-          ) : null}
+          )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
@@ -332,13 +332,13 @@ export function ActivatePoSetDialog({
               />
             </FieldLabel>
           </Field>
-          {activateMutation.isError ? (
+          {activateMutation.isError && (
             <Alert variant="destructive">
               <AlertDescription>
                 {errorMessage(activateMutation.error)}
               </AlertDescription>
             </Alert>
-          ) : null}
+          )}
         </div>
         <DialogFooter>
           <Button

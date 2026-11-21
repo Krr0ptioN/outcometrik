@@ -82,7 +82,7 @@ export const CohortTraceabilityHeader = memo(function CohortTraceabilityHeader({
         ({formatExclusionParts(analytics.exclusions).join(', ') || 'None'})
       </p>
 
-      {analytics.publication_status === 'stale' ? (
+      {analytics.publication_status === 'stale' && (
         <Alert variant="destructive">
           <AlertTitle>Stale publication snapshot</AlertTitle>
           <AlertDescription>
@@ -91,7 +91,7 @@ export const CohortTraceabilityHeader = memo(function CohortTraceabilityHeader({
             publish a new snapshot to reflect updates.
           </AlertDescription>
         </Alert>
-      ) : null}
+      )}
     </section>
   );
 });

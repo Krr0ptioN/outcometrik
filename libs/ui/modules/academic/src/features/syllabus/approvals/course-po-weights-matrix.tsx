@@ -255,33 +255,33 @@ export function CoursePoWeightsMatrix({
               a weight on a draft syllabus.
             </CardDescription>
           </div>
-          {matrixFeedback ? (
+          {matrixFeedback && (
             <p
               role="status"
               className="text-xs font-medium text-[var(--status-success-fg)]"
             >
               {matrixFeedback}
             </p>
-          ) : null}
+          )}
         </div>
       </CardHeader>
 
       <CardContent className="space-y-4 pt-5">
-        {saveWeightMutation.isError ? (
+        {saveWeightMutation.isError && (
           <Alert variant="destructive">
             <AlertTitle>Unable to save relevance weight</AlertTitle>
             <AlertDescription>
               {errorMessage(saveWeightMutation.error)}
             </AlertDescription>
           </Alert>
-        ) : null}
+        )}
 
-        {firstWeightError ? (
+        {firstWeightError && (
           <Alert variant="destructive">
             <AlertTitle>Invalid relevance weight</AlertTitle>
             <AlertDescription>{firstWeightError}</AlertDescription>
           </Alert>
-        ) : null}
+        )}
 
         {programOutcomes.length === 0 ? (
           <Empty>
@@ -340,7 +340,7 @@ export function CoursePoWeightsMatrix({
                           <span className="tabular-mono font-semibold">
                             {row.code}
                           </span>
-                          {row.linkedPrograms.length > 1 ? (
+                          {row.linkedPrograms.length > 1 && (
                             <Badge
                               variant="outline"
                               className="text-[10px]"
@@ -348,7 +348,7 @@ export function CoursePoWeightsMatrix({
                             >
                               {row.linkedPrograms.length} programs
                             </Badge>
-                          ) : null}
+                          )}
                         </div>
                         <span className="block max-w-[200px] truncate text-xs font-normal text-muted-foreground">
                           {row.title}

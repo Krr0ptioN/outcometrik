@@ -214,18 +214,18 @@ export function SyllabusApprovalQueue({
                       </p>
                       <div className="mt-2 flex items-center justify-between gap-2">
                         <SyllabusStatusDot status={syllabus.status} />
-                        {syllabus.po_set_version !== null ? (
+                        {syllabus.po_set_version !== null && (
                           <span className="tabular-mono text-[11px] text-muted-foreground">
                             PO-Set v{syllabus.po_set_version}
                           </span>
-                        ) : null}
+                        )}
                       </div>
                     </button>
                   );
                 })}
               </div>
 
-              {activeSyllabus ? (
+              {activeSyllabus && (
                 <div className="min-w-0 space-y-5">
                   <div className="flex flex-wrap items-start justify-between gap-4 rounded-[var(--radius-card,10px)] border border-border bg-[var(--surface-subtle)]/40 p-4">
                     <div className="space-y-1">
@@ -270,14 +270,14 @@ export function SyllabusApprovalQueue({
                     )}
                   </div>
 
-                  {approveMutation.isError ? (
+                  {approveMutation.isError && (
                     <Alert variant="destructive">
                       <AlertTitle>Approval blocked</AlertTitle>
                       <AlertDescription>
                         {errorMessage(approveMutation.error)}
                       </AlertDescription>
                     </Alert>
-                  ) : null}
+                  )}
 
                   <SyllabusMatrixPreview
                     syllabus={activeSyllabus}
@@ -286,7 +286,7 @@ export function SyllabusApprovalQueue({
                     validationPending={validationQuery.isPending}
                   />
                 </div>
-              ) : null}
+              )}
             </div>
           )}
         </CardContent>

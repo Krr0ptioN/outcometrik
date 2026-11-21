@@ -156,7 +156,7 @@ export const CohortFilterBar = memo(function CohortFilterBar({
         </Field>
       </FieldGroup>
 
-      {hasActiveFilters ? (
+      {hasActiveFilters && (
         <div className="flex items-center justify-end">
           <Button
             type="button"
@@ -168,7 +168,7 @@ export const CohortFilterBar = memo(function CohortFilterBar({
             Reset filters
           </Button>
         </div>
-      ) : null}
+      )}
     </div>
   );
 });

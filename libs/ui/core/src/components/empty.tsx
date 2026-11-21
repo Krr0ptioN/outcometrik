@@ -117,11 +117,9 @@ function EmptyState({
           {icon ?? <Inbox className="size-5" aria-hidden="true" />}
         </EmptyMedia>
         <EmptyTitle className="text-base font-semibold">{title}</EmptyTitle>
-        {description ? (
-          <EmptyDescription>{description}</EmptyDescription>
-        ) : null}
+        {description && <EmptyDescription>{description}</EmptyDescription>}
       </EmptyHeader>
-      {action ? <EmptyContent>{action}</EmptyContent> : null}
+      {action && <EmptyContent>{action}</EmptyContent>}
     </Empty>
   );
 }
