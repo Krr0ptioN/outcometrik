@@ -46,7 +46,7 @@ function useQueryStateContext<T>(slotName: string): QueryStateContextValue<T> {
 
 function defaultFormatError(error: unknown): string {
   if (error instanceof Error && error.message) return error.message;
-  return 'Something went wrong. Please try again.';
+  return 'Unable to load the requested records. Refresh the page or retry the request.';
 }
 
 export interface QueryStateRootProps<T> {

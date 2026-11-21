@@ -86,7 +86,10 @@ export const CohortSummaryTable = memo(function CohortSummaryTable({
                     className="p-2.5 text-left align-middle font-medium whitespace-nowrap"
                   >
                     <span className="tabular-mono">{outcome.code}</span>
-                    <span className="block max-w-[240px] truncate text-xs font-normal text-muted-foreground">
+                    <span
+                      className="block max-w-[240px] truncate text-xs font-normal text-muted-foreground"
+                      title={outcome.label}
+                    >
                       {outcome.label}
                     </span>
                   </th>

@@ -68,14 +68,7 @@ export interface CohortFilterValues {
   courseId: string;
 }
 
-export interface CohortOverviewProps {
-  /** Authorized programs; fetched from /api/v1/programs/ when omitted. */
-  programs?: CohortProgramOption[];
-  /** Optional term filter options; fetched from /api/v1/terms/ when omitted. */
-  terms?: CohortTermOption[];
-  /** Optional course filter options; fetched from /api/v1/courses/ when omitted. */
-  courses?: CohortCourseOption[];
-  // TODO: Move the following default<name> props to a separate interface
+export interface CohortOverviewDefaults {
   /** Initial program selection (uncontrolled mode). */
   defaultProgramId?: string;
   /** Initial publication selection (uncontrolled mode). */
@@ -84,6 +77,17 @@ export interface CohortOverviewProps {
   defaultTermId?: string;
   /** Initial course filter (uncontrolled mode). */
   defaultCourseId?: string;
+  /** Whether to open the Chronological Trends tab by default. */
+  defaultShowTrends?: boolean;
+}
+
+export interface CohortOverviewProps extends CohortOverviewDefaults {
+  /** Authorized programs; fetched from /api/v1/programs/ when omitted. */
+  programs?: CohortProgramOption[];
+  /** Optional term filter options; fetched from /api/v1/terms/ when omitted. */
+  terms?: CohortTermOption[];
+  /** Optional course filter options; fetched from /api/v1/courses/ when omitted. */
+  courses?: CohortCourseOption[];
   /** Controlled program selection (for URL-synced routes). */
   programId?: string;
   /** Controlled publication selection (for URL-synced routes). */
@@ -94,8 +98,6 @@ export interface CohortOverviewProps {
   courseId?: string;
   /** Controlled active tab ('overview' | 'trends'). */
   activeTab?: CohortOverviewTab;
-  /** Whether to open the Chronological Trends tab by default. */
-  defaultShowTrends?: boolean;
   /** Notified whenever any filter value changes (for URL query synchronization). */
   onFiltersChange?: (filters: CohortFilterValues) => void;
   /** Notified whenever the active tab changes. */
