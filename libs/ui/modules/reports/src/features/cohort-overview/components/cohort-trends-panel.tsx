@@ -2,9 +2,6 @@
 
 import { memo, useCallback, useId, useMemo, useState } from 'react';
 import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
   Badge,
   Button,
   NativeSelect,
@@ -20,12 +17,18 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  createQueryState,
 } from '@outcometrik/ui';
 import { cohortErrorMessage, formatCoveragePercent, shortRef } from '../api';
 import { useCohortTrendsQuery } from '../hooks/use-cohort-overview';
-import type { CohortTrendPoint, CoordinatorPublication } from '../types';
+import type {
+  CohortTrendPoint,
+  CohortTrendsResponse,
+} from '../types';
 import { parseNumericScore } from './cohort-formatters';
+import { useCohortOverviewContext } from './cohort-overview-context';
 
+const CohortQuery = createQueryState({ formatError: cohortErrorMessage });
 const GRID_TICKS = [0, 25, 50, 70, 85, 100] as const;
 
 const TrendAreaChart = memo(function TrendAreaChart({
@@ -223,23 +226,22 @@ const TrendAreaChart = memo(function TrendAreaChart({
 export interface CohortTrendsPanelProps {
   panelId: string;
   tabId: string;
-  programId: string;
-  publications: CoordinatorPublication[];
-  activePoSetVersion: number | undefined;
 }
 
 /**
- * Isolated Chronological Trends panel owning its own snapshot selection,
- * PO dropdown state, and trends query so interactions never re-render the
- * Overview tab or Filter Bar.
+ * Isolated Chronological Trends panel reading shared program/publications
+ * from `CohortOverviewContext` (zero prop drilling) while owning its own
+ * snapshot selection, PO dropdown state, and trends query.
  */
 export function CohortTrendsPanel({
   panelId,
   tabId,
-  programId,
-  publications,
-  activePoSetVersion,
 }: CohortTrendsPanelProps) {
+  const {
+    activeProgramId: programId,
+    publications,
+    activePoSetVersion,
+  } = useCohortOverviewContext();
   const trendPoSelectId = useId();
   const [customTrendPubIds, setCustomTrendPubIds] = useState<string[] | null>(
     null,
@@ -402,127 +404,124 @@ export function CohortTrendsPanel({
         </fieldset>
       )}
 
-      {trendsQuery.isPending && (
-        <div className="space-y-3" role="status">
-          <p className="text-sm text-muted-foreground">
-            Loading compatible PO-set trends…
-          </p>
-          <Skeleton className="h-52 w-full" />
-        </div>
-      )}
+      <CohortQuery query={trendsQuery}>
+        <CohortQuery.Loading>
+          <div className="space-y-3" role="status">
+            <p className="text-sm text-muted-foreground">
+              Loading compatible PO-set trends…
+            </p>
+            <Skeleton className="h-52 w-full" />
+          </div>
+        </CohortQuery.Loading>
 
-      {trendsQuery.isError && (
-        <Alert variant="destructive">
-          <AlertTitle>Trend comparison unavailable</AlertTitle>
-          <AlertDescription>
-            {cohortErrorMessage(trendsQuery.error)}
-          </AlertDescription>
-        </Alert>
-      )}
+        <CohortQuery.Error title="Trend comparison unavailable" />
 
-      {trendsQuery.data && (
-        <div className="space-y-4">
-          {availableTrendPoCodes.length > 0 && (
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <label
-                  htmlFor={trendPoSelectId}
-                  className="text-xs font-medium text-muted-foreground"
-                >
-                  Chart outcome
-                </label>
-                <NativeSelect
-                  id={trendPoSelectId}
-                  value={activeTrendPoCode}
-                  onChange={(e) => setSelectedTrendPoCode(e.target.value)}
-                  className="h-8 w-56 bg-card text-xs"
-                >
-                  {availableTrendPoCodes.map((po) => (
-                    <NativeSelectOption key={po.code} value={po.code}>
-                      {po.code} · {po.label}
-                    </NativeSelectOption>
-                  ))}
-                </NativeSelect>
+        <CohortQuery.Ready>
+          {(trendsData: CohortTrendsResponse) => (
+            <div className="space-y-4">
+              {availableTrendPoCodes.length > 0 && (
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <label
+                      htmlFor={trendPoSelectId}
+                      className="text-xs font-medium text-muted-foreground"
+                    >
+                      Chart outcome
+                    </label>
+                    <NativeSelect
+                      id={trendPoSelectId}
+                      value={activeTrendPoCode}
+                      onChange={(e) => setSelectedTrendPoCode(e.target.value)}
+                      className="h-8 w-56 bg-card text-xs"
+                    >
+                      {availableTrendPoCodes.map((po) => (
+                        <NativeSelectOption key={po.code} value={po.code}>
+                          {po.code} · {po.label}
+                        </NativeSelectOption>
+                      ))}
+                    </NativeSelect>
+                  </div>
+                  <Badge variant="secondary" className="tabular-mono">
+                    PO-Set v{trendsData.po_set_version} ·{' '}
+                    {trendsData.points.length} snapshot
+                    {trendsData.points.length === 1 ? '' : 's'}
+                  </Badge>
+                </div>
+              )}
+
+              {activeTrendPoCode && trendsData.points.length > 0 && (
+                <TrendAreaChart
+                  points={trendsData.points}
+                  selectedCode={activeTrendPoCode}
+                />
+              )}
+
+              <div className="overflow-x-auto rounded-[var(--radius-card,10px)] border border-border">
+                <Table>
+                  <TableCaption className="pb-3">
+                    Trend comparison across compatible publications for PO-Set v
+                    {trendsData.po_set_version}.
+                  </TableCaption>
+                  <TableHeader className="bg-[var(--surface-subtle)]">
+                    <TableRow>
+                      <TableHead scope="col">Snapshot</TableHead>
+                      <TableHead scope="col">PO-Set</TableHead>
+                      <TableHead scope="col">Status</TableHead>
+                      <TableHead scope="col" className="text-right">
+                        Sample (n / population)
+                      </TableHead>
+                      <TableHead scope="col" className="text-right">
+                        Coverage
+                      </TableHead>
+                      <TableHead scope="col">PO means</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {trendsData.points.map((point) => (
+                      <TableRow key={point.publication_id}>
+                        <th
+                          scope="row"
+                          className="p-2.5 text-left align-middle font-medium whitespace-nowrap"
+                        >
+                          {point.term?.label ?? shortRef(point.publication_id)}
+                          <span className="tabular-mono block text-xs font-normal text-muted-foreground">
+                            Pub {shortRef(point.publication_id)} · Series v
+                            {point.series_version}
+                          </span>
+                        </th>
+                        <TableCell className="tabular-mono">
+                          v{point.po_set_version}
+                        </TableCell>
+                        <TableCell>
+                          {point.publication_status === 'stale' ? (
+                            <StaleTag label="Stale" />
+                          ) : (
+                            <StatusDot variant="success" label="Published" />
+                          )}
+                        </TableCell>
+                        <TableCell className="tabular-mono text-right">
+                          {point.sample_size} / {point.population_size}
+                        </TableCell>
+                        <TableCell className="tabular-mono text-right">
+                          {formatCoveragePercent(point.coverage)}
+                        </TableCell>
+                        <TableCell className="tabular-mono text-xs">
+                          {point.outcomes
+                            .map(
+                              (o) =>
+                                `${o.code}: ${o.n > 0 && o.mean !== null ? o.mean : '—'} (n=${o.n})`,
+                            )
+                            .join(' · ')}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
-              <Badge variant="secondary" className="tabular-mono">
-                PO-Set v{trendsQuery.data.po_set_version} ·{' '}
-                {trendsQuery.data.points.length} snapshot
-                {trendsQuery.data.points.length === 1 ? '' : 's'}
-              </Badge>
             </div>
           )}
-
-          {activeTrendPoCode && trendsQuery.data.points.length > 0 && (
-            <TrendAreaChart
-              points={trendsQuery.data.points}
-              selectedCode={activeTrendPoCode}
-            />
-          )}
-
-          <div className="overflow-x-auto rounded-[var(--radius-card,10px)] border border-border">
-            <Table>
-              <TableCaption className="pb-3">
-                Trend comparison across compatible publications for PO-Set v
-                {trendsQuery.data.po_set_version}.
-              </TableCaption>
-              <TableHeader className="bg-[var(--surface-subtle)]">
-                <TableRow>
-                  <TableHead scope="col">Snapshot</TableHead>
-                  <TableHead scope="col">PO-Set</TableHead>
-                  <TableHead scope="col">Status</TableHead>
-                  <TableHead scope="col" className="text-right">
-                    Sample (n / population)
-                  </TableHead>
-                  <TableHead scope="col" className="text-right">
-                    Coverage
-                  </TableHead>
-                  <TableHead scope="col">PO means</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {trendsQuery.data.points.map((point) => (
-                  <TableRow key={point.publication_id}>
-                    <th
-                      scope="row"
-                      className="p-2.5 text-left align-middle font-medium whitespace-nowrap"
-                    >
-                      {point.term?.label ?? shortRef(point.publication_id)}
-                      <span className="tabular-mono block text-xs font-normal text-muted-foreground">
-                        Pub {shortRef(point.publication_id)} · Series v
-                        {point.series_version}
-                      </span>
-                    </th>
-                    <TableCell className="tabular-mono">
-                      v{point.po_set_version}
-                    </TableCell>
-                    <TableCell>
-                      {point.publication_status === 'stale' ? (
-                        <StaleTag label="Stale" />
-                      ) : (
-                        <StatusDot variant="success" label="Published" />
-                      )}
-                    </TableCell>
-                    <TableCell className="tabular-mono text-right">
-                      {point.sample_size} / {point.population_size}
-                    </TableCell>
-                    <TableCell className="tabular-mono text-right">
-                      {formatCoveragePercent(point.coverage)}
-                    </TableCell>
-                    <TableCell className="tabular-mono text-xs">
-                      {point.outcomes
-                        .map(
-                          (o) =>
-                            `${o.code}: ${o.n > 0 && o.mean !== null ? o.mean : '—'} (n=${o.n})`,
-                        )
-                        .join(' · ')}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
-      )}
+        </CohortQuery.Ready>
+      </CohortQuery>
     </section>
   );
 }

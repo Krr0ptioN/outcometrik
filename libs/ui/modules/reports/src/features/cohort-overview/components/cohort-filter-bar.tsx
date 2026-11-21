@@ -9,49 +9,31 @@ import {
   NativeSelect,
   NativeSelectOption,
 } from '@outcometrik/ui';
-import type {
-  CohortCourseOption,
-  CohortProgramOption,
-  CohortTermOption,
-  CoordinatorPublication,
-} from '../types';
 import { formatPublicationLabel } from './cohort-formatters';
+import { useCohortOverviewContext } from './cohort-overview-context';
 
-export interface CohortFilterBarProps {
-  programs: CohortProgramOption[];
-  publications: CoordinatorPublication[];
-  publicationsPending: boolean;
-  terms: CohortTermOption[];
-  courses: CohortCourseOption[];
-  activeProgramId: string;
-  activePublicationId: string;
-  selectedTermId: string;
-  selectedCourseId: string;
-  hasActiveFilters: boolean;
-  onProgramChange: (programId: string) => void;
-  onPublicationChange: (publicationId: string) => void;
-  onTermChange: (termId: string) => void;
-  onCourseChange: (courseId: string) => void;
-  onResetFilters: () => void;
-}
+/**
+ * Filter bar consuming `CohortOverviewContext` directly (zero prop drilling).
+ */
+export const CohortFilterBar = memo(function CohortFilterBar() {
+  const {
+    programs,
+    publications,
+    publicationsPending,
+    terms,
+    courses,
+    activeProgramId,
+    activePublicationId,
+    selectedTermId,
+    selectedCourseId,
+    hasActiveFilters,
+    onProgramChange,
+    onPublicationChange,
+    onTermChange,
+    onCourseChange,
+    onResetFilters,
+  } = useCohortOverviewContext();
 
-export const CohortFilterBar = memo(function CohortFilterBar({
-  programs,
-  publications,
-  publicationsPending,
-  terms,
-  courses,
-  activeProgramId,
-  activePublicationId,
-  selectedTermId,
-  selectedCourseId,
-  hasActiveFilters,
-  onProgramChange,
-  onPublicationChange,
-  onTermChange,
-  onCourseChange,
-  onResetFilters,
-}: CohortFilterBarProps) {
   const programSelectId = useId();
   const publicationSelectId = useId();
   const termSelectId = useId();

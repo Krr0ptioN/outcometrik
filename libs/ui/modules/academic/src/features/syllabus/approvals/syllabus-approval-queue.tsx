@@ -26,7 +26,9 @@ import {
   EmptyHeader,
   EmptyTitle,
   Skeleton,
+  type QueryLike,
 } from '@outcometrik/ui';
+import { AcademicQuery } from '../../academic-query';
 import {
   approveSyllabus,
   getSyllabusMappingValidation,
@@ -46,17 +48,15 @@ export interface QueueOfferingSummary {
 }
 
 export interface SyllabusApprovalQueueProps {
+  syllabiQuery: QueryLike<Syllabus[]>;
   syllabi: Syllabus[];
-  syllabiPending: boolean;
-  syllabiError: unknown;
   offeringById: Map<string, QueueOfferingSummary>;
   programOutcomes: ProgramOutcome[];
 }
 
 export function SyllabusApprovalQueue({
+  syllabiQuery,
   syllabi,
-  syllabiPending,
-  syllabiError,
   offeringById,
   programOutcomes,
 }: SyllabusApprovalQueueProps) {
@@ -152,31 +152,37 @@ export function SyllabusApprovalQueue({
         </CardHeader>
 
         <CardContent className="pt-5">
-          {syllabiPending ? (
-            <div className="space-y-3" role="status">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-44 w-full" />
-            </div>
-          ) : syllabiError ? (
-            <Alert variant="destructive">
-              <AlertTitle>Unable to load syllabi</AlertTitle>
-              <AlertDescription>{errorMessage(syllabiError)}</AlertDescription>
-            </Alert>
-          ) : filteredSyllabi.length === 0 ? (
-            <Empty>
-              <EmptyHeader>
-                <EmptyTitle>
-                  {queueFilter === 'draft'
-                    ? 'No draft syllabi awaiting approval'
-                    : 'No syllabi in this filter'}
-                </EmptyTitle>
-                <EmptyDescription>
-                  Switch to Approved or All to inspect locked syllabus versions.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          ) : (
-            <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+          <AcademicQuery
+            query={syllabiQuery}
+            isEmpty={() => filteredSyllabi.length === 0}
+          >
+            <AcademicQuery.Loading>
+              <div className="space-y-3" role="status">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-44 w-full" />
+              </div>
+            </AcademicQuery.Loading>
+
+            <AcademicQuery.Error title="Unable to load syllabi" />
+
+            <AcademicQuery.Empty>
+              <Empty>
+                <EmptyHeader>
+                  <EmptyTitle>
+                    {queueFilter === 'draft'
+                      ? 'No draft syllabi awaiting approval'
+                      : 'No syllabi in this filter'}
+                  </EmptyTitle>
+                  <EmptyDescription>
+                    Switch to Approved or All to inspect locked syllabus
+                    versions.
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            </AcademicQuery.Empty>
+
+            <AcademicQuery.Ready>
+              <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
               <div
                 role="listbox"
                 aria-label="Syllabi in queue"
@@ -287,8 +293,9 @@ export function SyllabusApprovalQueue({
                   />
                 </div>
               )}
-            </div>
-          )}
+              </div>
+            </AcademicQuery.Ready>
+          </AcademicQuery>
         </CardContent>
       </Card>
 

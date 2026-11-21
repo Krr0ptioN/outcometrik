@@ -1,12 +1,8 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useId, useMemo, useState } from 'react';
-import { errorMessage } from '@outcometrik/access';
+import { useId, useMemo } from 'react';
 import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
   Badge,
   Empty,
   EmptyDescription,
@@ -18,8 +14,9 @@ import {
   NativeSelectOption,
   Skeleton,
 } from '@outcometrik/ui';
-import { getAllSyllabi, getProgramOutcomeSets } from '../syllabus/api';
-import { getCoordinatorWorkspace } from '../workspace/api';
+import { AcademicQuery } from '../academic-query';
+import { getAllSyllabi } from '../syllabus/api';
+import { useCoordinatorProgramScope } from '../workspace/use-coordinator-program-scope';
 import { getCatalogRows } from './api';
 import {
   getCalculationRuns,
@@ -32,32 +29,19 @@ import { RunPublishCard } from './publications/run-publish-card';
 
 export function CoordinatorPublicationsManager() {
   const programSelectId = useId();
-  const [selectedProgramId, setSelectedProgramId] = useState<string>('');
+  const {
+    workspaceQuery,
+    programs,
+    offerings,
+    activeProgramId,
+    setSelectedProgramId,
+    poSets,
+  } = useCoordinatorProgramScope();
 
-  const workspaceQuery = useQuery({
-    queryKey: ['academic', 'coordinator'],
-    queryFn: ({ signal }) => getCoordinatorWorkspace(signal),
-  });
-
-  const programs = useMemo(
-    () => workspaceQuery.data?.programs ?? [],
-    [workspaceQuery.data],
+  const activePoSet = useMemo(
+    () => poSets.find((s) => s.active) ?? null,
+    [poSets],
   );
-  const offerings = useMemo(
-    () => workspaceQuery.data?.offerings ?? [],
-    [workspaceQuery.data],
-  );
-
-  const activeProgramId =
-    selectedProgramId && programs.some((p) => p.id === selectedProgramId)
-      ? selectedProgramId
-      : (programs[0]?.id ?? '');
-
-  const poSetsQuery = useQuery({
-    queryKey: ['academic', 'po-sets', activeProgramId],
-    queryFn: ({ signal }) => getProgramOutcomeSets(activeProgramId, signal),
-    enabled: Boolean(activeProgramId),
-  });
 
   const syllabiQuery = useQuery({
     queryKey: ['academic', 'syllabi', 'all'],
@@ -82,11 +66,6 @@ export function CoordinatorPublicationsManager() {
     queryFn: ({ signal }) => getProgramPublications(activeProgramId, signal),
     enabled: Boolean(activeProgramId),
   });
-
-  const activePoSet = useMemo(
-    () => (poSetsQuery.data ?? []).find((s) => s.active) ?? null,
-    [poSetsQuery.data],
-  );
 
   const syllabusReadiness = useMemo(() => {
     const programOfferings = offerings.filter(
@@ -140,92 +119,87 @@ export function CoordinatorPublicationsManager() {
     [termsQuery.data],
   );
 
-  if (workspaceQuery.isPending) {
-    return (
-      <div className="space-y-4" role="status">
-        <p className="text-sm text-muted-foreground">
-          Loading calculation runs and publications…
-        </p>
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-64 w-full" />
-      </div>
-    );
-  }
-
-  if (workspaceQuery.isError) {
-    return (
-      <Alert variant="destructive">
-        <AlertTitle>Unable to load publications workspace</AlertTitle>
-        <AlertDescription>{errorMessage(workspaceQuery.error)}</AlertDescription>
-      </Alert>
-    );
-  }
-
-  if (programs.length === 0) {
-    return (
-      <Empty>
-        <EmptyHeader>
-          <EmptyTitle>No authorized programs</EmptyTitle>
-          <EmptyDescription>
-            No active programs are assigned to your coordinator scope.
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4 rounded-[var(--radius-card,10px)] border border-border bg-card p-4 shadow-[var(--shadow-sm)]">
-        <Field className="min-w-[260px] max-w-md flex-1">
-          <FieldLabel htmlFor={programSelectId}>Program scope</FieldLabel>
-          <NativeSelect
-            id={programSelectId}
-            value={activeProgramId}
-            onChange={(e) => setSelectedProgramId(e.target.value)}
-          >
-            {programs.map((program) => (
-              <NativeSelectOption key={program.id} value={program.id}>
-                {program.label}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-        </Field>
-
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          {activePoSet && (
-            <Badge variant="secondary" className="tabular-mono">
-              Active PO-Set v{activePoSet.version}
-            </Badge>
-          )}
+    <AcademicQuery
+      query={workspaceQuery}
+      isEmpty={(ws) => ws.programs.length === 0}
+    >
+      <AcademicQuery.Loading>
+        <div className="space-y-4" role="status">
+          <p className="text-sm text-muted-foreground">
+            Loading calculation runs and publications…
+          </p>
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-64 w-full" />
         </div>
-      </div>
+      </AcademicQuery.Loading>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <ReadinessGatesCard
-          activePoSet={activePoSet}
-          totalOfferings={syllabusReadiness.totalOfferings}
-          approvedOfferings={syllabusReadiness.approvedOfferings}
-          draftOnlyOfferings={syllabusReadiness.draftOnlyOfferings}
-          latestRun={latestRun}
-        />
+      <AcademicQuery.Error title="Unable to load publications workspace" />
 
-        <RunPublishCard
-          key={activeProgramId}
-          programId={activeProgramId}
-          hasActivePoSet={Boolean(activePoSet)}
-          hasApprovedSyllabus={syllabusReadiness.approvedOfferings > 0}
-          latestRun={latestRun}
-          publications={publications}
-          terms={terms}
-        />
-      </div>
+      <AcademicQuery.Empty>
+        <Empty>
+          <EmptyHeader>
+            <EmptyTitle>No authorized programs</EmptyTitle>
+            <EmptyDescription>
+              No active programs are assigned to your coordinator scope.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      </AcademicQuery.Empty>
 
-      <PublicationSeriesTable
-        publications={publications}
-        isPending={publicationsQuery.isPending}
-        error={publicationsQuery.isError ? publicationsQuery.error : null}
-      />
-    </div>
+      <AcademicQuery.Ready>
+        <div className="space-y-6">
+          <div className="flex flex-wrap items-end justify-between gap-4 rounded-[var(--radius-card,10px)] border border-border bg-card p-4 shadow-[var(--shadow-sm)]">
+            <Field className="min-w-[260px] max-w-md flex-1">
+              <FieldLabel htmlFor={programSelectId}>Program scope</FieldLabel>
+              <NativeSelect
+                id={programSelectId}
+                value={activeProgramId}
+                onChange={(e) => setSelectedProgramId(e.target.value)}
+              >
+                {programs.map((program) => (
+                  <NativeSelectOption key={program.id} value={program.id}>
+                    {program.label}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </Field>
+
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              {activePoSet && (
+                <Badge variant="secondary" className="tabular-mono">
+                  Active PO-Set v{activePoSet.version}
+                </Badge>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <ReadinessGatesCard
+              activePoSet={activePoSet}
+              totalOfferings={syllabusReadiness.totalOfferings}
+              approvedOfferings={syllabusReadiness.approvedOfferings}
+              draftOnlyOfferings={syllabusReadiness.draftOnlyOfferings}
+              latestRun={latestRun}
+            />
+
+            <RunPublishCard
+              key={activeProgramId}
+              programId={activeProgramId}
+              hasActivePoSet={Boolean(activePoSet)}
+              hasApprovedSyllabus={syllabusReadiness.approvedOfferings > 0}
+              latestRun={latestRun}
+              publications={publications}
+              terms={terms}
+            />
+          </div>
+
+          <PublicationSeriesTable
+            publicationsQuery={publicationsQuery}
+            publications={publications}
+          />
+        </div>
+      </AcademicQuery.Ready>
+    </AcademicQuery>
   );
 }

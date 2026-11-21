@@ -1,11 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useId, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { ApiError } from '@outcometrik/api';
 import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
   Card,
   CardContent,
   CardDescription,
@@ -16,6 +13,7 @@ import {
   EmptyHeader,
   EmptyTitle,
   Skeleton,
+  createQueryState,
 } from '@outcometrik/ui';
 import { cohortErrorMessage } from '../api';
 import {
@@ -26,6 +24,7 @@ import {
   useCoordinatorPublicationsQuery,
 } from '../hooks/use-cohort-overview';
 import type {
+  CohortAnalyticsResponse,
   CohortCourseOption,
   CohortProgramOption,
   CohortTermOption,
@@ -36,12 +35,20 @@ import {
   formatExclusionParts,
   totalExclusionsCount,
 } from './cohort-formatters';
+import {
+  CohortOverviewProvider,
+  type CohortOverviewContextValue,
+} from './cohort-overview-context';
 import { CohortSummaryTable } from './cohort-summary-table';
 import { CohortTraceabilityHeader } from './cohort-traceability-header';
 import { CohortTrendsPanel } from './cohort-trends-panel';
 import { PoAttainmentBarChart } from './po-attainment-chart';
 
 export { BUCKET_META, formatExclusionParts, totalExclusionsCount };
+
+const CohortQuery = createQueryState({ formatError: cohortErrorMessage });
+const isNotFoundApiError = (error: unknown) =>
+  error instanceof ApiError && error.status === 404;
 
 export interface CohortSelection {
   programId: string | null;
@@ -269,15 +276,48 @@ export function CohortOverview({
     onSelectionChange,
   ]);
 
-  const isNotFound =
-    analyticsQuery.isError &&
-    analyticsQuery.error instanceof ApiError &&
-    analyticsQuery.error.status === 404;
-
-  const isFatalAnalyticsError = analyticsQuery.isError && !isNotFound;
+  const contextValue = useMemo<CohortOverviewContextValue>(
+    () => ({
+      programs,
+      publications,
+      publicationsPending: publicationsQuery.isPending,
+      terms,
+      courses,
+      activeProgramId,
+      activePublicationId,
+      selectedTermId,
+      selectedCourseId,
+      activePoSetVersion,
+      hasActiveFilters,
+      onProgramChange: handleProgramChange,
+      onPublicationChange: handlePublicationChange,
+      onTermChange: handleTermChange,
+      onCourseChange: handleCourseChange,
+      onResetFilters: handleResetFilters,
+    }),
+    [
+      programs,
+      publications,
+      publicationsQuery.isPending,
+      terms,
+      courses,
+      activeProgramId,
+      activePublicationId,
+      selectedTermId,
+      selectedCourseId,
+      activePoSetVersion,
+      hasActiveFilters,
+      handleProgramChange,
+      handlePublicationChange,
+      handleTermChange,
+      handleCourseChange,
+      handleResetFilters,
+    ],
+  );
 
   return (
-    <Card className="border-border bg-card shadow-[var(--shadow-sm)]">
+    <CohortOverviewProvider value={contextValue}>
+      <Card className="border-border bg-card shadow-[var(--shadow-sm)]">
       <CardHeader className="border-b border-border/70 pb-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-1">
@@ -333,27 +373,21 @@ export function CohortOverview({
       </CardHeader>
 
       <CardContent className="space-y-6 pt-5">
-        {providedPrograms === undefined && programsQuery.isPending && (
-          <div className="space-y-2" role="status">
-            <p className="text-sm text-muted-foreground">
-              Loading authorized programs…
-            </p>
-            <Skeleton className="h-10 w-full" />
-          </div>
-        )}
-
-        {providedPrograms === undefined && programsQuery.isError && (
-          <Alert variant="destructive">
-            <AlertTitle>Unable to load programs</AlertTitle>
-            <AlertDescription>
-              {cohortErrorMessage(programsQuery.error)}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {programs.length === 0 &&
-          !programsQuery.isPending &&
-          !programsQuery.isError && (
+        <CohortQuery
+          query={programsQuery}
+          fallbackData={providedPrograms}
+          isEmpty={(list) => list.length === 0}
+        >
+          <CohortQuery.Loading>
+            <div className="space-y-2" role="status">
+              <p className="text-sm text-muted-foreground">
+                Loading authorized programs…
+              </p>
+              <Skeleton className="h-10 w-full" />
+            </div>
+          </CohortQuery.Loading>
+          <CohortQuery.Error title="Unable to load programs" />
+          <CohortQuery.Empty>
             <Empty>
               <EmptyHeader>
                 <EmptyTitle>No published cohort analytics available</EmptyTitle>
@@ -362,66 +396,39 @@ export function CohortOverview({
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>
-          )}
+          </CohortQuery.Empty>
+          <CohortQuery.Ready>
+            <CohortFilterBar />
+          </CohortQuery.Ready>
+        </CohortQuery>
 
-        {programs.length > 0 && (
-          <CohortFilterBar
-            programs={programs}
-            publications={publications}
-            publicationsPending={publicationsQuery.isPending}
-            terms={terms}
-            courses={courses}
-            activeProgramId={activeProgramId}
-            activePublicationId={activePublicationId}
-            selectedTermId={selectedTermId}
-            selectedCourseId={selectedCourseId}
-            hasActiveFilters={hasActiveFilters}
-            onProgramChange={handleProgramChange}
-            onPublicationChange={handlePublicationChange}
-            onTermChange={handleTermChange}
-            onCourseChange={handleCourseChange}
-            onResetFilters={handleResetFilters}
-          />
-        )}
+        <CohortQuery query={publicationsQuery}>
+          <CohortQuery.Error title="Unable to load published snapshots" />
+        </CohortQuery>
 
-        {publicationsQuery.isError && (
-          <Alert variant="destructive">
-            <AlertTitle>Unable to load published snapshots</AlertTitle>
-            <AlertDescription>
-              {cohortErrorMessage(publicationsQuery.error)}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {activeTab === 'overview' && (
+        {activeTab === 'overview' && activeProgramId && (
           <div
             id={overviewPanelId}
             role="tabpanel"
             aria-labelledby={overviewTabId}
             className="space-y-6"
           >
-            {activeProgramId && analyticsQuery.isPending && (
-              <div className="space-y-3" role="status">
-                <p className="text-sm text-muted-foreground">
-                  Loading cohort analytics…
-                </p>
-                <Skeleton className="h-20 w-full" />
-                <Skeleton className="h-56 w-full" />
-              </div>
-            )}
-
-            {isFatalAnalyticsError && (
-              <Alert variant="destructive">
-                <AlertTitle>Unable to load cohort analytics</AlertTitle>
-                <AlertDescription>
-                  {cohortErrorMessage(analyticsQuery.error)}
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {activeProgramId &&
-              !analyticsQuery.isPending &&
-              (isNotFound || (analytics && analytics.outcomes.length === 0)) && (
+            <CohortQuery
+              query={analyticsQuery}
+              isEmpty={(data) => data.outcomes.length === 0}
+              treatErrorAsEmpty={isNotFoundApiError}
+            >
+              <CohortQuery.Loading>
+                <div className="space-y-3" role="status">
+                  <p className="text-sm text-muted-foreground">
+                    Loading cohort analytics…
+                  </p>
+                  <Skeleton className="h-20 w-full" />
+                  <Skeleton className="h-56 w-full" />
+                </div>
+              </CohortQuery.Loading>
+              <CohortQuery.Error title="Unable to load cohort analytics" />
+              <CohortQuery.Empty>
                 <Empty>
                   <EmptyHeader>
                     <EmptyTitle>
@@ -433,61 +440,65 @@ export function CohortOverview({
                     </EmptyDescription>
                   </EmptyHeader>
                 </Empty>
-              )}
+              </CohortQuery.Empty>
+              <CohortQuery.Ready>
+                {(data: CohortAnalyticsResponse) => (
+                  <>
+                    <CohortTraceabilityHeader analytics={data} />
 
-            {analytics && analytics.outcomes.length > 0 && (
-              <>
-                <CohortTraceabilityHeader analytics={analytics} />
-
-                <section
-                  aria-labelledby="po-distribution-chart-title"
-                  className="space-y-4"
-                >
-                  <div className="flex flex-wrap items-end justify-between gap-3">
-                    <div>
-                      <h3
-                        id="po-distribution-chart-title"
-                        className="text-base font-semibold tracking-tight"
-                      >
-                        PO1–PO11 attainment &amp; 4-band distribution (0–100
-                        scale)
-                      </h3>
-                      <p className="text-xs text-muted-foreground">
-                        Measured zeros (0.0) are counted in the &lt;50 band;
-                        unassessed or excluded students are reported separately
-                        and never coerced to zero.
-                      </p>
-                    </div>
-
-                    <div
-                      aria-label="4-band single-hue legend"
-                      className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground"
+                    <section
+                      aria-labelledby="po-distribution-chart-title"
+                      className="space-y-4"
                     >
-                      {BUCKET_META.map((bucket) => (
-                        <span
-                          key={bucket.key}
-                          className="inline-flex items-center gap-1.5"
+                      <div className="flex flex-wrap items-end justify-between gap-3">
+                        <div>
+                          <h3
+                            id="po-distribution-chart-title"
+                            className="text-base font-semibold tracking-tight"
+                          >
+                            PO1–PO11 attainment &amp; 4-band distribution (0–100
+                            scale)
+                          </h3>
+                          <p className="text-xs text-muted-foreground">
+                            Measured zeros (0.0) are counted in the &lt;50 band;
+                            unassessed or excluded students are reported
+                            separately and never coerced to zero.
+                          </p>
+                        </div>
+
+                        <div
+                          aria-label="4-band single-hue legend"
+                          className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground"
                         >
-                          <span
-                            className={`size-2.5 rounded-[2px] ${bucket.swatchClass}`}
-                            aria-hidden="true"
-                          />
-                          <span className="tabular-mono">{bucket.label}</span>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+                          {BUCKET_META.map((bucket) => (
+                            <span
+                              key={bucket.key}
+                              className="inline-flex items-center gap-1.5"
+                            >
+                              <span
+                                className={`size-2.5 rounded-[2px] ${bucket.swatchClass}`}
+                                aria-hidden="true"
+                              />
+                              <span className="tabular-mono">
+                                {bucket.label}
+                              </span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
 
-                  <PoAttainmentBarChart outcomes={analytics.outcomes} />
-                </section>
+                      <PoAttainmentBarChart outcomes={data.outcomes} />
+                    </section>
 
-                <CohortSummaryTable
-                  publicationId={analytics.publication_id}
-                  poSetVersion={analytics.po_set_version}
-                  outcomes={analytics.outcomes}
-                />
-              </>
-            )}
+                    <CohortSummaryTable
+                      publicationId={data.publication_id}
+                      poSetVersion={data.po_set_version}
+                      outcomes={data.outcomes}
+                    />
+                  </>
+                )}
+              </CohortQuery.Ready>
+            </CohortQuery>
           </div>
         )}
 
@@ -496,12 +507,10 @@ export function CohortOverview({
             key={activeProgramId}
             panelId={trendsPanelId}
             tabId={trendsTabId}
-            programId={activeProgramId}
-            publications={publications}
-            activePoSetVersion={activePoSetVersion}
           />
         )}
       </CardContent>
     </Card>
+    </CohortOverviewProvider>
   );
 }

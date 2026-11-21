@@ -2,11 +2,7 @@
 
 import { memo } from 'react';
 import { ArrowUpRight } from 'lucide-react';
-import { errorMessage } from '@outcometrik/access';
 import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
   Button,
   Card,
   CardContent,
@@ -27,7 +23,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  type QueryLike,
 } from '@outcometrik/ui';
+import { AcademicQuery } from '../../academic-query';
 import {
   resolvePublicationFreshness,
   type GovernancePublication,
@@ -38,15 +36,13 @@ function shortHash(hash: string): string {
 }
 
 export interface PublicationSeriesTableProps {
+  publicationsQuery: QueryLike<GovernancePublication[]>;
   publications: GovernancePublication[];
-  isPending: boolean;
-  error: unknown;
 }
 
 export const PublicationSeriesTable = memo(function PublicationSeriesTable({
+  publicationsQuery,
   publications,
-  isPending,
-  error,
 }: PublicationSeriesTableProps) {
   return (
     <Card className="border-border bg-card shadow-[var(--shadow-sm)]">
@@ -63,28 +59,33 @@ export const PublicationSeriesTable = memo(function PublicationSeriesTable({
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-5">
-        {isPending ? (
-          <div className="space-y-2" role="status">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-40 w-full" />
-          </div>
-        ) : error ? (
-          <Alert variant="destructive">
-            <AlertTitle>Unable to load publications</AlertTitle>
-            <AlertDescription>{errorMessage(error)}</AlertDescription>
-          </Alert>
-        ) : publications.length === 0 ? (
-          <Empty>
-            <EmptyHeader>
-              <EmptyTitle>No publications yet</EmptyTitle>
-              <EmptyDescription>
-                Run calculation and publish Series v1 to create the first
-                immutable outcome snapshot for this program.
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        ) : (
-          <div className="overflow-x-auto rounded-[var(--radius-card,10px)] border border-border">
+        <AcademicQuery
+          query={publicationsQuery}
+          isEmpty={(rows) => rows.length === 0}
+        >
+          <AcademicQuery.Loading>
+            <div className="space-y-2" role="status">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-40 w-full" />
+            </div>
+          </AcademicQuery.Loading>
+
+          <AcademicQuery.Error title="Unable to load publications" />
+
+          <AcademicQuery.Empty>
+            <Empty>
+              <EmptyHeader>
+                <EmptyTitle>No publications yet</EmptyTitle>
+                <EmptyDescription>
+                  Run calculation and publish Series v1 to create the first
+                  immutable outcome snapshot for this program.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          </AcademicQuery.Empty>
+
+          <AcademicQuery.Ready>
+            <div className="overflow-x-auto rounded-[var(--radius-card,10px)] border border-border">
             <Table>
               <TableCaption className="pb-3">
                 Immutable publication series for the selected program.
@@ -171,9 +172,10 @@ export const PublicationSeriesTable = memo(function PublicationSeriesTable({
                   );
                 })}
               </TableBody>
-            </Table>
-          </div>
-        )}
+              </Table>
+            </div>
+          </AcademicQuery.Ready>
+        </AcademicQuery>
       </CardContent>
     </Card>
   );
