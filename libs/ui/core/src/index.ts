@@ -114,6 +114,16 @@ export {
   TableCell,
   TableCaption,
 } from './components/table';
+export {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+  ChartStyle,
+  type ChartConfig,
+  type TooltipPayloadItem,
+} from './components/chart';
 export { Badge, badgeVariants } from './components/badge';
 export {
   StatusDot,

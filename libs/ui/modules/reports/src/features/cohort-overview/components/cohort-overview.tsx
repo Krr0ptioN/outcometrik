@@ -36,6 +36,7 @@ import {
   TableRow,
 } from '@outcometrik/ui';
 import { cohortErrorMessage, formatCoveragePercent, shortRef } from '../api';
+import { PoAttainmentBarChart } from './po-attainment-chart';
 import {
   useCohortAnalyticsQuery,
   useCohortCoursesQuery,
@@ -174,13 +175,6 @@ function formatPublicationLabel(pub: CoordinatorPublication): string {
   const datePart = pub.published_at ? pub.published_at.slice(0, 10) : 'Draft';
   const statusPart = pub.stale ? 'Stale' : 'Published';
   return `Series v${pub.series_version} · PO-Set v${pub.po_set_version} · ${datePart} (${statusPart}) · ${shortRef(pub.id)}`;
-}
-
-function formatMean(outcome: CohortOutcomeMetric): string {
-  if (outcome.n === 0 || outcome.mean === null) {
-    return '— Not assessed';
-  }
-  return outcome.mean;
 }
 
 function formatMinMax(outcome: CohortOutcomeMetric): string {
@@ -1016,121 +1010,7 @@ export function CohortOverview({
                     </div>
                   </div>
 
-                  <div className="space-y-2.5">
-                    {analytics.outcomes.map((outcome) => {
-                      const exclusionParts = formatExclusionParts(
-                        outcome.exclusions,
-                      );
-                      const coveragePct = formatCoveragePercent(
-                        outcome.coverage,
-                      );
-                      const numericMean =
-                        outcome.n > 0 ? parseNumericScore(outcome.mean) : null;
-                      const measuredZero = isMeasuredZero(outcome);
-
-                      return (
-                        <div
-                          key={outcome.code}
-                          className="space-y-2 rounded-[var(--radius-card,10px)] border border-border/80 bg-card p-3.5 transition-colors duration-150 hover:bg-[var(--surface-hover)]/50"
-                        >
-                          <div className="flex flex-wrap items-baseline justify-between gap-2">
-                            <div className="min-w-0">
-                              <span className="tabular-mono font-semibold text-foreground">
-                                {outcome.code}
-                              </span>{' '}
-                              <span className="text-sm text-muted-foreground">
-                                {outcome.label}
-                              </span>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-3 text-xs">
-                              {outcome.n > 0 ? (
-                                <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
-                                  <span>Mean: {formatMean(outcome)}</span>
-                                  {measuredZero && (
-                                    <MeasuredZeroTag value="0.0" />
-                                  )}
-                                </span>
-                              ) : (
-                                <NotAssessedText />
-                              )}
-                              <span className="tabular-mono text-muted-foreground">
-                                n = {outcome.n} ({outcome.n} /{' '}
-                                {outcome.population_size})
-                              </span>
-                              <span className="tabular-mono text-muted-foreground">
-                                Coverage: {coveragePct}
-                              </span>
-                            </div>
-                          </div>
-
-                          {outcome.n > 0 && numericMean !== null ? (
-                            <div className="space-y-2">
-                              {/* Horizontal Mean Attainment Bar (0-100 scale with 70% threshold marker) */}
-                              <div className="relative h-2.5 w-full overflow-hidden rounded-[var(--radius-tag,4px)] bg-[var(--surface-subtle)]">
-                                <div
-                                  className="h-full rounded-[var(--radius-tag,4px)] bg-[var(--accent-primary)] transition-[width] duration-200"
-                                  style={{
-                                    width: `${Math.max(numericMean, measuredZero ? 0 : 1)}%`,
-                                  }}
-                                />
-                                <div
-                                  className="pointer-events-none absolute inset-y-0 w-px bg-foreground/35"
-                                  style={{ left: '70%' }}
-                                  title="70.0 target threshold"
-                                  aria-hidden="true"
-                                />
-                              </div>
-
-                              {/* 4-Band Single-Hue Stacked Distribution Bar */}
-                              <div
-                                className="flex h-3.5 w-full overflow-hidden rounded-[var(--radius-tag,4px)] bg-[var(--surface-subtle)]"
-                                role="img"
-                                aria-label={`${outcome.code} distribution across ${outcome.n} measured students on a 0–100 scale: <50: ${outcome.distribution['<50']}, 50–69.9: ${outcome.distribution['50-69.9']}, 70–84.9: ${outcome.distribution['70-84.9']}, 85–100: ${outcome.distribution['85-100']}`}
-                              >
-                                {BUCKET_META.map((bucket) => {
-                                  const count =
-                                    outcome.distribution[bucket.key];
-                                  if (count === 0) return null;
-                                  const widthPct = (count / outcome.n) * 100;
-                                  return (
-                                    <div
-                                      key={bucket.key}
-                                      className={bucket.barClass}
-                                      style={{ width: `${widthPct}%` }}
-                                      title={`${bucket.label}: ${count}`}
-                                    />
-                                  );
-                                })}
-                              </div>
-
-                              <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                                {BUCKET_META.map((bucket) => (
-                                  <span key={bucket.key} className="tabular-mono">
-                                    {bucket.label}:{' '}
-                                    <strong className="font-semibold text-foreground">
-                                      {outcome.distribution[bucket.key]}
-                                    </strong>
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          ) : (
-                            <p className="text-xs text-muted-foreground">
-                              <NotAssessedText label="— Not assessed" /> (no
-                              measured scores; 0 / {outcome.population_size}{' '}
-                              measured)
-                            </p>
-                          )}
-
-                          {exclusionParts.length > 0 && (
-                            <p className="text-xs text-muted-foreground">
-                              Missing / excluded: {exclusionParts.join(' · ')}
-                            </p>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <PoAttainmentBarChart outcomes={analytics.outcomes} />
                 </section>
 
                 {/* 4-Band Distribution Summary Table */}
