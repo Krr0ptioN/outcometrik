@@ -333,9 +333,7 @@ function InteractivePoBarShape({
                     pointerEvents: 'none',
                   }}
                 >
-                  {seg.segWidth >= 96
-                    ? `${seg.shortLabel}: ${seg.count}`
-                    : `${seg.count}`}
+                  {seg.count}
                 </text>
               )}
             </g>
