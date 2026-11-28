@@ -1,0 +1,18 @@
+timestamp,container,cpu,mem_usage,mem_pct
+2026-11-28T08:20:02Z,outcometrik-api-load-1,69.24%,240MiB / 1GiB,23.44%
+2026-11-28T08:20:18Z,outcometrik-api-load-1,127.23%,419.1MiB / 1GiB,40.93%
+2026-11-28T08:20:34Z,outcometrik-api-load-1,190.13%,470.7MiB / 1GiB,45.97%
+2026-11-28T08:20:50Z,outcometrik-api-load-1,203.66%,668.6MiB / 1GiB,65.29%
+2026-11-28T08:21:06Z,outcometrik-api-load-1,199.09%,627.2MiB / 1GiB,61.25%
+2026-11-28T08:21:22Z,outcometrik-api-load-1,198.90%,576.1MiB / 1GiB,56.26%
+2026-11-28T08:21:38Z,outcometrik-api-load-1,200.49%,674MiB / 1GiB,65.82%
+2026-11-28T08:21:54Z,outcometrik-api-load-1,199.92%,655.4MiB / 1GiB,64.00%
+2026-11-28T08:22:10Z,outcometrik-api-load-1,197.56%,695.1MiB / 1GiB,67.88%
+2026-11-28T08:22:26Z,outcometrik-api-load-1,194.13%,763.3MiB / 1GiB,74.54%
+2026-11-28T08:22:42Z,outcometrik-api-load-1,198.95%,743.1MiB / 1GiB,72.57%
+2026-11-28T08:22:58Z,outcometrik-api-load-1,199.70%,719.3MiB / 1GiB,70.25%
+2026-11-28T08:23:14Z,outcometrik-api-load-1,198.97%,730.4MiB / 1GiB,71.33%
+2026-11-28T08:23:30Z,outcometrik-api-load-1,198.64%,734.5MiB / 1GiB,71.73%
+2026-11-28T08:23:46Z,outcometrik-api-load-1,199.11%,850.1MiB / 1GiB,83.02%
+2026-11-28T08:24:02Z,outcometrik-api-load-1,198.99%,873.5MiB / 1GiB,85.30%
+2026-11-28T08:24:18Z,outcometrik-api-load-1,199.52%,822.3MiB / 1GiB,80.30%

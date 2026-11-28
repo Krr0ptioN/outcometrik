@@ -1,0 +1,18 @@
+{
+  "seed_version": "perf-cse321-v1",
+  "params": {
+    "students": 150,
+    "terms": 4,
+    "courses_per_term": 3,
+    "los": 6,
+    "assessments": 12,
+    "pos": 11,
+    "rng_seed": 321
+  },
+  "published": true,
+  "seeded_at": "2026-11-20T17:24:53.061745+00:00",
+  "python": "3.14.4",
+  "django": "5.2.17",
+  "institution_id": "5fdc6e49-2024-4fa1-a414-da4f468482ff",
+  "program_id": "3ef905e6-fadc-4df9-b8cb-a86ef6b17ca8"
+}

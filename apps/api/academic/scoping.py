@@ -224,20 +224,29 @@ def scope_publications(user, qs):
         clauses |= Q(offering_id__in=offering_ids)
         has_clause = True
     if student_offering_ids:
+        from django.db.models import Exists, OuterRef
+
+        from .models import OutcomeScore
+
         student_program_ids = set(
             Scope.objects.filter(pk__in=student_offering_ids).values_list("parent_id", flat=True)
         )
-        student_clause = Q(
-            audience=Publication.Audience.STUDENT,
-            offering_id__in=student_offering_ids,
-            run__scores__student=user,
+        has_own_score = Exists(OutcomeScore.objects.filter(run_id=OuterRef("run_id"), student=user))
+        student_clause = (
+            Q(
+                audience=Publication.Audience.STUDENT,
+                offering_id__in=student_offering_ids,
+            )
+            & has_own_score
         )
         if student_program_ids:
-            student_clause |= Q(
-                audience=Publication.Audience.STUDENT,
-                offering__isnull=True,
-                program_id__in=student_program_ids,
-                run__scores__student=user,
+            student_clause |= (
+                Q(
+                    audience=Publication.Audience.STUDENT,
+                    offering__isnull=True,
+                    program_id__in=student_program_ids,
+                )
+                & has_own_score
             )
         clauses |= student_clause
         has_clause = True
@@ -245,4 +254,4 @@ def scope_publications(user, qs):
     if not has_clause:
         return qs.none()
 
-    return qs.filter(clauses).distinct()
+    return qs.filter(clauses)

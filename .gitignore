@@ -20,3 +20,4 @@ apps/api/reports/junit-*.xml
 /apps/web/.next
 *.tsbuildinfo
 .vscode/
+docs/perf/load/

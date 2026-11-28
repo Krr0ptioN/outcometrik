@@ -224,12 +224,14 @@ StudentPO(s,p) = Σ_c [ CoursePO(s,c,p) × wC(c,p) ]
 ```python
 from decimal import Decimal
 
+
 def weighted_mean(values: list[tuple[Decimal, Decimal]]) -> Decimal | None:
     active = [(score, weight) for score, weight in values if weight > 0]
-    denominator = sum((weight for _, weight in active), Decimal('0'))
+    denominator = sum((weight for _, weight in active), Decimal("0"))
     if denominator == 0:
         return None
-    return sum((score * weight for score, weight in active), Decimal('0')) / denominator
+    return sum((score * weight for score, weight in active), Decimal("0")) / denominator
+
 
 # Never round until presentation. All inputs are normalized to 0-100.
 # Resolve availability and completeness BEFORE publishing.
@@ -640,15 +642,19 @@ class ScoringPolicy:
     attempt_selection: str
     require_complete_for_publication: bool
 
+
 class AttainmentService:
     def calculate_offering(self, offering_id, policy: ScoringPolicy, actor_id): ...
     def calculate_program(self, program_id, cohort_filter, policy, actor_id): ...
     def publish(self, calculation_run_id, actor_id): ...
     def explain(self, outcome_score_id, actor_id): ...
 
+
 class GradebookService:
     def set_grade(self, enrollment_id, assessment_id, value, actor_id, reason=None): ...
-    def import_grades(self, offering_id, csv_file, dry_run, idempotency_key, actor_id): ...
+    def import_grades(
+        self, offering_id, csv_file, dry_run, idempotency_key, actor_id
+    ): ...
 ```
 
 Services enforce permissions at entry (or have authorized use-case facades), validate scoped entity relations, modify data within `transaction.atomic()`, emit audit events and invalidate affected calculation freshness.

@@ -122,7 +122,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from ..decorators import controller, get, post, require_permission, validate_payload
-from ..serializers import ProgramOutcomeSetActivateSerializer, ProgramOutcomeSetSerializer
+from ..serializers import (
+    ProgramOutcomeSetActivateSerializer,
+    ProgramOutcomeSetSerializer,
+)
 from ..services import ProgramOutcomeSetService, academic_service_provider
 from .base import AcademicPagination
 
@@ -140,7 +143,9 @@ class ProgramOutcomeSetController(
 
     def __init__(self, service: ProgramOutcomeSetService | None = None, **kwargs):
         super().__init__(**kwargs)
-        self.service = service or academic_service_provider.provide(ProgramOutcomeSetService)
+        self.service = service or academic_service_provider.provide(
+            ProgramOutcomeSetService
+        )
 
     def get_queryset(self):
         filters = dict(self.request.query_params.items())
@@ -203,18 +208,26 @@ from .outcome_validation import ProgramOutcomeSetValidator
 class ProgramOutcomeSetService:
     model = ProgramOutcomeSet
 
-    def __init__(self, auth_service: AuthorizationService | None = None, *, actor: Any = None):
+    def __init__(
+        self, auth_service: AuthorizationService | None = None, *, actor: Any = None
+    ):
         self.auth_service = auth_service or AuthorizationService()
         self.actor = actor
 
     def get_queryset(self, actor: Any = None, **filters):
         effective_actor = actor if actor is not None else self.actor
-        return self.visible_queryset(ProgramOutcomeSet.objects.all(), actor=effective_actor)
+        return self.visible_queryset(
+            ProgramOutcomeSet.objects.all(), actor=effective_actor
+        )
 
     @transaction.atomic
-    def activate(self, *, instance: ProgramOutcomeSet, effective_date=None, actor: Any = None):
+    def activate(
+        self, *, instance: ProgramOutcomeSet, effective_date=None, actor: Any = None
+    ):
         locked = ProgramOutcomeSet.objects.select_for_update().get(pk=instance.pk)
-        ProgramOutcomeSetValidator.validate_activation(locked, effective_date or locked.effective_date)
+        ProgramOutcomeSetValidator.validate_activation(
+            locked, effective_date or locked.effective_date
+        )
         # Apply state transition and persist...
         return locked
 ```

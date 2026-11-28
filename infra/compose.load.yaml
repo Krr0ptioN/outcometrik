@@ -1,0 +1,31 @@
+# Load-test API: gunicorn, no source bind-mounts, hard-wired to the benchmark database.
+# Use together with compose.yaml:  docker compose -f compose.yaml -f compose.load.yaml ...
+services:
+  api-load:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+      entitlements:
+        - network.host
+      network: host
+    command: >
+      gunicorn config.wsgi:application
+      --bind 0.0.0.0:8000
+      --workers ${GUNICORN_WORKERS:-4}
+      --timeout 60
+    cpus: "${LOAD_API_CPUS:-2}"
+    mem_limit: "${LOAD_API_MEM:-1g}"
+    ports:
+      - "${LOAD_API_PORT:-8001}:8000"
+    environment:
+      DJANGO_DEBUG: "false"
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?DJANGO_SECRET_KEY must be set}
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,host.docker.internal
+      POSTGRES_DB: ${LOAD_POSTGRES_DB:-outcometrik_perf}
+      POSTGRES_USER: ${POSTGRES_USER:-outcometrik}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_HOST: ${COMPOSE_POSTGRES_HOST:-db}
+      POSTGRES_PORT: "5432"
+    depends_on:
+      db:
+        condition: service_healthy
