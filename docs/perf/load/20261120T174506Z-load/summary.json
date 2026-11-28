@@ -1,0 +1,242 @@
+{
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {}
+    },
+    "metrics": {
+        "http_req_duration{endpoint:publication_list_student}": {
+            "min": 2241.945206,
+            "med": 17495.959735,
+            "max": 26334.943739,
+            "p(90)": 20925.232134600003,
+            "p(95)": 22360.872879,
+            "avg": 16260.840342676775,
+            "thresholds": {
+                "p(95)<300": true
+            }
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 397,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "vus": {
+            "value": 1,
+            "min": 0,
+            "max": 20
+        },
+        "http_req_duration{endpoint:analytics_cohort_program}": {
+            "max": 23073.528985,
+            "p(90)": 21306.065009,
+            "p(95)": 22018.5964114,
+            "avg": 16341.023414454547,
+            "min": 2257.328535,
+            "med": 17033.275975,
+            "thresholds": {
+                "p(95)<800": true
+            }
+        },
+        "data_received": {
+            "count": 13496022,
+            "rate": 33364.36822095132
+        },
+        "http_req_failed{endpoint:gradebook_page_200}": {
+            "passes": 0,
+            "fails": 57,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "http_req_failed{endpoint:publication_list_student}": {
+            "passes": 0,
+            "fails": 99,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "http_req_blocked": {
+            "max": 2.639378,
+            "p(90)": 1.5713066000000002,
+            "p(95)": 1.6394476,
+            "avg": 1.4305524458438275,
+            "min": 0.777238,
+            "med": 1.444491
+        },
+        "http_req_duration{expected_response:true}": {
+            "min": 1.544088,
+            "med": 17595.821858,
+            "max": 28052.913583,
+            "p(90)": 22961.06175,
+            "p(95)": 24261.2856694,
+            "avg": 16502.348970775805
+        },
+        "http_req_failed{endpoint:export_cohort_csv}": {
+            "passes": 0,
+            "fails": 34,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "http_req_failed{endpoint:analytics_cohort_program}": {
+            "fails": 77,
+            "passes": 0,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "http_req_sending": {
+            "max": 0.184452,
+            "p(90)": 0.0748586,
+            "p(95)": 0.08598399999999998,
+            "avg": 0.05222149622166245,
+            "min": 0.016302,
+            "med": 0.048785
+        },
+        "http_req_receiving": {
+            "p(90)": 1.9192982000000016,
+            "p(95)": 2.2612433999999992,
+            "avg": 0.947391070528967,
+            "min": 0.059963,
+            "med": 0.852688,
+            "max": 5.31515
+        },
+        "http_req_duration{endpoint:publication_list_staff}": {
+            "p(90)": 25437.8319265,
+            "p(95)": 26340.0367655,
+            "avg": 20332.06582641379,
+            "min": 3856.068694,
+            "med": 21380.6011465,
+            "max": 28052.913583,
+            "thresholds": {
+                "p(95)<500": true
+            }
+        },
+        "http_reqs": {
+            "count": 397,
+            "rate": 0.9814487694016558
+        },
+        "http_req_connecting": {
+            "med": 1.361758,
+            "max": 2.560174,
+            "p(90)": 1.4897826,
+            "p(95)": 1.5394032,
+            "avg": 1.3520985541561725,
+            "min": 0.73253
+        },
+        "iteration_duration": {
+            "p(90)": 24449.4452432,
+            "p(95)": 25918.881602799996,
+            "avg": 18594.105859195824,
+            "min": 1374.480772,
+            "med": 19257.37022,
+            "max": 29245.927889
+        },
+        "http_req_duration{endpoint:export_cohort_csv}": {
+            "avg": 16246.202735676474,
+            "min": 5993.611183,
+            "med": 16736.460751,
+            "max": 23397.568378,
+            "p(90)": 21105.651016699998,
+            "p(95)": 22408.41293865,
+            "thresholds": {
+                "p(95)<2000": true
+            }
+        },
+        "data_sent": {
+            "count": 72637,
+            "rate": 179.57051451644352
+        },
+        "http_req_tls_handshaking": {
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0
+        },
+        "vus_max": {
+            "min": 20,
+            "max": 20,
+            "value": 20
+        },
+        "http_req_waiting": {
+            "max": 28051.505056,
+            "p(90)": 22959.955726,
+            "p(95)": 24260.1067348,
+            "avg": 16501.349358209067,
+            "min": 1.414288,
+            "med": 17595.673208
+        },
+        "http_req_duration{endpoint:gradebook_page_200}": {
+            "p(95)": 19134.748557399995,
+            "avg": 13469.004355140352,
+            "min": 51.824292,
+            "med": 14151.649469,
+            "max": 22754.678154,
+            "p(90)": 17987.409132,
+            "thresholds": {
+                "p(95)<800": true
+            }
+        },
+        "iterations": {
+            "rate": 0.9468384853421515,
+            "count": 383
+        },
+        "http_req_failed{endpoint:publication_list_staff}": {
+            "passes": 0,
+            "fails": 116,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "http_req_duration": {
+            "p(95)": 24261.2856694,
+            "avg": 16502.348970775805,
+            "min": 1.544088,
+            "med": 17595.821858,
+            "max": 28052.913583,
+            "p(90)": 22961.06175
+        }
+    },
+    "setup_data": {
+        "offeringIds": [
+            "5f2da15e-6f43-4bef-8724-d9851e2982a4",
+            "ff5d0cb2-dbe5-4408-a145-500dbcb84002",
+            "c52a65c0-c43f-4126-895e-d3bb8e6b1832",
+            "6cff4ea4-5091-408c-a84d-6b19ddefeac8"
+        ],
+        "programId": "3ef905e6-fadc-4df9-b8cb-a86ef6b17ca8",
+        "publicationId": "9cb4cc44-ad98-4c1e-8f92-bc8c0bed7d06",
+        "students": [
+            {
+                "sessionid": "7c4szw11bbufjm68hq0x6z5mu56gpmkn"
+            },
+            {
+                "sessionid": "gn0n5kcnn9f6z0vv5tdh5ttrtbdemywg"
+            },
+            {
+                "sessionid": "lvhcn3vydur7ianbtjk7xv7nkd43ma1n"
+            },
+            {
+                "sessionid": "z8gov9h8z28vj33w29c5k4cqfltf8hda"
+            },
+            {
+                "sessionid": "zytb7hpiu9vtzvu6le44697nyvsxtcwm"
+            }
+        ],
+        "coord": {
+            "sessionid": "0skgj79oi77ih0vuc2ei0vp6t0u8qkkl"
+        }
+    }
+}
